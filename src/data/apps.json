@@ -1,0 +1,102 @@
+{
+  "categories": [
+    {
+      "name": "Productivity & Collaboration",
+      "apps": [
+        {
+          "id": 1,
+          "title": "Workspace Docs",
+          "description": "Collaborative real-time document editing, sharing, and version history",
+          "icon": "Description"
+        },
+        {
+          "id": 2,
+          "title": "Team Chat",
+          "description": "Instant direct messaging, topic channels, and screen-sharing huddles",
+          "icon": "Forum"
+        },
+        {
+          "id": 3,
+          "title": "Project Boards",
+          "description": "Agile sprint boards, custom workflows, task assignments, and roadmaps",
+          "icon": "ViewKanban"
+        },
+        {
+          "id": 4,
+          "title": "Calendar Pro",
+          "description": "Smart schedule management, meeting booking, and timezone coordination",
+          "icon": "CalendarMonth"
+        }
+      ]
+    },
+    {
+      "name": "Analytics & Intelligence",
+      "apps": [
+        {
+          "id": 5,
+          "title": "BI Analytics",
+          "description": "Interactive business performance dashboards and executive summaries",
+          "icon": "BarChart"
+        },
+        {
+          "id": 6,
+          "title": "Customer Insights",
+          "description": "Real-time user behavior tracking, journey maps, and cohort retention",
+          "icon": "Insights"
+        },
+        {
+          "id": 7,
+          "title": "Revenue Tracker",
+          "description": "Financial forecasts, recurring subscription metrics, and ledger reports",
+          "icon": "MonetizationOn"
+        }
+      ]
+    },
+    {
+      "name": "Developer & Cloud Ops",
+      "apps": [
+        {
+          "id": 8,
+          "title": "Cloud Infrastructure",
+          "description": "Kubernetes cluster monitoring, node health, and container scaling",
+          "icon": "CloudQueue"
+        },
+        {
+          "id": 9,
+          "title": "API Gateway",
+          "description": "Microservice routing, traffic policies, API keys, and rate limits",
+          "icon": "Api"
+        },
+        {
+          "id": 10,
+          "title": "Security & IAM",
+          "description": "Single sign-on, multi-factor authentication, and audit access logs",
+          "icon": "Shield"
+        },
+        {
+          "id": 11,
+          "title": "CI/CD Pipelines",
+          "description": "Automated testing, continuous deployment, and build telemetry",
+          "icon": "Terminal"
+        }
+      ]
+    },
+    {
+      "name": "Administrative & HR",
+      "apps": [
+        {
+          "id": 12,
+          "title": "Employee Directory",
+          "description": "Search internal teammates, organizational charts, and skill rosters",
+          "icon": "PeopleAlt"
+        },
+        {
+          "id": 13,
+          "title": "Time & Attendance",
+          "description": "Leave management, shift planning, work hour approvals, and payroll sync",
+          "icon": "Schedule"
+        }
+      ]
+    }
+  ]
+}

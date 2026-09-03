@@ -1,0 +1,53 @@
+/* index.css
+   PURPOSE: Global base styles applied to the entire app.
+   Imported once in main.jsx so it affects every component.
+   This is NOT component-specific — it handles browser resets,
+   font rendering, and scrollbar appearance only. */
+
+/* ── CSS Reset ────────────────────────────────────────────────
+   Remove all default browser margins and padding from every element.
+   box-sizing: border-box makes width/height include padding and border,
+   which prevents unexpected layout overflow (the modern standard). */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ── Full-height Layout ───────────────────────────────────────
+   Ensure the html, body, and React root div always fill the full
+   viewport height. This allows pages to use min-height: 100vh correctly
+   and prevents a short white gap below short content.
+   font-smoothing improves text rendering on macOS/Chrome. */
+html,
+body,
+#root {
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;  /* Smooth fonts on Chrome/Safari */
+  -moz-osx-font-smoothing: grayscale;  /* Smooth fonts on Firefox (macOS) */
+}
+
+/* Remove any default blue outline glow */
+body {
+  outline: none;
+}
+
+/* ── Custom Scrollbar ─────────────────────────────────────────
+   Replaces the default fat browser scrollbar with a thin, dark,
+   minimal scrollbar that matches the dark theme aesthetic.
+   Note: ::-webkit-scrollbar only works in Chrome/Edge/Safari.
+   Firefox uses the 'scrollbar-width' CSS property instead. */
+::-webkit-scrollbar {
+  width: 6px;   /* Vertical scrollbar width */
+  height: 6px;  /* Horizontal scrollbar height */
+}
+::-webkit-scrollbar-track {
+  background: transparent; /* No visible track — blends into background */
+}
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;     /* Dark gray thumb */
+  border-radius: 3px;      /* Rounded pill shape */
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;     /* Slightly lighter on hover for visibility */
+}

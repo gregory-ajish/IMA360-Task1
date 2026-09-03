@@ -1,0 +1,228 @@
+/* App.css
+   PURPOSE: Component-scoped styles used by Vite's default starter template UI.
+   These are NOT used by the main Login or Dashboard pages — those use
+   MUI's sx prop for styling. This file styles the hero/landing section
+   that Vite scaffolds by default (counter button, logos, next-steps panel).
+   Can be safely ignored or removed once the starter UI is replaced. */
+
+/* ── Counter Button ───────────────────────────────────────────
+   The "count is X" button shown in the default Vite starter page.
+   Uses CSS custom properties (--accent, --accent-bg etc.) defined
+   by the browser's default or a parent theme. */
+.counter {
+  font-size: 16px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  transition: border-color 0.3s; /* Smooth border reveal on hover */
+  margin-bottom: 24px;
+
+  /* Nested CSS (modern CSS nesting, supported by Vite/PostCSS) */
+  &:hover {
+    border-color: var(--accent-border); /* Reveal border on hover */
+  }
+  &:focus-visible {
+    /* Keyboard accessibility — visible focus ring when tabbing */
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+/* ── Hero Logo Section ────────────────────────────────────────
+   The rotating/3D-perspective stacked logo display from the Vite starter.
+   Uses CSS perspective transforms to create a 3D layered effect:
+   .base = the main circular background
+   .framework = the React/framework logo (front layer)
+   .vite = the Vite logo (back layer, smaller/offset) */
+.hero {
+  position: relative;
+
+  .base,
+  .framework,
+  .vite {
+    inset-inline: 0;  /* Center horizontally using logical CSS */
+    margin: 0 auto;
+  }
+
+  .base {
+    width: 170px;
+    position: relative;
+    z-index: 0; /* Behind framework and vite logos */
+  }
+
+  .framework,
+  .vite {
+    position: absolute; /* Overlay on top of .base */
+  }
+
+  .framework {
+    z-index: 1; /* On top */
+    top: 34px;
+    height: 28px;
+    /* 3D perspective tilt — creates the "floating card" look */
+    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
+      scale(1.4);
+  }
+
+  .vite {
+    z-index: 0; /* Behind .framework */
+    top: 107px;
+    height: 26px;
+    width: auto;
+    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
+      scale(0.8);
+  }
+}
+
+/* ── Center Content Layout ────────────────────────────────────
+   The main centered column layout of the Vite starter page.
+   Uses flexbox to center everything vertically and horizontally.
+   flex-grow: 1 ensures it expands to fill available height. */
+#center {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  place-content: center;
+  place-items: center;
+  flex-grow: 1;
+
+  /* Narrower padding on smaller screens */
+  @media (max-width: 1024px) {
+    padding: 32px 20px 24px;
+    gap: 18px;
+  }
+}
+
+/* ── Next Steps Panel ─────────────────────────────────────────
+   The "Read the Docs / Join the Community" section at the bottom.
+   Two-column flex row on desktop, single column on mobile.
+   Each column (#docs, etc.) gets equal width via flex: 1 1 0. */
+#next-steps {
+  display: flex;
+  border-top: 1px solid var(--border);
+  text-align: left;
+
+  & > div {
+    flex: 1 1 0;  /* Equal-width columns */
+    padding: 32px;
+    @media (max-width: 1024px) {
+      padding: 24px 20px;
+    }
+  }
+
+  .icon {
+    margin-bottom: 16px;
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Stack columns vertically on mobile */
+  @media (max-width: 1024px) {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* ── Docs Section Separator ──────────────────────────────────
+   On desktop, a vertical border separates "Docs" from "Community".
+   On mobile, it becomes a horizontal bottom border instead. */
+#docs {
+  border-right: 1px solid var(--border);
+
+  @media (max-width: 1024px) {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/* ── Social / Link Buttons ────────────────────────────────────
+   The row of clickable social/resource buttons (Discord, Twitter etc.).
+   Styled as pill-shaped flex rows with hover shadow. */
+#next-steps ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  margin: 32px 0 0;
+
+  .logo {
+    height: 18px;
+  }
+
+  a {
+    color: var(--text-h);
+    font-size: 16px;
+    border-radius: 6px;
+    background: var(--social-bg);
+    display: flex;
+    padding: 6px 12px;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: box-shadow 0.3s; /* Soft shadow appears on hover */
+
+    &:hover {
+      box-shadow: var(--shadow);
+    }
+    .button-icon {
+      height: 18px;
+      width: 18px;
+    }
+  }
+
+  /* On mobile: wrap buttons into a 2-column grid */
+  @media (max-width: 1024px) {
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    li {
+      flex: 1 1 calc(50% - 8px); /* Two buttons per row */
+    }
+
+    a {
+      width: 100%;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+  }
+}
+
+/* ── Bottom Spacer ────────────────────────────────────────────
+   An empty visual gap at the very bottom of the starter page.
+   Shorter on mobile. */
+#spacer {
+  height: 88px;
+  border-top: 1px solid var(--border);
+  @media (max-width: 1024px) {
+    height: 48px;
+  }
+}
+
+/* ── Tick Marks (Border Corner Decorations) ───────────────────
+   Purely decorative tick marks on the left and right edges of
+   the horizontal rule, created using ::before and ::after pseudo-elements.
+   They look like small arrow/notch decorations in the Vite design. */
+.ticks {
+  position: relative;
+  width: 100%;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: -4.5px;
+    border: 5px solid transparent; /* Creates the triangle/notch shape */
+  }
+
+  &::before {
+    left: 0;
+    border-left-color: var(--border); /* Left tick */
+  }
+  &::after {
+    right: 0;
+    border-right-color: var(--border); /* Right tick */
+  }
+}

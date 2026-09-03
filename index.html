@@ -1,0 +1,47 @@
+<!doctype html>
+<!-- index.html
+     PURPOSE: The single HTML page that hosts the entire React app.
+     Vite uses this as the build entry point. In production, Vite
+     injects the bundled JS/CSS hashes directly into this file.
+     React renders everything inside <div id="root"> — this file
+     itself contains almost no visible content. -->
+<html lang="en">
+  <head>
+    <!-- Character encoding — must be first to correctly parse all characters -->
+    <meta charset="UTF-8" />
+
+    <!-- Browser tab icon (favicon) — uses an SVG for crisp scaling at any size -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Responsive viewport — prevents mobile browsers from zooming out to fit
+         desktop width. initial-scale=1.0 ensures 1:1 CSS pixels to device pixels. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Browser tab title — also used by search engines as the page title -->
+    <title>Test App Portal - Enterprise Application Dashboard</title>
+
+    <!-- Meta description — shown in Google search result snippets.
+         Should clearly describe what this page does. -->
+    <meta name="description" content="Secure portal login and dynamic application dashboard for enterprise tools." />
+
+    <!-- Google Fonts: preconnect tells the browser to open a connection early,
+         reducing font load latency. Two fonts are loaded:
+         - JetBrains Mono: used for headings, labels, and code-style UI elements
+         - Inter: used for body text and descriptions (more readable at small sizes) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- React mounts the entire app here. Vite's dev server and
+         the createRoot() call in main.jsx target this element by id="root". -->
+    <div id="root"></div>
+
+    <!-- Vite's module script — loads main.jsx as an ES module.
+         In production, Vite replaces this with the hashed bundle path. -->
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
