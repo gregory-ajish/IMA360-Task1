@@ -30,12 +30,10 @@ import {
   CardContent,
   Typography,
   TextField,
-  Button,
   FormControlLabel,
   Checkbox,
   IconButton,
   InputAdornment,
-  CircularProgress,
   Stack,
   Chip,
   Paper,
@@ -59,6 +57,7 @@ import { useAuth } from '../context/AuthContext'; // login() function from auth 
 import { blcColors } from '../theme';             // Brand color palette
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { AppLogo } from '../components/common/AppLogo';
+import { AppButton } from '../components/common/AppButton';
 
 // react-toastify: toast.error() fires a styled error notification.
 // The <ToastContainer> that renders them is mounted globally in main.jsx.
@@ -383,30 +382,19 @@ export const LoginPage = ({ mode, toggleMode }) => {
                   </Link>
                 </Box>
 
-                {/* ── Sign In Button ──
-                    disabled when isSubmitting to prevent double-click.
-                    Shows a spinner during the login async call. */}
-                <Button
+                {/* ── Sign In Button (Common AppButton component) ──
+                    Handles loading spinner and disabled state automatically */}
+                <AppButton
                   id="login-submit-button"
                   type="submit"
                   fullWidth
-                  variant="contained"
+                  variant="primary"
                   size="large"
-                  disabled={isSubmitting}
-                  sx={{
-                    py: 1.4,
-                    bgcolor: blcColors.navyAccent,
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontWeight: 700,
-                    fontSize: '0.95rem',
-                    letterSpacing: '0.04em',
-                    borderRadius: '8px',
-                    mt: 0.5,
-                  }}
+                  loading={isSubmitting}
+                  sx={{ mt: 0.5 }}
                 >
-                  {/* Show spinner during submission, text otherwise */}
-                  {isSubmitting ? <CircularProgress size={22} color="inherit" /> : 'Sign In'}
-                </Button>
+                  Sign In
+                </AppButton>
               </Stack>
             </form>
 

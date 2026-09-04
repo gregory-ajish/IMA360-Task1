@@ -34,7 +34,7 @@ import { blcColors } from '../theme';            // Brand color palette
 import { Navbar } from '../components/dashboard/Navbar';
 import { WelcomeBanner } from '../components/dashboard/WelcomeBanner';
 import { SearchBar } from '../components/dashboard/SearchBar';
-import { AppCard } from '../components/dashboard/AppCard';
+import { AppCard } from '../components/common/AppCard';
 import { RevenueTrackerModal } from '../components/dashboard/RevenueTrackerModal';
 
 // ─── DashboardPage Component ──────────────────────────────────────────────────

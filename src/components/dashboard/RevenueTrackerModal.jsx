@@ -23,7 +23,7 @@
 //   - Theming: Custom CSS injection for dark mode support over Handsontable base styles.
 // ============================================================================
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -31,7 +31,6 @@ import {
   DialogActions,
   Box,
   Typography,
-  Button,
   IconButton,
 } from '@mui/material';
 import {
@@ -46,6 +45,8 @@ import 'handsontable/styles/handsontable.min.css';
 import 'handsontable/styles/ht-theme-main.min.css';
 import { toast } from 'react-toastify';
 import { blcColors } from '../../theme';
+import { AppButton } from '../common/AppButton';
+import { useAuth } from '../../context/AuthContext';
 
 // Register all Handsontable modules (renderers, editors, validators, plugins)
 // This must be called once before any HotTable instances are mounted
@@ -78,27 +79,78 @@ const initialData = [
  * @returns {React.ReactElement} The rendered spreadsheet dialog modal.
  */
 export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
-  // Reference to the Handsontable instance for direct API operations if needed
+  const { currentUser } = useAuth(); // Logged-in user context
+  // Reference to the Handsontable instance for direct API operations
   const hotRef = useRef(null);
 
-  // Local state maintaining the 2D array of spreadsheet values
-  const [data, setData] = useState(initialData);
+  // Storage key uniquely tied to the authenticated user
+  const userIdentifier = currentUser?.username || currentUser?.id || 'default';
+  const storageKey = `revenue_ledger_${userIdentifier}`;
 
   /**
-   * Persists changes made in the spreadsheet and closes the dialog with feedback.
+   * Helper to retrieve saved user data from localStorage or fallback to seed data
+   */
+  const getInitialLedgerData = () => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (err) {
+      console.error('Error reading revenue ledger from localStorage:', err);
+    }
+    // Deep copy seed constant so mutations don't alter initialData
+    return initialData.map((row) => [...row]);
+  };
+
+  // Local state maintaining the 2D array of spreadsheet values
+  const [data, setData] = useState(getInitialLedgerData);
+
+  // Synchronize state and Handsontable instance whenever the modal is opened or active user changes
+  useEffect(() => {
+    if (open) {
+      const latestData = getInitialLedgerData();
+      setData(latestData);
+      if (hotRef.current?.hotInstance) {
+        hotRef.current.hotInstance.loadData(latestData);
+      }
+    }
+  }, [open, storageKey]);
+
+  /**
+   * Persists changes made in the spreadsheet to localStorage per user and closes the modal.
    */
   const handleSave = () => {
-    // In production, this would dispatch an API PUT/POST to persist data to a database.
-    toast.success('Revenue ledger saved successfully!');
-    onClose();
+    try {
+      // Extract latest dataset directly from Handsontable instance if available
+      const currentData = hotRef.current?.hotInstance?.getData() || data;
+      localStorage.setItem(storageKey, JSON.stringify(currentData));
+      setData(currentData);
+      toast.success(`Revenue ledger updated`);
+      onClose();
+    } catch (err) {
+      console.error('Failed to save revenue ledger to localStorage:', err);
+      toast.error('Could not save changes to localStorage.');
+    }
   };
 
   /**
-   * Restores the spreadsheet to its original seed data, performing a deep clone.
+   * Restores the spreadsheet to seed data, removing custom user overrides from localStorage.
    */
   const handleReset = () => {
-    // Create deep copy of rows to avoid mutating original seed constants
-    setData([...initialData.map((row) => [...row])]);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch (err) {
+      console.error('Failed to clear stored revenue ledger:', err);
+    }
+    const freshData = initialData.map((row) => [...row]);
+    setData(freshData);
+    if (hotRef.current?.hotInstance) {
+      hotRef.current.hotInstance.loadData(freshData);
+    }
     toast.info('Spreadsheet reset to default values.');
   };
 
@@ -257,47 +309,32 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
         }}
       >
         {/* Reset button to roll back edits */}
-        <Button
+        <AppButton
           onClick={handleReset}
           startIcon={<ResetIcon />}
           size="small"
-          sx={{
-            color: isDark ? '#94a3b8' : blcColors.textMid,
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: '0.78rem',
-          }}
+          variant="ghost"
         >
           Reset Data
-        </Button>
+        </AppButton>
 
         {/* Action button cluster (Cancel / Save) */}
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
+          <AppButton
             onClick={onClose}
             size="small"
             variant="outlined"
-            sx={{
-              fontFamily: '"JetBrains Mono", monospace',
-              fontSize: '0.8rem',
-              color: isDark ? '#94a3b8' : blcColors.textDark,
-              borderColor: isDark ? blcColors.darkBorder : '#cbd5e1',
-            }}
           >
             Close
-          </Button>
-          <Button
+          </AppButton>
+          <AppButton
             onClick={handleSave}
             size="small"
-            variant="contained"
+            variant="primary"
             startIcon={<SaveIcon />}
-            sx={{
-              fontFamily: '"JetBrains Mono", monospace',
-              fontSize: '0.8rem',
-              bgcolor: blcColors.navyAccent,
-            }}
           >
             Save Changes
-          </Button>
+          </AppButton>
         </Box>
       </DialogActions>
     </Dialog>
