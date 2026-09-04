@@ -16,13 +16,30 @@ import { createRoot } from 'react-dom/client'
 // Must be imported here so it applies to the entire app from the very start.
 import './index.css'
 
+// react-toastify: CSS must be imported once at the root so toast styles load globally
+import 'react-toastify/dist/ReactToastify.css'
+import { ToastContainer } from 'react-toastify'
+
 // The root App component — the top of the entire component tree
 import App from './App.jsx'
 
 // Find the <div id="root"> element in index.html and mount the React app into it.
 // Everything React renders will live inside that div.
+// ToastContainer is the single global mount point for all toasts in the app.
+// position, autoClose, and other defaults can be configured here.
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
+    <ToastContainer
+      position="bottom-left"
+      autoClose={5000}
+      hideProgressBar={false}
+      newestOnTop
+      closeOnClick={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+      theme="colored"
+    />
   </StrictMode>,
 )

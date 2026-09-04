@@ -5,10 +5,9 @@
 //
 // FEATURES:
 //   - Form validation using react-hook-form + Yup schema
-//   - Username + password fields with inline error messages
+//   - Username + password fields; all errors shown as react-toastify toasts
 //   - Show/hide password toggle
 //   - "Remember Me" checkbox (persists session in localStorage vs sessionStorage)
-//   - Server-side error display (wrong credentials)
 //   - Light/Dark mode toggle button
 //   - Redirects to the originally intended page after login (via location.state.from)
 //   - Commented-out demo credential chips (can be re-enabled for testing)
@@ -36,13 +35,13 @@ import {
   Checkbox,
   IconButton,
   InputAdornment,
-  Alert,
   CircularProgress,
   Stack,
   Chip,
   Paper,
   Container,
   Tooltip,
+  Link,
 } from '@mui/material';
 
 // MUI icons used in the form UI
@@ -58,6 +57,12 @@ import {
 
 import { useAuth } from '../context/AuthContext'; // login() function from auth context
 import { blcColors } from '../theme';             // Brand color palette
+import { ThemeToggle } from '../components/common/ThemeToggle';
+import { AppLogo } from '../components/common/AppLogo';
+
+// react-toastify: toast.error() fires a styled error notification.
+// The <ToastContainer> that renders them is mounted globally in main.jsx.
+import { toast } from 'react-toastify';
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
 // Yup schema defines rules for each form field.
@@ -82,10 +87,6 @@ const schema = yup.object().shape({
 export const LoginPage = ({ mode, toggleMode }) => {
   // showPassword: toggles the password field between type="password" and type="text"
   const [showPassword, setShowPassword] = useState(false);
-
-  // serverError: holds the error message returned from login() (e.g. wrong password)
-  // Displayed in a red Alert banner above the form
-  const [serverError, setServerError] = useState('');
 
   // isSubmitting: true while the login async call is in-flight
   // Disables the submit button and shows a spinner to prevent double-submits
@@ -120,8 +121,18 @@ export const LoginPage = ({ mode, toggleMode }) => {
 
   // ─── Form Submit Handler ─────────────────────────────────────────────────
   // Called by handleSubmit() only after all Yup validations pass.
+
+  // onValidationError: called by handleSubmit when Yup validation fails.
+  // Picks the first error in field order (identifier → password) and fires a toast.
+  const onValidationError = (fieldErrors) => {
+    const first =
+      fieldErrors.identifier?.message ||
+      fieldErrors.password?.message ||
+      'Please check your inputs.';
+    toast.error(first);
+  };
+
   const onSubmit = async (data) => {
-    setServerError('');     // Clear any previous error on new attempt
     setIsSubmitting(true);  // Disable button + show spinner
     try {
       // Call login from AuthContext — validates credentials against users.json
@@ -130,12 +141,12 @@ export const LoginPage = ({ mode, toggleMode }) => {
         // Redirect to the originally intended page (or /home)
         navigate(from, { replace: true }); // replace: true so back button doesn't return to /login
       } else {
-        // Show the error message returned by the login function
-        setServerError(result.error || 'Authentication failed.');
+        // Show the error message returned by the login function as a toast
+        toast.error(result.error || 'Authentication failed.');
       }
     } catch {
       // Catch unexpected errors (e.g. JSON parse failure)
-      setServerError('An unexpected error occurred. Please try again.');
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false); // Always re-enable the button
     }
@@ -147,7 +158,6 @@ export const LoginPage = ({ mode, toggleMode }) => {
   const handleFillDemo = (username, password) => {
     setValue('identifier', username, { shouldValidate: true });
     setValue('password', password, { shouldValidate: true });
-    setServerError(''); // Clear any existing server error
   };
 
   // ─── JSX / UI ────────────────────────────────────────────────────────────
@@ -164,23 +174,9 @@ export const LoginPage = ({ mode, toggleMode }) => {
         transition: 'background-color 0.3s ease', // Smooth mode switch
       }}
     >
-      {/* ── Dark/Light Mode Toggle ──
-          Positioned in the top-right corner. Shows sun/moon icon based on current mode. */}
+      {/* ── Dark/Light Mode Toggle ── */}
       <Box sx={{ position: 'absolute', top: 20, right: 20 }}>
-        <Tooltip title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
-          <IconButton
-            id="theme-toggle-btn"
-            onClick={toggleMode}
-            size="small"
-            sx={{
-              color: isDark ? '#94a3b8' : blcColors.textMid,
-              bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-              border: `1px solid ${isDark ? blcColors.darkBorder : '#d1d9f0'}`,
-            }}
-          >
-            {isDark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-          </IconButton>
-        </Tooltip>
+        <ThemeToggle mode={mode} toggleMode={toggleMode} />
       </Box>
 
       {/* ── Login Card ──
@@ -198,65 +194,23 @@ export const LoginPage = ({ mode, toggleMode }) => {
         >
           <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
 
-            {/* ── Branding / Logo ──
-                Centered logo icon + app name + subtitle. */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3.5 }}>
-              {/* Logo icon box */}
-              <Box
-                sx={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: '12px',
-                  bgcolor: blcColors.navyAccent,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mb: 2,
-                  boxShadow: '0 4px 14px rgba(30,58,138,0.35)', // Glow behind logo
-                }}
-              >
-                <HubOutlined sx={{ fontSize: 28, color: '#fff' }} />
-              </Box>
-              {/* App name */}
-              <Typography
-                component="h1"
-                sx={{
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontWeight: 800,
-                  fontSize: '1.4rem',
-                  color: isDark ? '#e2e8f0' : blcColors.navyAccent,
-                  mb: 0.5,
-                }}
-              >
-                Test App Portal
-              </Typography>
-              {/* Subtitle */}
-              <Typography
-                sx={{
-                  fontFamily: '"Inter", sans-serif',
-                  fontSize: '0.85rem',
-                  color: isDark ? '#64748b' : blcColors.textMid,
-                }}
-              >
-                Sign in to access your dashboard
-              </Typography>
+            {/* ── Branding / Logo (Common Component) ── */}
+            <Box sx={{ mb: 3.5 }}>
+              <AppLogo
+                isDark={isDark}
+                size="large"
+                layout="vertical"
+                title="Test App Portal"
+                subtitle="Sign in to access your dashboard"
+              />
             </Box>
 
-            {/* ── Server Error Alert ──
-                Only renders if serverError has a value (wrong credentials, network error). */}
-            {serverError && (
-              <Alert
-                severity="error"
-                id="login-error-alert"
-                sx={{ mb: 2.5, borderRadius: '8px', fontFamily: '"Inter", sans-serif', fontSize: '0.85rem' }}
-              >
-                {serverError}
-              </Alert>
-            )}
+            {/* Server errors are now shown as a Snackbar toast (see below the return). */}
 
             {/* ── Login Form ──
                 noValidate disables native HTML5 validation (we use Yup instead). */}
-            <form onSubmit={handleSubmit(onSubmit)} noValidate>
+            {/* onValidationError is the second arg: fires toasts for field errors */}
+            <form onSubmit={handleSubmit(onSubmit, onValidationError)} noValidate>
               <Stack spacing={2.5}>
 
                 {/* ── Username Field ──
@@ -285,8 +239,7 @@ export const LoginPage = ({ mode, toggleMode }) => {
                         placeholder="Enter your username"
                         variant="outlined"
                         fullWidth
-                        error={!!errors.identifier}           // Red border on validation error
-                        helperText={errors.identifier?.message} // Error message below field
+                        error={!!errors.identifier}
                         slotProps={{
                           htmlInput: { style: { fontFamily: '"Inter", sans-serif' } },
                           input: {
@@ -297,7 +250,6 @@ export const LoginPage = ({ mode, toggleMode }) => {
                               </InputAdornment>
                             ),
                           },
-                          formHelperText: { sx: { fontFamily: '"Inter", sans-serif' } },
                         }}
                       />
                     )}
@@ -332,7 +284,6 @@ export const LoginPage = ({ mode, toggleMode }) => {
                         variant="outlined"
                         fullWidth
                         error={!!errors.password}
-                        helperText={errors.password?.message}
                         slotProps={{
                           htmlInput: { style: { fontFamily: '"Inter", sans-serif' } },
                           input: {
@@ -360,44 +311,77 @@ export const LoginPage = ({ mode, toggleMode }) => {
                               </InputAdornment>
                             ),
                           },
-                          formHelperText: { sx: { fontFamily: '"Inter", sans-serif' } },
                         }}
                       />
                     )}
                   />
                 </Box>
 
-                {/* ── Remember Me Checkbox ──
-                    When checked, auth session is saved to localStorage (persists after browser close).
-                    When unchecked, saved to sessionStorage (cleared when tab closes). */}
-                <Controller
-                  name="rememberMe"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          id="remember-me-checkbox"
-                          checked={!!field.value}
-                          onChange={(e) => field.onChange(e.target.checked)}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          inputRef={field.ref}
-                          size="small"
-                          sx={{
-                            color: isDark ? '#475569' : '#9ca3af',
-                            '&.Mui-checked': { color: blcColors.navyAccent },
-                          }}
-                        />
-                      }
-                      label={
-                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.85rem', color: isDark ? '#94a3b8' : blcColors.textMid }}>
-                          Remember me
-                        </Typography>
-                      }
-                    />
-                  )}
-                />
+                {/* ── Remember Me & Forgot Password Row ── */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                  }}
+                >
+                  {/* Remember Me Checkbox */}
+                  <Controller
+                    name="rememberMe"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            id="remember-me-checkbox"
+                            checked={!!field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            inputRef={field.ref}
+                            size="small"
+                            sx={{
+                              color: isDark ? '#475569' : '#9ca3af',
+                              '&.Mui-checked': { color: blcColors.navyAccent },
+                            }}
+                          />
+                        }
+                        label={
+                          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.85rem', color: isDark ? '#94a3b8' : blcColors.textMid }}>
+                            Remember me
+                          </Typography>
+                        }
+                      />
+                    )}
+                  />
+
+                  {/* Forgot Password Link Button */}
+                  <Link
+                    component="button"
+                    type="button"
+                    id="forgot-password-link"
+                    onClick={() => toast.info('Password reset link will be sent to your email.')}
+                    underline="hover"
+                    sx={{
+                      fontFamily: '"Inter", sans-serif',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      color: isDark ? blcColors.cyanCode : blcColors.navyAccent,
+                      cursor: 'pointer',
+                      border: 'none',
+                      background: 'none',
+                      p: 0,
+                      transition: 'opacity 0.2s ease',
+                      '&:hover': {
+                        opacity: 0.8,
+                      },
+                    }}
+                  >
+                    Forgot password?
+                  </Link>
+                </Box>
 
                 {/* ── Sign In Button ──
                     disabled when isSubmitting to prevent double-click.

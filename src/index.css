@@ -51,3 +51,75 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #52525b;     /* Slightly lighter on hover for visibility */
 }
+
+/* ── React-Toastify Overrides ─────────────────────────────────────────────────
+   Replaces the default toastify appearance to match the MUI filled Alert style
+   we previously used (solid red background, Inter font, 8px radius, shadow). */
+
+/* ── Error toast body ── */
+.Toastify__toast--error {
+  background-color: #d32f2f !important;   /* MUI error.main — same as filled Alert */
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.85rem !important;
+  min-width: 280px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+  padding: 12px 16px !important;
+  align-items: center;
+}
+
+/* ── Toast message text ── */
+.Toastify__toast-body {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.85rem !important;
+  color: #ffffff !important;
+  padding: 0 !important;
+  line-height: 1.5;
+}
+
+/* ── Close (✕) button ── */
+.Toastify__close-button--error {
+  color: rgba(255, 255, 255, 0.8) !important;
+  opacity: 1 !important;
+  align-self: center;
+}
+.Toastify__close-button--error:hover {
+  color: #ffffff !important;
+}
+
+/* ── Progress bar — lighter red strip at the bottom ── */
+.Toastify__progress-bar--error {
+  background: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* ── Toast icon — keep it white to match the filled Alert icon ── */
+.Toastify__toast-icon svg {
+  fill: #ffffff !important;
+}
+
+/* ── Info toast body (used for Launching/Notification messages) ── */
+.Toastify__toast--info {
+  background-color: #1e3a8a !important;   /* Navy brand color */
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.85rem !important;
+  min-width: 280px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+  padding: 12px 16px !important;
+  align-items: center;
+}
+
+.Toastify__close-button--info {
+  color: rgba(255, 255, 255, 0.8) !important;
+  opacity: 1 !important;
+  align-self: center;
+}
+.Toastify__close-button--info:hover {
+  color: #ffffff !important;
+}
+
+.Toastify__progress-bar--info {
+  background: rgba(255, 255, 255, 0.4) !important;
+}
