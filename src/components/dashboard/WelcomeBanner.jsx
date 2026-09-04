@@ -1,32 +1,49 @@
 // WelcomeBanner.jsx
-// PURPOSE: Hero section banner welcoming the authenticated user.
-// Displays workspace overview heading, user's name, and portal description.
+// ============================================================================
+// PURPOSE:
+//   A modern, visual hero banner welcoming the authenticated user to the portal.
+//   Provides a personalized greeting, highlights the workspace context, and
+//   sets the tech-forward, high-polish visual tone for the Dashboard.
 //
-// FEATURES:
-//   - Mode-aware gradient background (navy/midnight in dark mode)
-//   - Subtle CSS grid pattern overlay for a technical aesthetic
-//   - Fully responsive typography
+// USAGE LOCATIONS:
+//   - DashboardPage.jsx: Rendered at the top of the container immediately below the Navbar.
+//
+// FEATURES & ARCHITECTURE:
+//   - Theme-Aware Gradients: Seamlessly swaps between a rich midnight-navy gradient
+//     in dark mode and an intense slate-navy gradient in light mode.
+//   - Micro-Grid Pattern Overlay: Uses a pure CSS dual-axis linear gradient overlay
+//     to create a subtle 32x32px technical blueprint grid texture.
+//   - Click-Through Pointer Events: `pointerEvents: 'none'` on the texture overlay
+//     prevents any interference with user interactions.
+//   - Responsive Scaling: Typography and padding scale gracefully between mobile
+//     screens and large desktop viewports.
+//   - Dynamic Fallback: Welcomes the user by their first/full name, with a safe
+//     fallback to 'Explorer' if the name is unavailable.
+// ============================================================================
 
 import React from 'react';
 import { Paper, Box, Typography } from '@mui/material';
 import { blcColors } from '../../theme';
 
 /**
- * Common WelcomeBanner component
- * Props:
- *  - userName: string
- *  - isDark: boolean
+ * WelcomeBanner Component
+ *
+ * @component
+ * @param {Object} props - Component properties.
+ * @param {string} props.userName - The display name of the authenticated user.
+ * @param {boolean} props.isDark - True if dark mode is active; false otherwise.
+ * @returns {React.ReactElement} The rendered hero welcome banner.
  */
 export const WelcomeBanner = ({ userName, isDark }) => {
   return (
     // Outer banner paper container:
-    // elevation={0}: removes standard shadow in favor of a customized ambient blur
+    // elevation={0}: avoids standard generic drop shadow in favor of custom ambient glow
     <Paper
       elevation={0}
       sx={{
-        p: { xs: 3, md: 4 }, // Responsive padding: compact on mobile, spacious on desktop
+        p: { xs: 3, md: 4 }, // Responsive padding: compact on phones, spacious on desktop
         borderRadius: '12px',
-        // Dynamic gradient: navy-midnight in dark mode; navy-charcoal in light mode
+        // Dynamic gradient: midnight-blue in dark mode; deep navy-slate in light mode
         background: isDark
           ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
           : `linear-gradient(135deg, ${blcColors.navyAccent} 0%, #0f172a 100%)`,
@@ -38,8 +55,8 @@ export const WelcomeBanner = ({ userName, isDark }) => {
       }}
     >
       {/* ── Decorative Grid Overlay ──
-          Creates an engineer/technical grid motif behind the typography.
-          pointerEvents: 'none' ensures that user clicks and interactions pass through. */}
+          Creates an engineering/blueprint grid motif behind the typography.
+          pointerEvents: 'none' ensures that user clicks and interactions pass through unharmed. */}
       <Box
         sx={{
           position: 'absolute',
@@ -54,15 +71,15 @@ export const WelcomeBanner = ({ userName, isDark }) => {
       />
 
       {/* ── Banner Text Content ──
-          position: 'relative' and zIndex: 1 places this content on top of the grid overlay. */}
+          position: 'relative' and zIndex: 1 places text on top of the background grid texture. */}
       <Box sx={{ position: 'relative', zIndex: 1 }}>
-        {/* Accent eyebrow title */}
+        {/* Accent eyebrow title badge */}
         <Typography
           sx={{
             fontFamily: '"JetBrains Mono", monospace',
             fontSize: '0.65rem',
             fontWeight: 700,
-            color: blcColors.yellowAccent, // High-contrast accent color
+            color: blcColors.yellowAccent, // High-contrast warm accent color
             letterSpacing: '0.15em',
             textTransform: 'uppercase',
             mb: 1,
@@ -86,7 +103,7 @@ export const WelcomeBanner = ({ userName, isDark }) => {
           Welcome back, {userName || 'Explorer'}!
         </Typography>
 
-        {/* Subtitle / Description */}
+        {/* Subtitle / Portal Summary */}
         <Typography
           sx={{
             fontFamily: '"Inter", sans-serif',
@@ -101,3 +118,4 @@ export const WelcomeBanner = ({ userName, isDark }) => {
     </Paper>
   );
 };
+

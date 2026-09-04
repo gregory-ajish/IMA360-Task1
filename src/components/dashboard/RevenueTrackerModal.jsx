@@ -1,13 +1,27 @@
 // RevenueTrackerModal.jsx
-// PURPOSE: An interactive Excel-style spreadsheet modal powered by Handsontable.
-// Opens when the user clicks the "Revenue Tracker" application card on the Dashboard.
+// ============================================================================
+// PURPOSE:
+//   An interactive, enterprise-grade Excel-style spreadsheet modal powered by
+//   Handsontable. It opens when the user clicks the "Revenue Tracker" application
+//   card on the DashboardPage.
 //
-// FEATURES:
-//   - Full spreadsheet grid with cell editing, row/col headers, and selection
-//   - Formatted currency columns (MRR, Expansion, Churn, Net Revenue, Target)
-//   - Dropdown status column (Exceeded, On Track, Behind)
-//   - Context menu enabled (insert row, remove row, copy/paste)
-//   - Modal header with save, reset, and export actions
+// USAGE LOCATIONS:
+//   - DashboardPage.jsx: Rendered conditionally inside a modal dialog when
+//     `isRevenueModalOpen` is true.
+//
+// FEATURES & ARCHITECTURE:
+//   - Full Data Grid: Cell editing, keyboard navigation (arrow keys, Tab, Enter),
+//     range selection, copy/paste, and undo/redo.
+//   - Column Types & Formatting:
+//       • Text column for financial periods ("Month")
+//       • Formatted currency columns with custom pattern: "$0,0"
+//       • Dropdown validation column for tracking status ("Exceeded", "On Track", "Behind")
+//   - Context Menu Enabled: Right-click allows inserting/removing rows and standard actions.
+//   - Resizing: Manual row and column resizing enabled for flexible reporting.
+//   - State Management: Local state holding current ledger data with Reset and Save actions.
+//   - Feedback: Fires success/info toast notifications using React-Toastify.
+//   - Theming: Custom CSS injection for dark mode support over Handsontable base styles.
+// ============================================================================
 
 import React, { useRef, useState } from 'react';
 import {
@@ -19,8 +33,6 @@ import {
   Typography,
   Button,
   IconButton,
-  Chip,
-  Tooltip,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -36,9 +48,13 @@ import { toast } from 'react-toastify';
 import { blcColors } from '../../theme';
 
 // Register all Handsontable modules (renderers, editors, validators, plugins)
+// This must be called once before any HotTable instances are mounted
 registerAllModules();
 
-// Initial demo revenue data
+/**
+ * Initial mock dataset for the Revenue Tracker ledger.
+ * Represents monthly recurring revenue (MRR), expansion revenue, churn, net revenue, and goals.
+ */
 const initialData = [
   ['Jan 2026', 145000, 18000, 4200, 158800, 150000, 'Exceeded'],
   ['Feb 2026', 158800, 22500, 3100, 178200, 170000, 'Exceeded'],
@@ -52,34 +68,48 @@ const initialData = [
 ];
 
 /**
- * Common RevenueTrackerModal component
- * Props:
- *  - open: boolean
- *  - onClose: function
- *  - isDark: boolean
+ * RevenueTrackerModal Component
+ *
+ * @component
+ * @param {Object} props - Component properties.
+ * @param {boolean} props.open - Whether the spreadsheet dialog is currently visible.
+ * @param {Function} props.onClose - Callback function to dismiss the modal dialog.
+ * @param {boolean} props.isDark - True if dark mode is active, triggering dark palette adjustments.
+ * @returns {React.ReactElement} The rendered spreadsheet dialog modal.
  */
 export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
+  // Reference to the Handsontable instance for direct API operations if needed
   const hotRef = useRef(null);
+
+  // Local state maintaining the 2D array of spreadsheet values
   const [data, setData] = useState(initialData);
 
-  // Saves current changes and gives instant feedback via a toast notification
+  /**
+   * Persists changes made in the spreadsheet and closes the dialog with feedback.
+   */
   const handleSave = () => {
+    // In production, this would dispatch an API PUT/POST to persist data to a database.
     toast.success('Revenue ledger saved successfully!');
     onClose();
   };
 
-  // Resets the spreadsheet to original mock values
+  /**
+   * Restores the spreadsheet to its original seed data, performing a deep clone.
+   */
   const handleReset = () => {
+    // Create deep copy of rows to avoid mutating original seed constants
     setData([...initialData.map((row) => [...row])]);
     toast.info('Spreadsheet reset to default values.');
   };
 
   return (
+    // MUI Dialog container: provides backdrop, focus trap, and responsive sizing
     <Dialog
       open={open}
       onClose={onClose}
       maxWidth="lg"
       fullWidth
+      aria-labelledby="revenue-modal-title"
       PaperProps={{
         sx: {
           borderRadius: '12px',
@@ -94,6 +124,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
     >
       {/* ── Modal Header ── */}
       <DialogTitle
+        id="revenue-modal-title"
         sx={{
           m: 0,
           p: 2.5,
@@ -120,6 +151,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
             <TableChartIcon fontSize="small" />
           </Box>
           <Box>
+            {/* Title */}
             <Typography
               sx={{
                 fontFamily: '"JetBrains Mono", monospace',
@@ -129,6 +161,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
             >
               Revenue Tracker — Interactive Ledger
             </Typography>
+            {/* Help text */}
             <Typography
               sx={{
                 fontFamily: '"Inter", sans-serif',
@@ -143,7 +176,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
 
         {/* Close Button */}
         <IconButton
-          aria-label="close"
+          aria-label="close modal"
           onClick={onClose}
           size="small"
           sx={{ color: isDark ? '#94a3b8' : '#64748b' }}
@@ -152,14 +185,14 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
         </IconButton>
       </DialogTitle>
 
-      {/* ── Spreadsheet Grid Content ── */}
+      {/* ── Spreadsheet Grid Content Area ── */}
       <DialogContent sx={{ p: 2.5, overflowX: 'auto' }}>
         <Box
           sx={{
             borderRadius: '8px',
             overflow: 'hidden',
             border: `1px solid ${isDark ? '#334155' : '#cbd5e1'}`,
-            // Handsontable dark theme adjustments
+            // Custom CSS overrides to adapt Handsontable typography & headers to active theme
             '& .handsontable': {
               fontFamily: '"Inter", sans-serif',
               fontSize: '0.82rem',
@@ -172,9 +205,11 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
             },
           }}
         >
+          {/* Handsontable React Component Wrapper */}
           <HotTable
             ref={hotRef}
             data={data}
+            // Column header display strings
             colHeaders={[
               'Month',
               'Starting MRR ($)',
@@ -184,24 +219,26 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
               'Target ($)',
               'Status',
             ]}
-            rowHeaders={true}
+            rowHeaders={true} // Display 1, 2, 3... row index numbers
             height="320"
             width="100%"
-            stretchH="all"
-            contextMenu={true}
-            manualColumnResize={true}
-            manualRowResize={true}
-            licenseKey="non-commercial-and-evaluation"
-            autoWrapRow={true}
+            stretchH="all" // Expands columns to occupy full container width
+            contextMenu={true} // Enables right-click context menu
+            manualColumnResize={true} // User can drag column divider to resize
+            manualRowResize={true} // User can drag row divider to resize
+            licenseKey="non-commercial-and-evaluation" // Evaluation license key
+            autoWrapRow={true} // Tab key at end of row wraps to next row
             autoWrapCol={true}
+            // Column schemas and formatting definitions
             columns={[
-              { type: 'text' },
-              { type: 'numeric', numericFormat: { pattern: '$0,0' } },
-              { type: 'numeric', numericFormat: { pattern: '$0,0' } },
-              { type: 'numeric', numericFormat: { pattern: '$0,0' } },
-              { type: 'numeric', numericFormat: { pattern: '$0,0' } },
-              { type: 'numeric', numericFormat: { pattern: '$0,0' } },
+              { type: 'text' }, // Month column (freeform string)
+              { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Starting MRR
+              { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Expansion
+              { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Churn
+              { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Net Revenue
+              { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Target
               {
+                // Status column constrained to predefined options
                 type: 'dropdown',
                 source: ['Exceeded', 'On Track', 'Behind'],
               },
@@ -210,7 +247,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
         </Box>
       </DialogContent>
 
-      {/* ── Modal Actions ── */}
+      {/* ── Modal Footer Actions ── */}
       <DialogActions
         sx={{
           p: 2,
@@ -219,6 +256,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
           justifyContent: 'space-between',
         }}
       >
+        {/* Reset button to roll back edits */}
         <Button
           onClick={handleReset}
           startIcon={<ResetIcon />}
@@ -232,6 +270,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
           Reset Data
         </Button>
 
+        {/* Action button cluster (Cancel / Save) */}
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             onClick={onClose}
@@ -264,3 +303,4 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
     </Dialog>
   );
 };
+
