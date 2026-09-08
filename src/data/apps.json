@@ -6,26 +6,56 @@
         {
           "id": 1,
           "title": "Workspace Docs",
-          "description": "Collaborative real-time document editing, sharing, and version history",
+          "description": "Collaborative document authoring with real-time sync",
           "icon": "Description"
         },
         {
           "id": 2,
           "title": "Team Chat",
-          "description": "Instant direct messaging, topic channels, and screen-sharing huddles",
+          "description": "Direct messaging, project channels, and audio huddles",
           "icon": "Forum"
         },
         {
           "id": 3,
           "title": "Project Boards",
-          "description": "Agile sprint boards, custom workflows, task assignments, and roadmaps",
+          "description": "Agile sprint boards, task tracking, and team roadmaps",
           "icon": "ViewKanban"
         },
         {
           "id": 4,
           "title": "Calendar Pro",
-          "description": "Smart schedule management, meeting booking, and timezone coordination",
+          "description": "Smart schedule management and meeting booking tools",
           "icon": "CalendarMonth"
+        },
+        {
+          "id": 14,
+          "title": "Team Wiki",
+          "description": "Centralized team knowledge base and technical runbooks",
+          "icon": "AutoStories"
+        },
+        {
+          "id": 20,
+          "title": "Virtual Whiteboard",
+          "description": "Infinite canvas brainstorming and architecture diagrams",
+          "icon": "Brush"
+        },
+        {
+          "id": 25,
+          "title": "Video Huddle",
+          "description": "HD video conferencing, screen sharing, and recordings",
+          "icon": "Videocam"
+        },
+        {
+          "id": 26,
+          "title": "Form Builder",
+          "description": "Custom feedback surveys, team forms, and questionnaires",
+          "icon": "DynamicForm"
+        },
+        {
+          "id": 27,
+          "title": "Cloud Drive",
+          "description": "Secure enterprise cloud storage and shared file vaults",
+          "icon": "CloudUpload"
         }
       ]
     },
@@ -35,20 +65,56 @@
         {
           "id": 5,
           "title": "BI Analytics",
-          "description": "Interactive business performance dashboards and executive summaries",
+          "description": "Interactive business dashboards and executive summaries",
           "icon": "BarChart"
         },
         {
           "id": 6,
           "title": "Customer Insights",
-          "description": "Real-time user behavior tracking, journey maps, and cohort retention",
+          "description": "User behavior tracking, journey maps, and cohort metrics",
           "icon": "Insights"
         },
         {
           "id": 7,
           "title": "Revenue Tracker",
-          "description": "Financial forecasts, recurring subscription metrics, and ledger reports",
+          "description": "Financial forecasts, recurring MRR, and ledger sheets",
           "icon": "MonetizationOn"
+        },
+        {
+          "id": 15,
+          "title": "AI Copilot",
+          "description": "Intelligent search assistant and automated summaries",
+          "icon": "AutoAwesome"
+        },
+        {
+          "id": 21,
+          "title": "Market Intelligence",
+          "description": "Competitor trend tracking and market pricing feeds",
+          "icon": "TrendingUp"
+        },
+        {
+          "id": 22,
+          "title": "Data Studio",
+          "description": "Custom SQL query workbench and automated report exports",
+          "icon": "QueryStats"
+        },
+        {
+          "id": 30,
+          "title": "Predictive Modeling",
+          "description": "Machine learning forecasts and automated trend analysis",
+          "icon": "Timeline"
+        },
+        {
+          "id": 31,
+          "title": "Web Analytics",
+          "description": "Global website traffic metrics, sessions, and referrals",
+          "icon": "Public"
+        },
+        {
+          "id": 33,
+          "title": "A/B Testing Lab",
+          "description": "Feature flag experimentation and split testing reports",
+          "icon": "Science"
         }
       ]
     },
@@ -58,26 +124,56 @@
         {
           "id": 8,
           "title": "Cloud Infrastructure",
-          "description": "Kubernetes cluster monitoring, node health, and container scaling",
+          "description": "Kubernetes cluster health, nodes, and container metrics",
           "icon": "CloudQueue"
         },
         {
           "id": 9,
           "title": "API Gateway",
-          "description": "Microservice routing, traffic policies, API keys, and rate limits",
+          "description": "Microservice routing, traffic policies, and rate limits",
           "icon": "Api"
         },
         {
           "id": 10,
           "title": "Security & IAM",
-          "description": "Single sign-on, multi-factor authentication, and audit access logs",
+          "description": "Single sign-on, authentication, and access audit logs",
           "icon": "Shield"
         },
         {
           "id": 11,
           "title": "CI/CD Pipelines",
-          "description": "Automated testing, continuous deployment, and build telemetry",
+          "description": "Automated testing, continuous delivery, and build logs",
           "icon": "Terminal"
+        },
+        {
+          "id": 16,
+          "title": "Database Manager",
+          "description": "Managed database clusters, query profiling, and backups",
+          "icon": "Storage"
+        },
+        {
+          "id": 17,
+          "title": "Bug & Issue Tracker",
+          "description": "Defect tracking, stack traces, and SLA incident alerts",
+          "icon": "BugReport"
+        },
+        {
+          "id": 35,
+          "title": "Secret Vault",
+          "description": "Secure key rotation, API credentials, and certificates",
+          "icon": "VpnKey"
+        },
+        {
+          "id": 36,
+          "title": "Container Registry",
+          "description": "Docker image storage, security scans, and fast caching",
+          "icon": "Layers"
+        },
+        {
+          "id": 37,
+          "title": "Serverless Functions",
+          "description": "Event-driven edge computing and execution telemetry",
+          "icon": "Bolt"
         }
       ]
     },
@@ -87,14 +183,56 @@
         {
           "id": 12,
           "title": "Employee Directory",
-          "description": "Search internal teammates, organizational charts, and skill rosters",
+          "description": "Search staff profiles, team structure, and org charts",
           "icon": "PeopleAlt"
         },
         {
           "id": 13,
           "title": "Time & Attendance",
-          "description": "Leave management, shift planning, work hour approvals, and payroll sync",
+          "description": "Work hour tracking, shift schedules, and leave requests",
           "icon": "Schedule"
+        },
+        {
+          "id": 18,
+          "title": "Payroll & Compensation",
+          "description": "Direct deposit payouts, salary bands, and tax documents",
+          "icon": "ReceiptLong"
+        },
+        {
+          "id": 19,
+          "title": "Recruitment & ATS",
+          "description": "Applicant pipeline tracking and interview scorecards",
+          "icon": "Badge"
+        },
+        {
+          "id": 23,
+          "title": "Learning & Development",
+          "description": "Compliance courses, employee training, and certificates",
+          "icon": "School"
+        },
+        {
+          "id": 24,
+          "title": "IT Asset Desk",
+          "description": "Hardware equipment tracking and software licensing",
+          "icon": "Devices"
+        },
+        {
+          "id": 40,
+          "title": "Expense Claims",
+          "description": "Corporate card receipts, reconciliations, and payouts",
+          "icon": "CreditCard"
+        },
+        {
+          "id": 41,
+          "title": "Workplace Booking",
+          "description": "Conference room reservations and desk check-in systems",
+          "icon": "MeetingRoom"
+        },
+        {
+          "id": 42,
+          "title": "Performance Reviews",
+          "description": "360-degree feedback cycles, goals, and quarterly reviews",
+          "icon": "ThumbUpAlt"
         }
       ]
     }

@@ -51,6 +51,44 @@ const blcColors = {
   darkInput: '#1c1c21',     // Input field background in dark mode
 };
 
+// ─── Typography Design Tokens ────────────────────────────────────────────────
+// Central source of truth for all typography across the application.
+// Updating font sizes, font weights, or font families here automatically propagates
+// to all components and theme overrides.
+const typographyTokens = {
+  // ── Font Families ──
+  fontMono: '"JetBrains Mono", "Fira Code", "Courier New", monospace',
+  fontSans: '"Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
+
+  // ── Font Weights ──
+  weightRegular: 400,
+  weightMedium: 500,
+  weightSemiBold: 600,
+  weightBold: 700,
+  weightExtraBold: 800,
+
+  // ── Font Sizes Scale ──
+  fontSizeXs: '0.75rem',    // 12px: badges, chips, timestamps, compact labels
+  fontSizeSm: '0.82rem',    // 13.1px: table cells, helper text, captions
+  fontSizeBase: '0.875rem', // 14px: default body text, input fields, standard buttons
+  fontSizeMd: '0.95rem',    // 15.2px: dialog descriptions, emphasized body text
+  fontSizeLg: '1.05rem',    // 16.8px: modal headers, card titles, section headers
+  fontSizeXl: '1.25rem',    // 20px: major category titles, widget titles
+  fontSize2xl: '1.5rem',    // 24px: page section banners
+  fontSize3xl: '1.875rem',  // 30px: login portal hero title, dashboard headline
+
+  // ── Line Heights ──
+  lineHeightTight: 1.25,
+  lineHeightNormal: 1.5,
+  lineHeightRelaxed: 1.625,
+
+  // ── Letter Spacing ──
+  letterSpacingTight: '-0.02em',
+  letterSpacingNormal: '0',
+  letterSpacingWide: '0.04em',
+  letterSpacingWidest: '0.08em',
+};
+
 // ─── Theme Builder ────────────────────────────────────────────────────────────
 // Returns a complete MUI theme object.
 // Called in App.jsx with the current mode string: getTheme('light') or getTheme('dark')
@@ -87,44 +125,72 @@ const getTheme = (mode) =>
 
     // ── Typography ───────────────────────────────────────────────────────────
     // Sets the default font stack and heading weights for the entire app.
-    // JetBrains Mono gives the app a premium "developer tool" aesthetic.
-    // Inter is used for body text — more readable at small sizes than monospace.
+    // Built directly on top of central typographyTokens.
     typography: {
-      fontFamily: [
-        '"JetBrains Mono"',
-        '"Fira Code"',
-        '"Courier New"',
-        'monospace',
-      ].join(','),
+      fontFamily: typographyTokens.fontMono,
 
-      // Heavy weight for headings — bold and impactful
-      h1: { fontWeight: 800, letterSpacing: '-0.02em' },
-      h2: { fontWeight: 800, letterSpacing: '-0.02em' },
-      h3: { fontWeight: 700 },
-      h4: { fontWeight: 700 },
-      h5: { fontWeight: 700 },
-      h6: { fontWeight: 600 },
+      // Headings
+      h1: {
+        fontSize: typographyTokens.fontSize3xl,
+        fontWeight: typographyTokens.weightExtraBold,
+        letterSpacing: typographyTokens.letterSpacingTight,
+        lineHeight: typographyTokens.lineHeightTight,
+      },
+      h2: {
+        fontSize: typographyTokens.fontSize2xl,
+        fontWeight: typographyTokens.weightExtraBold,
+        letterSpacing: typographyTokens.letterSpacingTight,
+        lineHeight: typographyTokens.lineHeightTight,
+      },
+      h3: {
+        fontSize: typographyTokens.fontSizeXl,
+        fontWeight: typographyTokens.weightBold,
+        lineHeight: typographyTokens.lineHeightNormal,
+      },
+      h4: {
+        fontSize: typographyTokens.fontSizeLg,
+        fontWeight: typographyTokens.weightBold,
+        lineHeight: typographyTokens.lineHeightNormal,
+      },
+      h5: {
+        fontSize: typographyTokens.fontSizeMd,
+        fontWeight: typographyTokens.weightBold,
+        lineHeight: typographyTokens.lineHeightNormal,
+      },
+      h6: {
+        fontSize: typographyTokens.fontSizeBase,
+        fontWeight: typographyTokens.weightSemiBold,
+        lineHeight: typographyTokens.lineHeightNormal,
+      },
 
-      // Override body text to use Inter — better for long-form readability
+      // Body text uses Inter for optimal reading comfort
       body1: {
-        fontFamily: '"Inter", "Segoe UI", sans-serif',
+        fontFamily: typographyTokens.fontSans,
+        fontSize: typographyTokens.fontSizeBase,
+        fontWeight: typographyTokens.weightRegular,
+        lineHeight: typographyTokens.lineHeightNormal,
       },
       body2: {
-        fontFamily: '"Inter", "Segoe UI", sans-serif',
+        fontFamily: typographyTokens.fontSans,
+        fontSize: typographyTokens.fontSizeSm,
+        fontWeight: typographyTokens.weightRegular,
+        lineHeight: typographyTokens.lineHeightNormal,
       },
 
-      // Caption text uses monospace with extra letter spacing — label-style
+      // Caption text uses monospace with extra letter spacing
       caption: {
-        fontFamily: '"JetBrains Mono", monospace',
-        letterSpacing: '0.08em',
+        fontFamily: typographyTokens.fontMono,
+        fontSize: typographyTokens.fontSizeXs,
+        letterSpacing: typographyTokens.letterSpacingWidest,
       },
 
-      // Buttons use monospace for a technical/professional feel
+      // Buttons use monospace with technical feel
       button: {
-        textTransform: 'none', // Disable MUI's default ALL-CAPS button text
-        fontWeight: 700,
-        fontFamily: '"JetBrains Mono", monospace',
-        letterSpacing: '0.04em',
+        textTransform: 'none',
+        fontWeight: typographyTokens.weightBold,
+        fontFamily: typographyTokens.fontMono,
+        fontSize: typographyTokens.fontSizeBase,
+        letterSpacing: typographyTokens.letterSpacingWide,
       },
     },
 
@@ -226,15 +292,15 @@ const getTheme = (mode) =>
       MuiChip: {
         styleOverrides: {
           root: {
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: '0.75rem',
-            fontWeight: 600,
+            fontFamily: typographyTokens.fontMono,
+            fontSize: typographyTokens.fontSizeXs,
+            fontWeight: typographyTokens.weightSemiBold,
           },
         },
       },
     },
   });
 
-// Export both so other files can use colors directly
-// Usage: import { getTheme, blcColors } from '../theme';
-export { getTheme, blcColors };
+// Export theme builder and design tokens for direct component usage
+// Usage: import { getTheme, blcColors, typographyTokens } from '../theme';
+export { getTheme, blcColors, typographyTokens };

@@ -123,3 +123,72 @@ body {
 .Toastify__progress-bar--info {
   background: rgba(255, 255, 255, 0.4) !important;
 }
+
+/* ── Handsontable Menus & Overlays (ensure they appear above MUI Dialog z-index: 1300) ── */
+.handsontable.htDropdownMenu,
+.handsontable.htFiltersConditionsMenu,
+.htDropdownMenu,
+.htFiltersConditionsMenu,
+.htContextMenu,
+.htAutocomplete,
+.pika-single {
+  z-index: 99999 !important;
+}
+
+.htDropdownMenu,
+.htContextMenu {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 8px !important;
+}
+
+/* ── Handsontable Row Delete Action Icon Button ── */
+.ht-row-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  user-select: none;
+}
+
+.ht-row-delete-btn svg {
+  display: block;
+}
+
+.ht-row-delete-btn:hover {
+  background-color: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+  transform: translateY(-1px);
+}
+
+.ht-row-delete-btn:active {
+  transform: translateY(0);
+}
+
+.ht-theme-main-dark .ht-row-delete-btn {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #f87171;
+}
+
+.ht-theme-main-dark .ht-row-delete-btn:hover {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+/* Hide dropdown menu arrow and sorter on the Action header column */
+.handsontable th:last-child .changeType {
+  display: none !important;
+}
+
+
+

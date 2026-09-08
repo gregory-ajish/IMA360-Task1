@@ -70,7 +70,7 @@ export const Navbar = ({
       }}
     >
       {/* Container ensures the navbar content aligns symmetrically with the dashboard grid */}
-      <Container maxWidth="lg">
+      <Container maxWidth="xl">
         {/* Toolbar: provides consistent horizontal alignment and vertical centering */}
         <Toolbar disableGutters sx={{ minHeight: 60 }}>
           

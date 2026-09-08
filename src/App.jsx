@@ -6,7 +6,7 @@
 //   3. AuthProvider   — makes login/logout state available to all components
 //   4. BrowserRouter  — enables client-side URL routing
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme';                             // Custom MUI theme builder
@@ -32,6 +32,12 @@ export default function App() {
       return next;
     });
   };
+
+  // Synchronize Handsontable theme classes on document.body for portals (like dropdown filters)
+  useEffect(() => {
+    document.body.classList.remove('ht-theme-main', 'ht-theme-main-dark');
+    document.body.classList.add(mode === 'dark' ? 'ht-theme-main-dark' : 'ht-theme-main');
+  }, [mode]);
 
   // Build the MUI theme object based on the current mode ('light' or 'dark')
   const theme = getTheme(mode);

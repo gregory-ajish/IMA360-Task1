@@ -9,21 +9,17 @@
 //   - DashboardPage.jsx: Rendered conditionally inside a modal dialog when
 //     `isRevenueModalOpen` is true.
 //
-// FEATURES & ARCHITECTURE:
-//   - Full Data Grid: Cell editing, keyboard navigation (arrow keys, Tab, Enter),
-//     range selection, copy/paste, and undo/redo.
-//   - Column Types & Formatting:
-//       • Text column for financial periods ("Month")
-//       • Formatted currency columns with custom pattern: "$0,0"
-//       • Dropdown validation column for tracking status ("Exceeded", "On Track", "Behind")
-//   - Context Menu Enabled: Right-click allows inserting/removing rows and standard actions.
-//   - Resizing: Manual row and column resizing enabled for flexible reporting.
-//   - State Management: Local state holding current ledger data with Reset and Save actions.
-//   - Feedback: Fires success/info toast notifications using React-Toastify.
-//   - Theming: Custom CSS injection for dark mode support over Handsontable base styles.
+// WHY IT EXISTS & KEY ARCHITECTURE:
+//   - Handsontable Grid: High-performance data grid with Excel-like interaction.
+//   - Column Filtering & Sorting: Multi-column filters, conditions, and ascending/descending sorts.
+//   - Column Types & Formats: Formatted currency ($0,0) and status dropdowns ("Exceeded", "On Track", "Behind").
+//   - User Isolation: Each authenticated user has their own isolated localStorage key
+//     (`revenue_ledger_${username}`) so changes are private to that user.
+//   - Confirmation Modal: Uses ConfirmDialog before removing any ledger row to prevent accidental loss.
 // ============================================================================
 
 import React, { useRef, useState, useEffect } from 'react';
+// Material-UI primitive components for dialog structure
 import {
   Dialog,
   DialogTitle,
@@ -33,19 +29,29 @@ import {
   Typography,
   IconButton,
 } from '@mui/material';
+// Material-UI icons for modal actions and headers
 import {
   Close as CloseIcon,
   Save as SaveIcon,
   RestartAlt as ResetIcon,
   TableChart as TableChartIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
+// Handsontable React wrapper component
 import { HotTable } from '@handsontable/react';
+// Handsontable module registration function
 import { registerAllModules } from 'handsontable/registry';
+// Core and theme CSS styles for Handsontable
 import 'handsontable/styles/handsontable.min.css';
 import 'handsontable/styles/ht-theme-main.min.css';
+// Toast notification helper for user action feedback
 import { toast } from 'react-toastify';
-import { blcColors } from '../../theme';
+// Design system tokens for colors and typography
+import { blcColors, typographyTokens } from '../../theme';
+// Common UI components
 import { AppButton } from '../common/AppButton';
+import { ConfirmDialog } from '../common/ConfirmDialog';
+// Custom auth hook to retrieve the currently logged-in user
 import { useAuth } from '../../context/AuthContext';
 
 // Register all Handsontable modules (renderers, editors, validators, plugins)
@@ -53,7 +59,7 @@ import { useAuth } from '../../context/AuthContext';
 registerAllModules();
 
 /**
- * Initial mock dataset for the Revenue Tracker ledger.
+ * Initial seed dataset for the Revenue Tracker ledger.
  * Represents monthly recurring revenue (MRR), expansion revenue, churn, net revenue, and goals.
  */
 const initialData = [
@@ -69,6 +75,31 @@ const initialData = [
 ];
 
 /**
+ * Custom HTML cell renderer for the 'Action' column.
+ * Injects a stylized delete button with an inline SVG trash can into the table cell.
+ */
+const deleteButtonRenderer = (instance, td, row, col, prop, value, cellProperties) => {
+  td.innerHTML = `
+    <button
+      type="button"
+      class="ht-row-delete-btn"
+      title="Delete this row"
+      aria-label="Delete this row"
+      tabindex="-1"
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+    </button>
+  `;
+  td.className = 'htCenter htMiddle htNoWrap'; // Center-align content inside cell
+  return td;
+};
+
+/**
  * RevenueTrackerModal Component
  *
  * @component
@@ -79,16 +110,17 @@ const initialData = [
  * @returns {React.ReactElement} The rendered spreadsheet dialog modal.
  */
 export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
-  const { currentUser } = useAuth(); // Logged-in user context
-  // Reference to the Handsontable instance for direct API operations
+  // Access currently authenticated user profile from AuthContext
+  const { currentUser } = useAuth();
+  // Ref to directly access the Handsontable instance methods (loadData, alter, plugins)
   const hotRef = useRef(null);
 
-  // Storage key uniquely tied to the authenticated user
+  // Isolate localStorage data per user: prevents User A's changes from overwriting User B's
   const userIdentifier = currentUser?.username || currentUser?.id || 'default';
   const storageKey = `revenue_ledger_${userIdentifier}`;
 
   /**
-   * Helper to retrieve saved user data from localStorage or fallback to seed data
+   * Helper function to load spreadsheet data from localStorage or fallback to default seed data
    */
   const getInitialLedgerData = () => {
     try {
@@ -102,34 +134,81 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
     } catch (err) {
       console.error('Error reading revenue ledger from localStorage:', err);
     }
-    // Deep copy seed constant so mutations don't alter initialData
+    // Deep clone default rows so mutations do not alter the seed initialData array
     return initialData.map((row) => [...row]);
   };
 
-  // Local state maintaining the 2D array of spreadsheet values
+  // State storing the 2D matrix of spreadsheet row and column values
   const [data, setData] = useState(getInitialLedgerData);
 
-  // Synchronize state and Handsontable instance whenever the modal is opened or active user changes
+  // State controlling the row deletion confirmation dialog popup
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  // Tracks the row index selected for deletion
+  const [rowToDelete, setRowToDelete] = useState(null);
+
+  /**
+   * Called when user clicks the delete button in the spreadsheet table.
+   * Stores the row index and opens the confirmation dialog.
+   */
+  const handleRequestDelete = (visualRow) => {
+    setRowToDelete(visualRow);
+    setDeleteConfirmOpen(true);
+  };
+
+  /**
+   * Confirms removal of the selected row from Handsontable and updates state.
+   */
+  const handleConfirmDelete = () => {
+    if (rowToDelete !== null && hotRef.current?.hotInstance) {
+      const hot = hotRef.current.hotInstance;
+      // alter('remove_row', index, count): removes 1 row at the specified visual index
+      hot.alter('remove_row', rowToDelete, 1);
+      // Retrieve the updated source data array
+      const updatedData = hot.getSourceData();
+      setData([...updatedData]);
+      toast.success('Row removed successfully.');
+    }
+    setDeleteConfirmOpen(false);
+    setRowToDelete(null);
+  };
+
+  /**
+   * Cancels the deletion prompt without modifying any spreadsheet rows.
+   */
+  const handleCancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setRowToDelete(null);
+  };
+
+  // Synchronize spreadsheet data whenever the modal is opened or the user switches
   useEffect(() => {
     if (open) {
       const latestData = getInitialLedgerData();
       setData(latestData);
       if (hotRef.current?.hotInstance) {
         hotRef.current.hotInstance.loadData(latestData);
+        // Clear active column filters so previous filters don't hide fresh data
+        const filterPlugin = hotRef.current.hotInstance.getPlugin('filters');
+        if (filterPlugin) {
+          filterPlugin.clearConditions();
+          filterPlugin.filter();
+        }
       }
     }
   }, [open, storageKey]);
 
   /**
-   * Persists changes made in the spreadsheet to localStorage per user and closes the modal.
+   * Persists changes to localStorage under the user's isolated key and closes the modal.
+   * getSourceData() is used to ensure filtered or hidden rows are never lost during saving.
    */
   const handleSave = () => {
     try {
-      // Extract latest dataset directly from Handsontable instance if available
-      const currentData = hotRef.current?.hotInstance?.getData() || data;
+      const currentData = hotRef.current?.hotInstance
+        ? hotRef.current.hotInstance.getSourceData()
+        : data;
       localStorage.setItem(storageKey, JSON.stringify(currentData));
       setData(currentData);
-      toast.success(`Revenue ledger updated`);
+      toast.success('Revenue ledger saved successfully!');
       onClose();
     } catch (err) {
       console.error('Failed to save revenue ledger to localStorage:', err);
@@ -138,7 +217,8 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
   };
 
   /**
-   * Restores the spreadsheet to seed data, removing custom user overrides from localStorage.
+   * Clears saved changes from localStorage and reloads the default seed dataset.
+   * Also resets any active column filters and column sorting.
    */
   const handleReset = () => {
     try {
@@ -150,16 +230,27 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
     setData(freshData);
     if (hotRef.current?.hotInstance) {
       hotRef.current.hotInstance.loadData(freshData);
+      const filterPlugin = hotRef.current.hotInstance.getPlugin('filters');
+      if (filterPlugin) {
+        filterPlugin.clearConditions();
+        filterPlugin.filter();
+      }
+      const sortingPlugin = hotRef.current.hotInstance.getPlugin('columnSorting');
+      if (sortingPlugin) {
+        sortingPlugin.clearSort();
+      }
     }
     toast.info('Spreadsheet reset to default values.');
   };
 
   return (
-    // MUI Dialog container: provides backdrop, focus trap, and responsive sizing
+    // Dialog Container
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="lg"
+      disableEnforceFocus // Allows Handsontable custom cell editors and menus to receive focus
+      disableAutoFocus
+      maxWidth="lg" // Wide dialog for comfortable table viewing (approx 1200px max width)
       fullWidth
       aria-labelledby="revenue-modal-title"
       PaperProps={{
@@ -174,7 +265,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
         },
       }}
     >
-      {/* ── Modal Header ── */}
+      {/* ── Modal Header: Title, Icon, and Close Button ── */}
       <DialogTitle
         id="revenue-modal-title"
         sx={{
@@ -187,7 +278,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {/* Header Icon Box */}
+          {/* Brand icon box */}
           <Box
             sx={{
               width: 38,
@@ -203,30 +294,19 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
             <TableChartIcon fontSize="small" />
           </Box>
           <Box>
-            {/* Title */}
             <Typography
               sx={{
-                fontFamily: '"JetBrains Mono", monospace',
-                fontWeight: 700,
-                fontSize: '1.05rem',
+                fontFamily: typographyTokens.fontMono,
+                fontWeight: typographyTokens.weightBold,
+                fontSize: typographyTokens.fontSizeLg,
               }}
             >
               Revenue Tracker — Interactive Ledger
             </Typography>
-            {/* Help text */}
-            <Typography
-              sx={{
-                fontFamily: '"Inter", sans-serif',
-                fontSize: '0.78rem',
-                color: isDark ? '#64748b' : blcColors.textMid,
-              }}
-            >
-              Powered by Handsontable • Double-click cells to edit or paste from Excel
-            </Typography>
           </Box>
         </Box>
 
-        {/* Close Button */}
+        {/* Modal close icon button */}
         <IconButton
           aria-label="close modal"
           onClick={onClose}
@@ -237,31 +317,30 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
         </IconButton>
       </DialogTitle>
 
-      {/* ── Spreadsheet Grid Content Area ── */}
+      {/* ── Handsontable Spreadsheet Grid Area ── */}
       <DialogContent sx={{ p: 2.5, overflowX: 'auto' }}>
         <Box
           sx={{
             borderRadius: '8px',
             overflow: 'hidden',
             border: `1px solid ${isDark ? '#334155' : '#cbd5e1'}`,
-            // Custom CSS overrides to adapt Handsontable typography & headers to active theme
             '& .handsontable': {
-              fontFamily: '"Inter", sans-serif',
-              fontSize: '0.82rem',
+              fontFamily: typographyTokens.fontSans,
+              fontSize: typographyTokens.fontSizeSm,
             },
             '& .htCore th': {
               bgcolor: isDark ? '#1e293b' : '#f8fafc',
               color: isDark ? '#94a3b8' : '#475569',
-              fontWeight: 700,
-              fontFamily: '"JetBrains Mono", monospace',
+              fontWeight: typographyTokens.weightBold,
+              fontFamily: typographyTokens.fontMono,
             },
           }}
         >
-          {/* Handsontable React Component Wrapper */}
+          {/* Handsontable Component Instance */}
           <HotTable
             ref={hotRef}
             data={data}
-            // Column header display strings
+            className={isDark ? 'ht-theme-main-dark' : 'ht-theme-main'} // Switches Handsontable theme
             colHeaders={[
               'Month',
               'Starting MRR ($)',
@@ -270,29 +349,60 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
               'Net Revenue ($)',
               'Target ($)',
               'Status',
+              'Action',
             ]}
-            rowHeaders={true} // Display 1, 2, 3... row index numbers
-            height="320"
+            rowHeaders={true} // Displays row numbers 1, 2, 3...
+            height="380" // Fixed height with internal scrolling
             width="100%"
-            stretchH="all" // Expands columns to occupy full container width
-            contextMenu={true} // Enables right-click context menu
-            manualColumnResize={true} // User can drag column divider to resize
-            manualRowResize={true} // User can drag row divider to resize
-            licenseKey="non-commercial-and-evaluation" // Evaluation license key
-            autoWrapRow={true} // Tab key at end of row wraps to next row
+            stretchH="all" // Stretches columns evenly to fill container width
+            columnSorting={true} // Enables sorting by clicking column headers
+            filters={true} // Enables column filtering dropdown menu
+            dropdownMenu={[
+              'filter_by_condition',
+              'filter_by_value',
+              'filter_action_bar',
+            ]}
+            contextMenu={true} // Right-click context menu (insert/remove row, copy, paste)
+            manualColumnResize={true} // Allows dragging column dividers to resize
+            manualRowResize={true} // Allows dragging row dividers to resize
+            licenseKey="non-commercial-and-evaluation"
+            autoWrapRow={true}
             autoWrapCol={true}
-            // Column schemas and formatting definitions
+            beforeColumnSort={(currentSortConfig, destinationSortConfigs) => {
+              // Disallow sorting on Column 7 (the Action/Delete button column)
+              if (
+                destinationSortConfigs &&
+                destinationSortConfigs.some((cfg) => cfg.column === 7)
+              ) {
+                return false;
+              }
+            }}
+            afterOnCellMouseDown={(event, coords) => {
+              // Intercept mouse click on Column 7 (Action column) on a valid data row
+              if (coords && coords.col === 7 && coords.row >= 0) {
+                if (event) {
+                  event.stopImmediatePropagation?.();
+                  event.preventDefault?.();
+                }
+                handleRequestDelete(coords.row);
+              }
+            }}
             columns={[
-              { type: 'text' }, // Month column (freeform string)
+              { type: 'text' }, // Month column
               { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Starting MRR
               { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Expansion
               { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Churn
               { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Net Revenue
               { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Target
               {
-                // Status column constrained to predefined options
                 type: 'dropdown',
-                source: ['Exceeded', 'On Track', 'Behind'],
+                source: ['Exceeded', 'On Track', 'Behind'], // Dropdown validation options
+              },
+              {
+                renderer: deleteButtonRenderer, // Custom HTML trash can button
+                readOnly: true, // Prevents typing in the action cell
+                className: 'htCenter htMiddle',
+                width: 60,
               },
             ]}
           />
@@ -308,7 +418,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
           justifyContent: 'space-between',
         }}
       >
-        {/* Reset button to roll back edits */}
+        {/* Reset Data Button: resets spreadsheet state and clears local storage ledger */}
         <AppButton
           onClick={handleReset}
           startIcon={<ResetIcon />}
@@ -318,7 +428,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
           Reset Data
         </AppButton>
 
-        {/* Action button cluster (Cancel / Save) */}
+        {/* Right action group: Close & Save */}
         <Box sx={{ display: 'flex', gap: 1 }}>
           <AppButton
             onClick={onClose}
@@ -337,7 +447,20 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
           </AppButton>
         </Box>
       </DialogActions>
+
+      {/* ── Reusable Common ConfirmDialog Component ── */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Confirm Removal"
+        message="Are you sure you want to remove this row?"
+        confirmText="Remove Row"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </Dialog>
   );
 };
 
+export default RevenueTrackerModal;

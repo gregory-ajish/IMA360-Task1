@@ -122,7 +122,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
       />
 
       {/* ── Main Page Content ── */}
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Container maxWidth="xl" sx={{ mt: 4 }}>
 
         {/* ── Welcome Banner (Common Component) ── */}
         <WelcomeBanner userName={currentUser?.name} isDark={isDark} />
@@ -186,21 +186,28 @@ export const DashboardPage = ({ mode, toggleMode }) => {
                   />
                 </Box>
 
-                {/* ── App Cards Grid ──
-                    Responsive grid: 1 col on mobile, 2 on tablet, 3 on desktop, 4 on wide.
-                    Each card renders an icon, title, and description from apps.json. */}
-                {/* ── App Cards Grid (Common Component) ── */}
-                <Grid container spacing={2.5}>
+                {/* ── App Cards Grid (5 cards per line max on desktop) ── */}
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: 'repeat(1, 1fr)',
+                      sm: 'repeat(2, 1fr)',
+                      md: 'repeat(3, 1fr)',
+                      lg: 'repeat(5, 1fr)',
+                    },
+                    gap: 2.5,
+                  }}
+                >
                   {category.apps.map((app) => (
-                    <Grid item xs={12} sm={6} md={4} lg={3} key={app.id}>
-                      <AppCard
-                        app={app}
-                        isDark={isDark}
-                        onCardClick={handleCardClick}
-                      />
-                    </Grid>
+                    <AppCard
+                      key={app.id}
+                      app={app}
+                      isDark={isDark}
+                      onCardClick={handleCardClick}
+                    />
                   ))}
-                </Grid>
+                </Box>
               </Box>
             ))}
           </Box>

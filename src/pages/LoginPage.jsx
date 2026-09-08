@@ -40,6 +40,10 @@ import {
   Container,
   Tooltip,
   Link,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 
 // MUI icons used in the form UI
@@ -51,6 +55,8 @@ import {
   DarkMode as DarkModeIcon,               // Moon icon — switch to dark
   LightMode as LightModeIcon,             // Sun icon — switch to light
   HubOutlined,                             // Hub/network icon — app logo
+  EmailOutlined as MailIcon,               // Email icon for password reset
+  Close as CloseIcon,                      // Close icon for dialog
 } from '@mui/icons-material';
 
 import { useAuth } from '../context/AuthContext'; // login() function from auth context
@@ -90,6 +96,43 @@ export const LoginPage = ({ mode, toggleMode }) => {
   // isSubmitting: true while the login async call is in-flight
   // Disables the submit button and shows a spinner to prevent double-submits
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // forgotPasswordOpen: controls visibility of the Forgot Password modal popup
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  // resetEmail: stores email entered in the Forgot Password modal
+  const [resetEmail, setResetEmail] = useState('');
+  // isResetting: loading state when sending password reset link
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleOpenForgot = () => {
+    setResetEmail('');
+    setForgotPasswordOpen(true);
+  };
+
+  const handleCloseForgot = () => {
+    setForgotPasswordOpen(false);
+    setResetEmail('');
+  };
+
+  const handleSendReset = async (e) => {
+    if (e) e.preventDefault();
+    const cleanEmail = resetEmail.trim();
+    if (!cleanEmail) {
+      toast.error('Please enter your corporate email address.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+
+    setIsResetting(true);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    setIsResetting(false);
+    toast.success(`Password reset instructions sent to ${cleanEmail}`);
+    handleCloseForgot();
+  };
 
   const { login } = useAuth();       // Auth function from global context
   const navigate = useNavigate();    // For redirecting after successful login
@@ -356,12 +399,12 @@ export const LoginPage = ({ mode, toggleMode }) => {
                     )}
                   />
 
-                  {/* Forgot Password Link Button */}
+                  {/* Forgot Password Link Button (opens email modal popup) */}
                   <Link
                     component="button"
                     type="button"
                     id="forgot-password-link"
-                    onClick={() => toast.info('Password reset link will be sent to your email.')}
+                    onClick={handleOpenForgot}
                     underline="hover"
                     sx={{
                       fontFamily: '"Inter", sans-serif',
@@ -459,6 +502,121 @@ export const LoginPage = ({ mode, toggleMode }) => {
           </CardContent>
         </Card>
       </Container>
+
+      {/* ── Forgot Password Dialog Modal ── */}
+      <Dialog
+        open={forgotPasswordOpen}
+        onClose={handleCloseForgot}
+        maxWidth="xs"
+        fullWidth
+        aria-labelledby="forgot-password-dialog-title"
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            bgcolor: isDark ? blcColors.darkCard : '#ffffff',
+            color: isDark ? '#e2e8f0' : blcColors.textDark,
+            border: `1px solid ${isDark ? blcColors.darkBorder : '#d1d9f0'}`,
+            boxShadow: isDark
+              ? '0 12px 48px rgba(0,0,0,0.7)'
+              : '0 8px 32px rgba(30,58,138,0.15)',
+            p: 1,
+          },
+        }}
+      >
+        <DialogTitle
+          id="forgot-password-dialog-title"
+          sx={{
+            m: 0,
+            p: 2,
+            pb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontWeight: 700,
+              fontSize: '1rem',
+              color: isDark ? '#e2e8f0' : blcColors.navyAccent,
+            }}
+          >
+            Reset Password
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={handleCloseForgot}
+            sx={{ color: isDark ? '#94a3b8' : '#64748b' }}
+            aria-label="close reset dialog"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <form onSubmit={handleSendReset}>
+          <DialogContent sx={{ px: 2, py: 1.5 }}>
+            <Typography
+              sx={{
+                fontFamily: '"Inter", sans-serif',
+                fontSize: '0.82rem',
+                color: isDark ? '#94a3b8' : blcColors.textMid,
+                mb: 2,
+                lineHeight: 1.5,
+              }}
+            >
+              Enter the corporate email associated with your account. We'll send you instructions to reset your password.
+            </Typography>
+
+            <TextField
+              id="reset-email-input"
+              autoFocus
+              fullWidth
+              size="small"
+              type="email"
+              placeholder="e.g. alex.morgan@example.com"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <MailIcon sx={{ fontSize: 18, color: isDark ? '#64748b' : '#94a3b8' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px',
+                  fontFamily: '"Inter", sans-serif',
+                  fontSize: '0.875rem',
+                  bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+                },
+              }}
+            />
+          </DialogContent>
+
+          <DialogActions sx={{ px: 2, pb: 2, pt: 1, gap: 1 }}>
+            <AppButton
+              variant="ghost"
+              size="small"
+              onClick={handleCloseForgot}
+              disabled={isResetting}
+            >
+              Cancel
+            </AppButton>
+            {/* Secondary variant AppButton as requested */}
+            <AppButton
+              id="reset-password-submit-btn"
+              type="submit"
+              variant="secondary"
+              size="small"
+              loading={isResetting}
+            >
+              Send Reset Link
+            </AppButton>
+          </DialogActions>
+        </form>
+      </Dialog>
     </Box>
   );
 };
