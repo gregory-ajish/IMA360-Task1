@@ -15,6 +15,7 @@ import { ProtectedRoute } from './components/routes/ProtectedRoute'; // Guards p
 import { PublicRoute } from './components/routes/PublicRoute';       // Guards public pages (e.g. login)
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { RevenueTrackerPage } from './pages/RevenueTrackerPage';
 
 export default function App() {
   // ─── Theme Mode (Light / Dark) ──────────────────────────────────────────
@@ -79,6 +80,16 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage mode={mode} toggleMode={toggleMode} />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* /revenue-tracker — Standalone Protected Revenue Tracker Page */}
+            <Route
+              path="/revenue-tracker"
+              element={
+                <ProtectedRoute>
+                  <RevenueTrackerPage mode={mode} toggleMode={toggleMode} />
                 </ProtectedRoute>
               }
             />

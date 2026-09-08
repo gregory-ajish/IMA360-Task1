@@ -35,7 +35,6 @@ import { Navbar } from '../components/dashboard/Navbar';
 import { WelcomeBanner } from '../components/dashboard/WelcomeBanner';
 import { SearchBar } from '../components/dashboard/SearchBar';
 import { AppCard } from '../components/common/AppCard';
-import { RevenueTrackerModal } from '../components/dashboard/RevenueTrackerModal';
 
 // ─── DashboardPage Component ──────────────────────────────────────────────────
 // Props:
@@ -54,9 +53,6 @@ export const DashboardPage = ({ mode, toggleMode }) => {
   // { open, message, severity } — open/closes it, message sets text, severity sets color.
   const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
 
-  // State to control the Handsontable Revenue Tracker spreadsheet modal
-  const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
-
   // Handles logout: clear auth state → redirect to /login
   const handleLogout = () => {
     logout();                               // Clears auth state and storage
@@ -64,10 +60,10 @@ export const DashboardPage = ({ mode, toggleMode }) => {
   };
 
   // Triggered when an app card is clicked
-  // If "Revenue Tracker" (app id 7), opens the Handsontable spreadsheet modal!
+  // If "Revenue Tracker" (app id 7), navigates to the standalone /revenue-tracker page!
   const handleCardClick = (app) => {
     if (app.id === 7 || app.title === 'Revenue Tracker') {
-      setIsRevenueModalOpen(true);
+      navigate('/revenue-tracker');
     } else {
       setToast({ open: true, message: `Launching "${app.title}"...`, severity: 'success' });
     }
@@ -260,15 +256,6 @@ export const DashboardPage = ({ mode, toggleMode }) => {
           {toast.message}
         </Alert>
       </Snackbar>
-
-      {/* ── Handsontable Spreadsheet Modal ──
-          Opens when user clicks the "Revenue Tracker" app card. */}
-      <RevenueTrackerModal
-        open={isRevenueModalOpen}
-        onClose={() => setIsRevenueModalOpen(false)}
-        isDark={isDark}
-        isAdmin={isAdmin}
-      />
     </Box>
   );
 };
