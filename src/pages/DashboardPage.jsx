@@ -62,6 +62,14 @@ export const DashboardPage = ({ mode, toggleMode }) => {
   // Triggered when an app card is clicked
   // If "Revenue Tracker" (app id 7), navigates to the standalone /revenue-tracker page!
   const handleCardClick = (app) => {
+    if (app.adminOnly && !isAdmin) {
+      setToast({
+        open: true,
+        message: `Access Restricted: "${app.title}" is available to Admin users only.`,
+        severity: 'warning',
+      });
+      return;
+    }
     if (app.id === 7 || app.title === 'Revenue Tracker') {
       navigate('/revenue-tracker');
     } else {
@@ -199,6 +207,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
                     <AppCard
                       key={app.id}
                       app={app}
+                      isAdmin={isAdmin}
                       isDark={isDark}
                       onCardClick={handleCardClick}
                     />

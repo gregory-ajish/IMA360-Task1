@@ -98,7 +98,7 @@ export default function App() {
               }
             />
 
-            {/* /revenue-tracker — Standalone Protected Revenue Tracker Page */}
+            {/* /revenue-tracker — Standalone Protected Revenue Tracker Page (Read-only for Users, Editable for Admin) */}
             <Route
               path="/revenue-tracker"
               element={

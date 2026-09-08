@@ -1,21 +1,8 @@
-// AppCard.jsx
-// ============================================================================
-// PURPOSE:
-//   An interactive, theme-aware card component representing an application, service,
-//   tool, or feature tile on the dashboard grid.
-//
-// WHY IT EXISTS:
-//   Standardizes how cards appear across the entire application:
-//   - Uniform dimensions, padding, rounded corners, and hover lift effects.
-//   - Theme switching (adjusts background, text, and border colors automatically).
-//   - Accessibility (keyboard focus, screen readers, semantic buttons via CardActionArea).
-//   - Supports both direct props (title, description, icon, onClick) and legacy
-//     data objects ({ app: { id, title, description, icon } }).
-// ============================================================================
-
 import React from 'react';
 // Material-UI primitive components used to construct the card layout
 import { Card, CardActionArea, Box, Typography, Chip } from '@mui/material';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 // Hook to read active MUI theme values (like current mode 'light' or 'dark')
 import { useTheme } from '@mui/material/styles';
 // Reusable dynamic icon resolver component
@@ -28,12 +15,14 @@ import { blcColors, typographyTokens } from '../../theme';
  *
  * @component
  * @param {Object} props
- * @param {Object} [props.app] - Legacy application data object { id, title, description, icon }
+ * @param {Object} [props.app] - Legacy application data object { id, title, description, icon, adminOnly }
  * @param {number|string} [props.id] - Unique ID of the card item
  * @param {string} [props.title] - Display name of the item
  * @param {string} [props.description] - Description or summary text
  * @param {string|React.ReactNode} [props.icon] - Icon name string or custom React element
  * @param {string|React.ReactNode} [props.badge] - Optional badge/tag label (e.g. "Core", "Beta")
+ * @param {boolean} [props.adminOnly] - Restricted to Admin role only
+ * @param {boolean} [props.isAdmin] - Whether current user has Admin role
  * @param {boolean} [props.isDark] - Dark mode flag (defaults to current MUI theme mode)
  * @param {Function} [props.onClick] - Click handler triggered on click or keyboard Enter/Space
  * @param {Function} [props.onCardClick] - Legacy click handler receiving `app` object
@@ -46,6 +35,8 @@ export const AppCard = ({
   description,
   icon,
   badge,
+  adminOnly,
+  isAdmin = false,
   isDark: propIsDark,
   onClick,
   onCardClick,
@@ -58,17 +49,19 @@ export const AppCard = ({
   const isDark = propIsDark !== undefined ? propIsDark : theme.palette.mode === 'dark';
 
   // Normalize props: allows component to accept either separate props OR an `app` object
-  // Nullish coalescing (??) falls back safely if a property is undefined or null
   const cardId = id ?? app?.id ?? 'card';
   const cardTitle = title ?? app?.title ?? '';
   const cardDescription = description ?? app?.description ?? '';
   const cardIcon = icon ?? app?.icon;
+  const isAdminOnly = adminOnly ?? app?.adminOnly ?? false;
+
+  // Determine restriction state
+  const isRestricted = isAdminOnly && !isAdmin;
 
   // Handles click events from both mouse clicks and keyboard (Enter/Space on CardActionArea)
-  // Sends back either the normalized object to onClick OR the original app to legacy onCardClick
   const handleClick = () => {
     if (onClick) {
-      onClick(app || { id: cardId, title: cardTitle, description: cardDescription, icon: cardIcon });
+      onClick(app || { id: cardId, title: cardTitle, description: cardDescription, icon: cardIcon, adminOnly: isAdminOnly });
     } else if (onCardClick && app) {
       onCardClick(app);
     }
@@ -76,42 +69,44 @@ export const AppCard = ({
 
   return (
     // Outer Card Container
-    // Sets up full-height flex column layout with custom borders, rounded corners, and hover lift
     <Card
       id={`app-card-${cardId}`}
       sx={{
-        height: '100%', // Fills grid cell height completely so all cards in a row match
-        display: 'flex', // Flexbox container
-        flexDirection: 'column', // Vertical stack for contents
-        bgcolor: isDark ? blcColors.darkCard : '#ffffff', // Theme-responsive card background
-        border: `1px solid ${isDark ? blcColors.darkBorder : '#e0e5f2'}`, // Subtle card outline
-        borderRadius: '12px', // Modern curved corners
-        cursor: 'pointer', // Indicates card is interactive
-        transition: 'all 0.22s ease', // Smooth transition for hover effects
-        boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.35)' : 'none', // Ambient shadow in dark mode
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: isDark ? blcColors.darkCard : '#ffffff',
+        border: `1px solid ${
+          isRestricted
+            ? (isDark ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.2)')
+            : (isDark ? blcColors.darkBorder : '#e0e5f2')
+        }`,
+        borderRadius: '12px',
+        cursor: 'pointer',
+        transition: 'all 0.22s ease',
+        boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.35)' : 'none',
+        opacity: isRestricted ? 0.82 : 1,
         '&:hover': {
-          borderColor: blcColors.navyAccent, // Highlight border on hover with brand navy
-          bgcolor: isDark ? blcColors.darkCardHover : '#f8f9ff', // Gentle background tint on hover
+          borderColor: isRestricted ? '#ef4444' : blcColors.navyAccent,
+          bgcolor: isDark
+            ? (isRestricted ? 'rgba(239, 68, 68, 0.06)' : blcColors.darkCardHover)
+            : (isRestricted ? '#fef2f2' : '#f8f9ff'),
           boxShadow: isDark
-            ? '0 8px 28px rgba(30,58,138,0.25)' // Glow effect in dark mode
-            : '0 6px 20px rgba(30,58,138,0.12)', // Soft navy elevation in light mode
-          transform: 'translateY(-3px)', // Physical 3px lift effect on hover
+            ? (isRestricted ? '0 8px 28px rgba(239, 68, 68, 0.2)' : '0 8px 28px rgba(30,58,138,0.25)')
+            : (isRestricted ? '0 6px 20px rgba(239, 68, 68, 0.12)' : '0 6px 20px rgba(30,58,138,0.12)'),
+          transform: 'translateY(-3px)',
         },
-        ...sx, // Custom overrides from caller
+        ...sx,
       }}
     >
-      {/* 
-        CardActionArea wraps the card contents in an accessible button element.
-        It provides keyboard navigation (Tab + Enter/Space) and a native ripple click effect.
-      */}
       <CardActionArea
         onClick={handleClick}
         sx={{
-          flexGrow: 1, // Expands to fill the entire card body
-          p: 2.5, // 20px internal padding around content
+          flexGrow: 1,
+          p: 2.5,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'flex-start', // Align contents to the left
+          alignItems: 'flex-start',
           height: '100%',
         }}
       >
@@ -121,25 +116,32 @@ export const AppCard = ({
             width: '100%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between', // Pushes icon to left and badge to right
-            mb: 2, // 16px bottom margin separating header from title
+            justifyContent: 'space-between',
+            mb: 2,
           }}
         >
-          {/* Icon Container: square badge with rounded corners and brand-tinted background */}
+          {/* Icon Container */}
           <Box
             sx={{
-              width: 44, // 44px fixed width
-              height: 44, // 44px fixed height
-              borderRadius: '10px', // Slightly rounded square
-              bgcolor: isDark ? 'rgba(30,58,138,0.2)' : `${blcColors.navyAccent}12`, // Translucent brand blue fill
-              color: isDark ? '#7eb8f7' : blcColors.navyAccent, // Icon glyph color
+              width: 44,
+              height: 44,
+              borderRadius: '10px',
+              bgcolor: isRestricted
+                ? (isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.08)')
+                : (isDark ? 'rgba(30,58,138,0.2)' : `${blcColors.navyAccent}12`),
+              color: isRestricted
+                ? (isDark ? '#fca5a5' : '#dc2626')
+                : (isDark ? '#7eb8f7' : blcColors.navyAccent),
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center', // Centers icon inside box
-              border: `1px solid ${isDark ? `${blcColors.navyAccent}40` : `${blcColors.navyAccent}25`}`,
+              justifyContent: 'center',
+              border: `1px solid ${
+                isRestricted
+                  ? (isDark ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.2)')
+                  : (isDark ? `${blcColors.navyAccent}40` : `${blcColors.navyAccent}25`)
+              }`,
             }}
           >
-            {/* If cardIcon is a string name, render using AppIcon component; otherwise render custom React node */}
             {typeof cardIcon === 'string' ? (
               <AppIcon name={cardIcon} sx={{ fontSize: 22 }} />
             ) : (
@@ -147,62 +149,91 @@ export const AppCard = ({
             )}
           </Box>
 
-          {/* Optional Badge / Status tag: rendered only if badge prop is provided */}
-          {badge && (
+          {/* Badge / Lock Status tag */}
+          {isRestricted ? (
+            <Chip
+              icon={<LockOutlinedIcon style={{ fontSize: 13, color: isDark ? '#fca5a5' : '#dc2626' }} />}
+              label="Admin Only"
+              size="small"
+              sx={{
+                fontFamily: typographyTokens.fontMono,
+                fontSize: '0.68rem',
+                fontWeight: typographyTokens.weightBold,
+                height: 22,
+                bgcolor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fee2e2',
+                color: isDark ? '#fca5a5' : '#dc2626',
+                border: `1px solid ${isDark ? 'rgba(239, 68, 68, 0.35)' : '#fca5a5'}`,
+                '& .MuiChip-icon': {
+                  marginLeft: '4px',
+                },
+              }}
+            />
+          ) : isAdminOnly && isAdmin ? (
+            <Chip
+              icon={<AdminPanelSettingsIcon style={{ fontSize: 13, color: isDark ? '#c084fc' : '#7e22ce' }} />}
+              label="Admin"
+              size="small"
+              sx={{
+                fontFamily: typographyTokens.fontMono,
+                fontSize: '0.68rem',
+                fontWeight: typographyTokens.weightBold,
+                height: 22,
+                bgcolor: isDark ? 'rgba(147, 51, 234, 0.2)' : '#f3e8ff',
+                color: isDark ? '#d8b4fe' : '#7e22ce',
+                border: `1px solid ${isDark ? 'rgba(147, 51, 234, 0.35)' : '#d8b4fe'}`,
+                '& .MuiChip-icon': {
+                  marginLeft: '4px',
+                },
+              }}
+            />
+          ) : badge ? (
             <Chip
               label={badge}
               size="small"
               sx={{
-                fontFamily: typographyTokens.fontMono, // Monospace font for tags/chips
-                fontSize: typographyTokens.fontSizeXs, // 12px font size
-                fontWeight: typographyTokens.weightSemiBold, // 600 weight
-                height: 22, // Compact badge height
+                fontFamily: typographyTokens.fontMono,
+                fontSize: typographyTokens.fontSizeXs,
+                fontWeight: typographyTokens.weightSemiBold,
+                height: 22,
                 bgcolor: isDark ? 'rgba(30,58,138,0.3)' : 'rgba(30,58,138,0.08)',
                 color: isDark ? '#93c5fd' : blcColors.navyAccent,
                 border: `1px solid ${isDark ? 'rgba(30,58,138,0.4)' : 'transparent'}`,
               }}
             />
-          )}
+          ) : null}
         </Box>
 
-        {/* 
-          Card Title (Single Line Enforced)
-          If the title is too long for the card width, it truncates with an ellipsis (...)
-        */}
+        {/* Card Title */}
         <Typography
           sx={{
-            fontFamily: typographyTokens.fontMono, // Monospace font for card titles
-            fontWeight: typographyTokens.weightBold, // 700 bold weight
-            fontSize: typographyTokens.fontSizeBase, // 14px font size
-            color: isDark ? '#e2e8f0' : blcColors.textDark, // High contrast text color
-            mb: 0.75, // Bottom margin to space out title from description
-            lineHeight: typographyTokens.lineHeightTight, // 1.25 line height
-            whiteSpace: 'nowrap', // Prevents title from wrapping to a second line
-            overflow: 'hidden', // Hides characters exceeding container width
-            textOverflow: 'ellipsis', // Appends '...' when title overflows
-            width: '100%', // Takes full width of card
+            fontFamily: typographyTokens.fontMono,
+            fontWeight: typographyTokens.weightBold,
+            fontSize: typographyTokens.fontSizeBase,
+            color: isDark ? '#e2e8f0' : blcColors.textDark,
+            mb: 0.75,
+            lineHeight: typographyTokens.lineHeightTight,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            width: '100%',
           }}
         >
           {cardTitle}
         </Typography>
 
-        {/* 
-          Card Description (Enforced exactly 2 lines with trailing ellipsis dots)
-          - Uses CSS -webkit-line-clamp: 2 to limit text to 2 lines
-          - Uses fixed height: '2.3rem' to ensure uniform height across all cards in the grid
-        */}
+        {/* Card Description */}
         <Typography
           sx={{
-            fontFamily: typographyTokens.fontSans, // Inter sans-serif font for readable body text
-            fontSize: typographyTokens.fontSizeSm, // 13.1px font size
-            color: isDark ? '#64748b' : blcColors.textMid, // Subdued gray text
-            lineHeight: typographyTokens.lineHeightNormal, // 1.5 line height for comfortable reading
-            display: '-webkit-box', // Required layout box for line clamp
-            WebkitLineClamp: 2, // Limits text strictly to 2 lines
-            WebkitBoxOrient: 'vertical', // Required vertical orientation for WebkitLineClamp
-            overflow: 'hidden', // Hides any text beyond the 2nd line
-            textOverflow: 'ellipsis', // Displays '...' at the end of the 2nd line if truncated
-            height: '2.3rem', // Fixed height keeps all cards equal height even if description is 1 line
+            fontFamily: typographyTokens.fontSans,
+            fontSize: typographyTokens.fontSizeSm,
+            color: isDark ? '#64748b' : blcColors.textMid,
+            lineHeight: typographyTokens.lineHeightNormal,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            height: '2.3rem',
           }}
         >
           {cardDescription}
