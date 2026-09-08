@@ -13,8 +13,10 @@
 //   - Handsontable Grid: High-performance data grid with Excel-like interaction.
 //   - Column Filtering & Sorting: Multi-column filters, conditions, and ascending/descending sorts.
 //   - Column Types & Formats: Formatted currency ($0,0) and status dropdowns ("Exceeded", "On Track", "Behind").
-//   - User Isolation: Each authenticated user has their own isolated localStorage key
-//     (`revenue_ledger_${username}`) so changes are private to that user.
+//   - Shared Storage: A single localStorage key (`revenue_ledger_shared`) stores
+//     the table data, shared between Admin and User accounts.
+//   - Role-Based Access: Admin can fully edit, save, reset, and delete rows.
+//     User (Viewer) sees the same data in read-only mode with action buttons hidden.
 //   - Confirmation Modal: Uses ConfirmDialog before removing any ledger row to prevent accidental loss.
 // ============================================================================
 
@@ -28,6 +30,7 @@ import {
   Box,
   Typography,
   IconButton,
+  Chip,
 } from '@mui/material';
 // Material-UI icons for modal actions and headers
 import {
@@ -36,6 +39,8 @@ import {
   RestartAlt as ResetIcon,
   TableChart as TableChartIcon,
   Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 // Handsontable React wrapper component
 import { HotTable } from '@handsontable/react';
@@ -51,12 +56,13 @@ import { blcColors, typographyTokens } from '../../theme';
 // Common UI components
 import { AppButton } from '../common/AppButton';
 import { ConfirmDialog } from '../common/ConfirmDialog';
-// Custom auth hook to retrieve the currently logged-in user
-import { useAuth } from '../../context/AuthContext';
 
 // Register all Handsontable modules (renderers, editors, validators, plugins)
 // This must be called once before any HotTable instances are mounted
 registerAllModules();
+
+// Shared localStorage key — both Admin and User read/write from the same key
+const SHARED_STORAGE_KEY = 'revenue_ledger_shared';
 
 /**
  * Initial seed dataset for the Revenue Tracker ledger.
@@ -107,24 +113,19 @@ const deleteButtonRenderer = (instance, td, row, col, prop, value, cellPropertie
  * @param {boolean} props.open - Whether the spreadsheet dialog is currently visible.
  * @param {Function} props.onClose - Callback function to dismiss the modal dialog.
  * @param {boolean} props.isDark - True if dark mode is active, triggering dark palette adjustments.
+ * @param {boolean} props.isAdmin - True if the logged-in user is Admin (full edit). False for Viewer (read-only).
  * @returns {React.ReactElement} The rendered spreadsheet dialog modal.
  */
-export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
-  // Access currently authenticated user profile from AuthContext
-  const { currentUser } = useAuth();
+export const RevenueTrackerModal = ({ open, onClose, isDark, isAdmin }) => {
   // Ref to directly access the Handsontable instance methods (loadData, alter, plugins)
   const hotRef = useRef(null);
 
-  // Isolate localStorage data per user: prevents User A's changes from overwriting User B's
-  const userIdentifier = currentUser?.username || currentUser?.id || 'default';
-  const storageKey = `revenue_ledger_${userIdentifier}`;
-
   /**
-   * Helper function to load spreadsheet data from localStorage or fallback to default seed data
+   * Helper function to load spreadsheet data from shared localStorage or fallback to default seed data
    */
   const getInitialLedgerData = () => {
     try {
-      const saved = localStorage.getItem(storageKey);
+      const saved = localStorage.getItem(SHARED_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -141,16 +142,17 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
   // State storing the 2D matrix of spreadsheet row and column values
   const [data, setData] = useState(getInitialLedgerData);
 
-  // State controlling the row deletion confirmation dialog popup
+  // State controlling the row deletion confirmation dialog popup (Admin only)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   // Tracks the row index selected for deletion
   const [rowToDelete, setRowToDelete] = useState(null);
 
   /**
-   * Called when user clicks the delete button in the spreadsheet table.
+   * Called when admin clicks the delete button in the spreadsheet table.
    * Stores the row index and opens the confirmation dialog.
    */
   const handleRequestDelete = (visualRow) => {
+    if (!isAdmin) return; // Safety guard — viewers cannot delete
     setRowToDelete(visualRow);
     setDeleteConfirmOpen(true);
   };
@@ -180,7 +182,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
     setRowToDelete(null);
   };
 
-  // Synchronize spreadsheet data whenever the modal is opened or the user switches
+  // Synchronize spreadsheet data whenever the modal is opened
   useEffect(() => {
     if (open) {
       const latestData = getInitialLedgerData();
@@ -195,18 +197,19 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
         }
       }
     }
-  }, [open, storageKey]);
+  }, [open]);
 
   /**
-   * Persists changes to localStorage under the user's isolated key and closes the modal.
+   * Persists changes to shared localStorage and closes the modal. (Admin only)
    * getSourceData() is used to ensure filtered or hidden rows are never lost during saving.
    */
   const handleSave = () => {
+    if (!isAdmin) return; // Safety guard
     try {
       const currentData = hotRef.current?.hotInstance
         ? hotRef.current.hotInstance.getSourceData()
         : data;
-      localStorage.setItem(storageKey, JSON.stringify(currentData));
+      localStorage.setItem(SHARED_STORAGE_KEY, JSON.stringify(currentData));
       setData(currentData);
       toast.success('Revenue ledger saved successfully!');
       onClose();
@@ -217,12 +220,13 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
   };
 
   /**
-   * Clears saved changes from localStorage and reloads the default seed dataset.
+   * Clears saved changes from shared localStorage and reloads the default seed dataset. (Admin only)
    * Also resets any active column filters and column sorting.
    */
   const handleReset = () => {
+    if (!isAdmin) return; // Safety guard
     try {
-      localStorage.removeItem(storageKey);
+      localStorage.removeItem(SHARED_STORAGE_KEY);
     } catch (err) {
       console.error('Failed to clear stored revenue ledger:', err);
     }
@@ -241,6 +245,54 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
       }
     }
     toast.info('Spreadsheet reset to default values.');
+  };
+
+  // ─── Column Definitions ────────────────────────────────────────────────
+  // Admin: all columns including the delete Action column
+  // Viewer: data columns only (no Action column), all readOnly
+  const getColumns = () => {
+    const baseCols = [
+      { type: 'text', readOnly: !isAdmin },                                       // Month
+      { type: 'numeric', numericFormat: { pattern: '$0,0' }, readOnly: !isAdmin }, // Starting MRR
+      { type: 'numeric', numericFormat: { pattern: '$0,0' }, readOnly: !isAdmin }, // Expansion
+      { type: 'numeric', numericFormat: { pattern: '$0,0' }, readOnly: !isAdmin }, // Churn
+      { type: 'numeric', numericFormat: { pattern: '$0,0' }, readOnly: !isAdmin }, // Net Revenue
+      { type: 'numeric', numericFormat: { pattern: '$0,0' }, readOnly: !isAdmin }, // Target
+      {
+        type: 'dropdown',
+        source: ['Exceeded', 'On Track', 'Behind'],
+        readOnly: !isAdmin,
+      }, // Status
+    ];
+
+    // Only Admin sees the delete action column
+    if (isAdmin) {
+      baseCols.push({
+        renderer: deleteButtonRenderer,
+        readOnly: true,
+        className: 'htCenter htMiddle',
+        width: 60,
+      });
+    }
+
+    return baseCols;
+  };
+
+  // Column headers — Admin gets the Action column header, Viewer does not
+  const getColHeaders = () => {
+    const headers = [
+      'Month',
+      'Starting MRR ($)',
+      'Expansion ($)',
+      'Churn ($)',
+      'Net Revenue ($)',
+      'Target ($)',
+      'Status',
+    ];
+    if (isAdmin) {
+      headers.push('Action');
+    }
+    return headers;
   };
 
   return (
@@ -265,7 +317,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
         },
       }}
     >
-      {/* ── Modal Header: Title, Icon, and Close Button ── */}
+      {/* ── Modal Header: Title, Role Badge, and Close Button ── */}
       <DialogTitle
         id="revenue-modal-title"
         sx={{
@@ -304,6 +356,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
               Revenue Tracker — Interactive Ledger
             </Typography>
           </Box>
+
         </Box>
 
         {/* Modal close icon button */}
@@ -341,16 +394,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
             ref={hotRef}
             data={data}
             className={isDark ? 'ht-theme-main-dark' : 'ht-theme-main'} // Switches Handsontable theme
-            colHeaders={[
-              'Month',
-              'Starting MRR ($)',
-              'Expansion ($)',
-              'Churn ($)',
-              'Net Revenue ($)',
-              'Target ($)',
-              'Status',
-              'Action',
-            ]}
+            colHeaders={getColHeaders()}
             rowHeaders={true} // Displays row numbers 1, 2, 3...
             height="380" // Fixed height with internal scrolling
             width="100%"
@@ -362,15 +406,16 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
               'filter_by_value',
               'filter_action_bar',
             ]}
-            contextMenu={true} // Right-click context menu (insert/remove row, copy, paste)
+            contextMenu={isAdmin ? true : false} // Right-click context menu only for Admin
             manualColumnResize={true} // Allows dragging column dividers to resize
             manualRowResize={true} // Allows dragging row dividers to resize
             licenseKey="non-commercial-and-evaluation"
             autoWrapRow={true}
             autoWrapCol={true}
             beforeColumnSort={(currentSortConfig, destinationSortConfigs) => {
-              // Disallow sorting on Column 7 (the Action/Delete button column)
+              // Disallow sorting on the Action/Delete button column (last column for Admin)
               if (
+                isAdmin &&
                 destinationSortConfigs &&
                 destinationSortConfigs.some((cfg) => cfg.column === 7)
               ) {
@@ -378,8 +423,8 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
               }
             }}
             afterOnCellMouseDown={(event, coords) => {
-              // Intercept mouse click on Column 7 (Action column) on a valid data row
-              if (coords && coords.col === 7 && coords.row >= 0) {
+              // Admin only: Intercept mouse click on the Action column on a valid data row
+              if (isAdmin && coords && coords.col === 7 && coords.row >= 0) {
                 if (event) {
                   event.stopImmediatePropagation?.();
                   event.preventDefault?.();
@@ -387,24 +432,7 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
                 handleRequestDelete(coords.row);
               }
             }}
-            columns={[
-              { type: 'text' }, // Month column
-              { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Starting MRR
-              { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Expansion
-              { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Churn
-              { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Net Revenue
-              { type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Target
-              {
-                type: 'dropdown',
-                source: ['Exceeded', 'On Track', 'Behind'], // Dropdown validation options
-              },
-              {
-                renderer: deleteButtonRenderer, // Custom HTML trash can button
-                readOnly: true, // Prevents typing in the action cell
-                className: 'htCenter htMiddle',
-                width: 60,
-              },
-            ]}
+            columns={getColumns()}
           />
         </Box>
       </DialogContent>
@@ -418,17 +446,21 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
           justifyContent: 'space-between',
         }}
       >
-        {/* Reset Data Button: resets spreadsheet state and clears local storage ledger */}
-        <AppButton
-          onClick={handleReset}
-          startIcon={<ResetIcon />}
-          size="small"
-          variant="ghost"
-        >
-          Reset Data
-        </AppButton>
+        {/* Left side: Reset button (Admin only) */}
+        {isAdmin ? (
+          <AppButton
+            onClick={handleReset}
+            startIcon={<ResetIcon />}
+            size="small"
+            variant="ghost"
+          >
+            Reset Data
+          </AppButton>
+        ) : (
+          <Box />
+        )}
 
-        {/* Right action group: Close & Save */}
+        {/* Right action group: Close & Save (Save only for Admin) */}
         <Box sx={{ display: 'flex', gap: 1 }}>
           <AppButton
             onClick={onClose}
@@ -437,28 +469,32 @@ export const RevenueTrackerModal = ({ open, onClose, isDark }) => {
           >
             Close
           </AppButton>
-          <AppButton
-            onClick={handleSave}
-            size="small"
-            variant="primary"
-            startIcon={<SaveIcon />}
-          >
-            Save Changes
-          </AppButton>
+          {isAdmin && (
+            <AppButton
+              onClick={handleSave}
+              size="small"
+              variant="primary"
+              startIcon={<SaveIcon />}
+            >
+              Save Changes
+            </AppButton>
+          )}
         </Box>
       </DialogActions>
 
-      {/* ── Reusable Common ConfirmDialog Component ── */}
-      <ConfirmDialog
-        open={deleteConfirmOpen}
-        title="Confirm Removal"
-        message="Are you sure you want to remove this row?"
-        confirmText="Remove Row"
-        cancelText="Cancel"
-        confirmVariant="danger"
-        onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
-      />
+      {/* ── Reusable Common ConfirmDialog Component (Admin only) ── */}
+      {isAdmin && (
+        <ConfirmDialog
+          open={deleteConfirmOpen}
+          title="Confirm Removal"
+          message="Are you sure you want to remove this row?"
+          confirmText="Remove Row"
+          cancelText="Cancel"
+          confirmVariant="danger"
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
+      )}
     </Dialog>
   );
 };

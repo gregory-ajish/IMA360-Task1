@@ -1,20 +1,14 @@
 [
   {
-    "username": "alex.morgan",
-    "password": "Password123!",
-    "name": "Alex Morgan",
-    "role": "Product Lead"
+    "username": "admin",
+    "password": "Admin@123",
+    "name": "Administrator",
+    "role": "Admin"
   },
   {
-    "username": "john.doe",
-    "password": "Password123!",
-    "name": "John Doe",
-    "role": "Senior Engineer"
-  },
-  {
-    "username": "sarah.connor",
-    "password": "Demo123!",
-    "name": "Sarah Connor",
-    "role": "Operations Manager"
+    "username": "user",
+    "password": "User@123",
+    "name": "Viewer",
+    "role": "User"
   }
 ]

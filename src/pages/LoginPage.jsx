@@ -243,7 +243,7 @@ export const LoginPage = ({ mode, toggleMode }) => {
                 size="large"
                 layout="vertical"
                 title="Test App Portal"
-                subtitle="Sign in to access your dashboard"
+                subtitle="Sign in to access the portal"
               />
             </Box>
 
@@ -441,63 +441,6 @@ export const LoginPage = ({ mode, toggleMode }) => {
               </Stack>
             </form>
 
-            {/* ── Demo Credentials Panel (commented out) ──────────────────────
-                This block was used during development to quickly auto-fill
-                credentials for testing. Uncomment to re-enable for demos.
-                Each chip calls handleFillDemo() to populate the form fields. */}
-            {/*
-            <Paper
-              variant="outlined"
-              sx={{
-                mt: 3,
-                p: 1.75,
-                borderRadius: '8px',
-                bgcolor: isDark ? 'rgba(255,255,255,0.02)' : `${blcColors.navyAccent}06`,
-                borderColor: isDark ? blcColors.darkBorder : '#d1d9f0',
-                borderStyle: 'dashed',
-              }}
-            >
-              <Typography
-                sx={{
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  color: isDark ? '#475569' : '#9ca3af',
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  mb: 1,
-                }}
-              >
-                # Demo — click to auto-fill
-              </Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {[
-                  { label: 'alex.morgan', pw: 'Password123!' },
-                  { label: 'john.doe', pw: 'Password123!' },
-                  { label: 'sarah.connor', pw: 'Demo123!' },
-                ].map(({ label, pw }) => (
-                  <Chip
-                    key={label}
-                    size="small"
-                    label={label}
-                    onClick={() => handleFillDemo(label, pw)}
-                    variant="outlined"
-                    sx={{
-                      fontFamily: '"JetBrains Mono", monospace',
-                      fontSize: '0.72rem',
-                      cursor: 'pointer',
-                      borderColor: isDark ? blcColors.darkBorder : '#c7d0ea',
-                      color: isDark ? '#94a3b8' : blcColors.navyAccent,
-                      '&:hover': {
-                        bgcolor: `${blcColors.navyAccent}12`,
-                        borderColor: blcColors.navyAccent,
-                      },
-                    }}
-                  />
-                ))}
-              </Stack>
-            </Paper>
-            */}
 
           </CardContent>
         </Card>

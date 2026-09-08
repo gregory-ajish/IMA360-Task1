@@ -116,6 +116,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     currentUser,                    // The logged-in user object (or null)
     isAuthenticated: !!currentUser, // Boolean shorthand: true if user is logged in
+    isAdmin: currentUser?.role === 'Admin', // True only for the Admin user
     loading,                        // True while restoring session on first load
     login,                          // Function to log in
     logout,                         // Function to log out

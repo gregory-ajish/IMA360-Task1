@@ -42,7 +42,7 @@ import { RevenueTrackerModal } from '../components/dashboard/RevenueTrackerModal
 //   mode       {string}   — 'light' or 'dark', controlled by App.jsx
 //   toggleMode {function} — flips the theme mode, passed down from App.jsx
 export const DashboardPage = ({ mode, toggleMode }) => {
-  const { currentUser, logout } = useAuth(); // Auth state and logout action
+  const { currentUser, logout, isAdmin } = useAuth(); // Auth state and logout action
   const navigate = useNavigate();            // For redirecting to /login after logout
   const isDark = mode === 'dark';            // Shorthand for conditional dark styling
 
@@ -125,7 +125,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
       <Container maxWidth="xl" sx={{ mt: 4 }}>
 
         {/* ── Welcome Banner (Common Component) ── */}
-        <WelcomeBanner userName={currentUser?.name} isDark={isDark} />
+        <WelcomeBanner userName={currentUser?.name} isDark={isDark} role={currentUser?.role} isAdmin={isAdmin} />
 
         {/* ── Search Bar (Common Component) ── */}
         <SearchBar
@@ -191,10 +191,10 @@ export const DashboardPage = ({ mode, toggleMode }) => {
                   sx={{
                     display: 'grid',
                     gridTemplateColumns: {
-                      xs: 'repeat(1, 1fr)',
-                      sm: 'repeat(2, 1fr)',
-                      md: 'repeat(3, 1fr)',
-                      lg: 'repeat(5, 1fr)',
+                      xs: 'repeat(1, 1fr)',//mobile
+                      sm: 'repeat(2, 1fr)',//Tablet
+                      md: 'repeat(3, 1fr)',//Laptop
+                      lg: 'repeat(5, 1fr)',//Desktop
                     },
                     gap: 2.5,
                   }}
@@ -267,6 +267,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
         open={isRevenueModalOpen}
         onClose={() => setIsRevenueModalOpen(false)}
         isDark={isDark}
+        isAdmin={isAdmin}
       />
     </Box>
   );
