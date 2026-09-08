@@ -152,6 +152,12 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
   };
 
   useEffect(() => {
+    // Scroll window to top immediately on page load
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const timer = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, 50);
+
     const latestData = getInitialLedgerData();
     setData(latestData);
     if (hotRef.current?.hotInstance) {
@@ -162,6 +168,8 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
         filterPlugin.filter();
       }
     }
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleSave = () => {

@@ -7,7 +7,7 @@
 //   4. BrowserRouter  — enables client-side URL routing
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme';                             // Custom MUI theme builder
 import { AuthProvider } from './context/AuthContext';           // Global auth state
@@ -16,6 +16,19 @@ import { PublicRoute } from './components/routes/PublicRoute';       // Guards p
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { RevenueTrackerPage } from './pages/RevenueTrackerPage';
+
+/**
+ * Helper component that resets window scroll position to (0,0) on every route change.
+ */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 export default function App() {
   // ─── Theme Mode (Light / Dark) ──────────────────────────────────────────
@@ -59,6 +72,7 @@ export default function App() {
         {/* BrowserRouter enables React Router — listens to URL changes and renders
             matching routes without full page reloads */}
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
 
             {/* /login — Public route: accessible only when NOT logged in.
