@@ -22,7 +22,8 @@
 // ============================================================================
 
 import React from 'react';
-import { Paper, Box, Typography } from '@mui/material';
+import { Paper, Box, Typography, Chip } from '@mui/material';
+import { AdminPanelSettings as AdminIcon, Visibility as ViewIcon } from '@mui/icons-material';
 import { blcColors } from '../../theme';
 
 /**
@@ -34,7 +35,7 @@ import { blcColors } from '../../theme';
  * @param {boolean} props.isDark - True if dark mode is active; false otherwise.
  * @returns {React.ReactElement} The rendered hero welcome banner.
  */
-export const WelcomeBanner = ({ userName, isDark }) => {
+export const WelcomeBanner = ({ userName, isDark, role, isAdmin }) => {
   return (
     // Outer banner paper container:
     // elevation={0}: avoids standard generic drop shadow in favor of custom ambient glow
@@ -102,6 +103,31 @@ export const WelcomeBanner = ({ userName, isDark }) => {
         >
           Welcome back, {userName || 'Explorer'}!
         </Typography>
+
+        {/* Role Badge */}
+        {role && (
+          <Chip
+            icon={isAdmin ? <AdminIcon sx={{ fontSize: 16 }} /> : <ViewIcon sx={{ fontSize: 16 }} />}
+            label={isAdmin ? 'Admin Access' : 'Viewer Access'}
+            size="small"
+            sx={{
+              mt: 1,
+              mb: 2,
+              height: 26,
+              fontSize: '0.72rem',
+              fontFamily: '"JetBrains Mono", monospace',
+              fontWeight: 700,
+              bgcolor: isAdmin
+                ? 'rgba(34, 197, 94, 0.15)'
+                : 'rgba(234, 179, 8, 0.15)',
+              color: isAdmin ? '#4ade80' : '#fbbf24',
+              border: `1px solid ${isAdmin ? 'rgba(34, 197, 94, 0.35)' : 'rgba(234, 179, 8, 0.35)'}`,
+              '& .MuiChip-icon': {
+                color: isAdmin ? '#4ade80' : '#fbbf24',
+              },
+            }}
+          />
+        )}
 
         {/* Subtitle / Portal Summary */}
         <Typography

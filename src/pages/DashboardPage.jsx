@@ -35,14 +35,13 @@ import { Navbar } from '../components/dashboard/Navbar';
 import { WelcomeBanner } from '../components/dashboard/WelcomeBanner';
 import { SearchBar } from '../components/dashboard/SearchBar';
 import { AppCard } from '../components/common/AppCard';
-import { RevenueTrackerModal } from '../components/dashboard/RevenueTrackerModal';
 
 // ─── DashboardPage Component ──────────────────────────────────────────────────
 // Props:
 //   mode       {string}   — 'light' or 'dark', controlled by App.jsx
 //   toggleMode {function} — flips the theme mode, passed down from App.jsx
 export const DashboardPage = ({ mode, toggleMode }) => {
-  const { currentUser, logout } = useAuth(); // Auth state and logout action
+  const { currentUser, logout, isAdmin } = useAuth(); // Auth state and logout action
   const navigate = useNavigate();            // For redirecting to /login after logout
   const isDark = mode === 'dark';            // Shorthand for conditional dark styling
 
@@ -54,9 +53,6 @@ export const DashboardPage = ({ mode, toggleMode }) => {
   // { open, message, severity } — open/closes it, message sets text, severity sets color.
   const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
 
-  // State to control the Handsontable Revenue Tracker spreadsheet modal
-  const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
-
   // Handles logout: clear auth state → redirect to /login
   const handleLogout = () => {
     logout();                               // Clears auth state and storage
@@ -64,10 +60,18 @@ export const DashboardPage = ({ mode, toggleMode }) => {
   };
 
   // Triggered when an app card is clicked
-  // If "Revenue Tracker" (app id 7), opens the Handsontable spreadsheet modal!
+  // If "Revenue Tracker" (app id 7), navigates to the standalone /revenue-tracker page!
   const handleCardClick = (app) => {
+    if (app.adminOnly && !isAdmin) {
+      setToast({
+        open: true,
+        message: `Access Restricted: "${app.title}" is available to Admin users only.`,
+        severity: 'warning',
+      });
+      return;
+    }
     if (app.id === 7 || app.title === 'Revenue Tracker') {
-      setIsRevenueModalOpen(true);
+      navigate('/revenue-tracker');
     } else {
       setToast({ open: true, message: `Launching "${app.title}"...`, severity: 'success' });
     }
@@ -125,7 +129,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
       <Container maxWidth="xl" sx={{ mt: 4 }}>
 
         {/* ── Welcome Banner (Common Component) ── */}
-        <WelcomeBanner userName={currentUser?.name} isDark={isDark} />
+        <WelcomeBanner userName={currentUser?.name} isDark={isDark} role={currentUser?.role} isAdmin={isAdmin} />
 
         {/* ── Search Bar (Common Component) ── */}
         <SearchBar
@@ -191,10 +195,10 @@ export const DashboardPage = ({ mode, toggleMode }) => {
                   sx={{
                     display: 'grid',
                     gridTemplateColumns: {
-                      xs: 'repeat(1, 1fr)',
-                      sm: 'repeat(2, 1fr)',
-                      md: 'repeat(3, 1fr)',
-                      lg: 'repeat(5, 1fr)',
+                      xs: 'repeat(1, 1fr)',//mobile
+                      sm: 'repeat(2, 1fr)',//Tablet
+                      md: 'repeat(3, 1fr)',//Laptop
+                      lg: 'repeat(5, 1fr)',//Desktop
                     },
                     gap: 2.5,
                   }}
@@ -203,6 +207,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
                     <AppCard
                       key={app.id}
                       app={app}
+                      isAdmin={isAdmin}
                       isDark={isDark}
                       onCardClick={handleCardClick}
                     />
@@ -260,14 +265,6 @@ export const DashboardPage = ({ mode, toggleMode }) => {
           {toast.message}
         </Alert>
       </Snackbar>
-
-      {/* ── Handsontable Spreadsheet Modal ──
-          Opens when user clicks the "Revenue Tracker" app card. */}
-      <RevenueTrackerModal
-        open={isRevenueModalOpen}
-        onClose={() => setIsRevenueModalOpen(false)}
-        isDark={isDark}
-      />
     </Box>
   );
 };

@@ -137,7 +137,8 @@
           "id": 10,
           "title": "Security & IAM",
           "description": "Single sign-on, authentication, and access audit logs",
-          "icon": "Shield"
+          "icon": "Shield",
+          "adminOnly": true
         },
         {
           "id": 11,
@@ -149,7 +150,8 @@
           "id": 16,
           "title": "Database Manager",
           "description": "Managed database clusters, query profiling, and backups",
-          "icon": "Storage"
+          "icon": "Storage",
+          "adminOnly": true
         },
         {
           "id": 17,
@@ -161,7 +163,8 @@
           "id": 35,
           "title": "Secret Vault",
           "description": "Secure key rotation, API credentials, and certificates",
-          "icon": "VpnKey"
+          "icon": "VpnKey",
+          "adminOnly": true
         },
         {
           "id": 36,
@@ -196,7 +199,8 @@
           "id": 18,
           "title": "Payroll & Compensation",
           "description": "Direct deposit payouts, salary bands, and tax documents",
-          "icon": "ReceiptLong"
+          "icon": "ReceiptLong",
+          "adminOnly": true
         },
         {
           "id": 19,
@@ -232,7 +236,8 @@
           "id": 42,
           "title": "Performance Reviews",
           "description": "360-degree feedback cycles, goals, and quarterly reviews",
-          "icon": "ThumbUpAlt"
+          "icon": "ThumbUpAlt",
+          "adminOnly": true
         }
       ]
     }
