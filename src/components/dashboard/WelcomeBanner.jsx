@@ -37,42 +37,39 @@ import { blcColors } from '../../theme';
  */
 export const WelcomeBanner = ({ userName, isDark, role, isAdmin }) => {
   return (
-    // Outer banner paper container:
-    // elevation={0}: avoids standard generic drop shadow in favor of custom ambient glow
     <Paper
       elevation={0}
       sx={{
-        p: { xs: 3, md: 4 }, // Responsive padding: compact on phones, spacious on desktop
-        borderRadius: '12px',
-        // Dynamic gradient: midnight-blue in dark mode; deep navy-slate in light mode
-        background: isDark
-          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
-          : `linear-gradient(135deg, ${blcColors.navyAccent} 0%, #0f172a 100%)`,
-        color: '#ffffff',
-        mb: 4,
         position: 'relative',
-        overflow: 'hidden', // Clips decorative grid lines that exceed the rounded corners
-        boxShadow: isDark ? '0 4px 32px rgba(15, 52, 96, 0.4)' : 'none',
+        overflow: 'hidden',
+        borderRadius: '16px',
+        p: { xs: 3, md: 4 },
+        mb: 4,
+        background: isDark
+          ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
+          : `linear-gradient(135deg, ${blcColors.navyPrimary} 0%, ${blcColors.navyAccent} 100%)`,
+        border: `1px solid ${isDark ? blcColors.darkBorder : 'transparent'}`,
+        boxShadow: isDark
+          ? '0 10px 30px rgba(0,0,0,0.5)'
+          : '0 10px 30px rgba(30,58,138,0.25)',
       }}
     >
-      {/* ── Decorative Grid Overlay ──
-          Creates an engineering/blueprint grid motif behind the typography.
-          pointerEvents: 'none' ensures that user clicks and interactions pass through unharmed. */}
+      {/* Micro-grid background texture overlay */}
       <Box
         sx={{
           position: 'absolute',
           inset: 0,
+          opacity: isDark ? 0.08 : 0.12,
           backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)
+            linear-gradient(to right, #ffffff 1px, transparent 1px),
+            linear-gradient(to bottom, #ffffff 1px, transparent 1px)
           `,
           backgroundSize: '32px 32px',
           pointerEvents: 'none',
         }}
       />
 
-      {/* ── Banner Text Content ──
-          position: 'relative' and zIndex: 1 places text on top of the background grid texture. */}
+      {/* ── Banner Text Content ── */}
       <Box sx={{ position: 'relative', zIndex: 1 }}>
         {/* Accent eyebrow title badge */}
         <Typography
@@ -80,7 +77,7 @@ export const WelcomeBanner = ({ userName, isDark, role, isAdmin }) => {
             fontFamily: '"JetBrains Mono", monospace',
             fontSize: '0.65rem',
             fontWeight: 700,
-            color: blcColors.yellowAccent, // High-contrast warm accent color
+            color: blcColors.yellowAccent,
             letterSpacing: '0.15em',
             textTransform: 'uppercase',
             mb: 1,
@@ -96,7 +93,7 @@ export const WelcomeBanner = ({ userName, isDark, role, isAdmin }) => {
           sx={{
             fontFamily: '"JetBrains Mono", monospace',
             fontWeight: 800,
-            fontSize: { xs: '1.5rem', md: '2rem' }, // Responsive font scaling
+            fontSize: { xs: '1.5rem', md: '2rem' },
             color: '#ffffff',
             mb: 0.75,
           }}
@@ -144,4 +141,3 @@ export const WelcomeBanner = ({ userName, isDark, role, isAdmin }) => {
     </Paper>
   );
 };
-
