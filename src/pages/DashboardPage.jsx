@@ -91,17 +91,21 @@ export const DashboardPage = ({ mode, toggleMode }) => {
   // Removes categories that have 0 matching apps after filtering.
   const filteredCategories = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return appsData.categories; // No query → show everything unfiltered
 
     return appsData.categories
       .map((cat) => ({
         ...cat,
-        apps: cat.apps.filter(
-          (a) => a.title.toLowerCase().includes(q) || a.description.toLowerCase().includes(q)
-        ),
+        apps: cat.apps.filter((a) => {
+          // Hide admin-only apps from non-admin users
+          if (a.adminOnly && !isAdmin) return false;
+
+          // Search query matching
+          if (!q) return true;
+          return a.title.toLowerCase().includes(q) || a.description.toLowerCase().includes(q);
+        }),
       }))
       .filter((cat) => cat.apps.length > 0); // Remove empty categories
-  }, [searchQuery]);
+  }, [searchQuery, isAdmin]);
 
   // Total count of visible apps after filtering — used in the search result count text
   const totalAppsCount = useMemo(
@@ -126,19 +130,37 @@ export const DashboardPage = ({ mode, toggleMode }) => {
       />
 
       {/* ── Main Page Content ── */}
-      <Container maxWidth="xl" sx={{ mt: 4 }}>
+      <Container maxWidth="xl" sx={{ mt: 2.5 }}>
 
-        {/* ── Welcome Banner (Common Component) ── */}
-        <WelcomeBanner userName={currentUser?.name} isDark={isDark} role={currentUser?.role} isAdmin={isAdmin} />
+        {/* ── Header Controls Row: Welcome Message (Left) + Centered Search Bar ── */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1fr auto 1fr' },
+            alignItems: 'center',
+            gap: 2,
+            mb: 2,
+          }}
+        >
+          {/* Welcome Banner (Left) */}
+          <Box sx={{ justifySelf: { xs: 'stretch', md: 'start' } }}>
+            <WelcomeBanner userName={currentUser?.name} isDark={isDark} role={currentUser?.role} isAdmin={isAdmin} />
+          </Box>
 
-        {/* ── Search Bar (Common Component) ── */}
-        <SearchBar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onClear={handleClearSearch}
-          totalAppsCount={totalAppsCount}
-          isDark={isDark}
-        />
+          {/* Search Bar (Center) */}
+          <Box sx={{ width: { xs: '100%', md: '480px' }, justifySelf: 'center' }}>
+            <SearchBar
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onClear={handleClearSearch}
+              totalAppsCount={totalAppsCount}
+              isDark={isDark}
+            />
+          </Box>
+
+          {/* Right Spacer (Ensures search bar remains centered on desktop) */}
+          <Box sx={{ display: { xs: 'none', md: 'block' } }} />
+        </Box>
 
         {/* ── Categorized App Grid ──
             Maps over filteredCategories (filtered by useMemo above).

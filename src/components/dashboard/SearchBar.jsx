@@ -45,8 +45,7 @@ export const SearchBar = ({
   isDark,
 }) => {
   return (
-    // Outer layout wrapper providing bottom spacing from the application categories
-    <Box sx={{ mb: 4 }}>
+    <Box sx={{ width: '100%' }}>
       {/* Search Input TextField */}
       <TextField
         id="app-search-input"
