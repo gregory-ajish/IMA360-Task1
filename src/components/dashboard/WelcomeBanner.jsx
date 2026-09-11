@@ -38,15 +38,16 @@ export const WelcomeBanner = ({ isDark, role, isAdmin }) => {
   const roleTitle = isAdmin || role === 'Admin' ? 'Admin' : 'User';
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <Box>
       <Typography
         variant="h4"
         component="h1"
         sx={{
           fontFamily: '"JetBrains Mono", monospace',
           fontWeight: 800,
-          fontSize: { xs: '1.5rem', md: '2rem' },
+          fontSize: { xs: '1.4rem', md: '1.8rem' },
           color: isDark ? '#f8fafc' : blcColors.textDark,
+          lineHeight: 1.2,
         }}
       >
         Welcome back {roleTitle}!

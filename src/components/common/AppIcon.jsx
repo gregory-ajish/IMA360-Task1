@@ -51,11 +51,13 @@ import {
   ThumbUpAlt,        // Thumbs up icon → "Performance Reviews"
   VerifiedUser,      // Check shield icon → "Compliance & Audit"
   Favorite,          // Heart icon → "Health & Benefits"
+  WbSunny,           // Sun/Weather icon → "Weather"
   Apps,              // Generic grid icon — fallback
 } from '@mui/icons-material';
 
 // Map of icon name strings → actual MUI icon components
 const iconMap = {
+  WbSunny,
   Description,
   Forum,
   ViewKanban,

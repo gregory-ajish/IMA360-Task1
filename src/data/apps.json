@@ -115,6 +115,12 @@
           "title": "A/B Testing Lab",
           "description": "Feature flag experimentation and split testing reports",
           "icon": "Science"
+        },
+        {
+          "id": 50,
+          "title": "Weather",
+          "description": "Live weather conditions and 5-day forecast powered by OpenWeather",
+          "icon": "WbSunny"
         }
       ]
     },
