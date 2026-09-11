@@ -6,7 +6,9 @@
 //   and 5-day daily forecast for any searched city worldwide.
 // ============================================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import axios from 'axios'; // Needed for axios.isCancel() to detect cancelled requests
+import { toast } from 'react-toastify'; // [Change #3] Toastify for uniform pop-up error notifications
 import { useNavigate } from 'react-router-dom';
 
 // Material-UI Components
@@ -53,7 +55,7 @@ import { useAuth } from '../context/AuthContext';
 // Common Components
 import { Navbar } from '../components/dashboard/Navbar';
 
-const OPENWEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
+import weatherApi, { getCached, setCache } from '../api/weatherApi';
 const DEFAULT_CITY = 'London';
 const POPULAR_CITIES = ['London', 'New York', 'Tokyo', 'Paris', 'Dubai', 'Singapore'];
 
@@ -217,59 +219,146 @@ export const WeatherPage = ({ mode, toggleMode }) => {
   const [error, setError] = useState(null);
   const [isActivatingKey, setIsActivatingKey] = useState(false);
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ✅ NEW — AbortController ref for Request Cancellation (Idea #2)
+  // useRef stores a value that persists across re-renders WITHOUT causing
+  // a re-render itself (unlike useState). This is perfect for storing the
+  // AbortController because we only ever need to read/write it imperatively.
+  const abortControllerRef = useRef(null);
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
   const unitSymbol = unit === 'metric' ? '°C' : '°F';
   const speedUnit = unit === 'metric' ? 'm/s' : 'mph';
 
   // Fetch weather and forecast
   const fetchWeatherData = useCallback(async (cityToFetch, unitToFetch = unit) => {
     if (!cityToFetch.trim()) return;
-    setLoading(true);
     setError(null);
 
-    try {
-      // 1. Current Weather
-      const weatherRes = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
-          cityToFetch.trim()
-        )}&units=${unitToFetch}&appid=${OPENWEATHER_API_KEY}`
-      );
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // [Change #4] ✅ NEW — Cache Check (Idea #4) — runs BEFORE anything else
+    //
+    // getCached() looks up the Map in weatherApi.js using the key "city-unit".
+    // - If found AND less than 5 minutes old → return instantly (no network call)
+    // - If found BUT expired → delete it and fall through to fetch fresh data
+    // - If not found at all → fall through to fetch fresh data
+    //
+    // [Change #4] ❌ OLD APPROACH — No cache check here at all. Every call, even
+    //    re-searching "London" 10 seconds later, triggered 2 API requests.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const cachedData = getCached(cityToFetch, unitToFetch);
+    if (cachedData) {
+      // ✅ Cache HIT — populate UI instantly with zero network requests!
+      setCurrentWeather(cachedData.weatherData);
+      setCurrentCity(cachedData.weatherData.name);
+      setForecast(cachedData.forecastData);
+      setLoading(false);
+      return; // Skip all network logic below
+    }
 
-      if (!weatherRes.ok) {
-        if (weatherRes.status === 401) {
-          // OpenWeather API key newly created — still propagating (10-30m delay)
-          setIsActivatingKey(true);
-          const fallback = generateFallbackWeather(cityToFetch.trim(), unitToFetch);
-          setCurrentWeather(fallback.currentWeather);
-          setForecast(fallback.forecast);
-          setCurrentCity(cityToFetch.trim());
-          setLoading(false);
-          return;
-        }
-        if (weatherRes.status === 404) {
-          throw new Error(`City "${cityToFetch}" not found. Please check spelling.`);
-        }
-        throw new Error('Failed to retrieve weather data. Please try again.');
-      }
+    // Cache MISS — must fetch from network. Show loading spinner.
+    setLoading(true);
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // [Change #2] ❌ OLD APPROACH — No Cancellation (Race Condition Risk)
+    // If a user typed 'London' then quickly typed 'Paris', both requests flew
+    // over the network. If 'London' arrived AFTER 'Paris', the UI would show
+    // Paris data briefly, then get overwritten with stale London data.
+    // There was zero way to stop a request once it was sent.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    // [Change #2] ✅ NEW APPROACH — Request Cancellation with AbortController
+    // Step 1: If a previous request is still in-flight, CANCEL IT immediately.
+    //         abortControllerRef.current holds the controller from the last call.
+    //         Calling .abort() sends a signal to Axios to stop that request.
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // [Change #2] Step 2: Create a FRESH AbortController for this new request.
+    //         Each search/city-click gets its own unique controller.
+    abortControllerRef.current = new AbortController();
+
+    try {
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // [Change #1] ✅ Parallel Requests with Promise.all — kept intact
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //
+      // [Change #2] ✅ NEW — `signal: abortControllerRef.current.signal` is passed to both
+      // Axios calls. This links each request to the AbortController above.
+      // If .abort() is called on the controller, Axios immediately stops
+      // both network requests and throws a CanceledError into the catch block.
+      const [weatherRes, forecastRes] = await Promise.all([
+        weatherApi.get('/weather', {
+          params: { q: cityToFetch.trim(), units: unitToFetch },
+          signal: abortControllerRef.current.signal, // 🔗 Linked to this request's controller
+        }),
+        weatherApi.get('/forecast', {
+          params: { q: cityToFetch.trim(), units: unitToFetch },
+          signal: abortControllerRef.current.signal, // 🔗 Linked to this request's controller
+        }),
+      ]);
 
       setIsActivatingKey(false);
-      const weatherData = await weatherRes.json();
-      setCurrentWeather(weatherData);
-      setCurrentCity(weatherData.name);
+      setCurrentWeather(weatherRes.data);
+      setCurrentCity(weatherRes.data.name);
+      setForecast(forecastRes.data);
 
-      // 2. 5-day Forecast
-      const forecastRes = await fetch(
-        `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(
-          cityToFetch.trim()
-        )}&units=${unitToFetch}&appid=${OPENWEATHER_API_KEY}`
-      );
-
-      if (forecastRes.ok) {
-        const forecastData = await forecastRes.json();
-        setForecast(forecastData);
-      }
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // [Change #4] ✅ NEW — Store result in cache AFTER a successful network fetch
+      // setCache() saves the data with a timestamp into the Map in weatherApi.js.
+      // The next time this city+unit is searched within 5 minutes, getCached()
+      // at the top of this function will find it and skip the network call.
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      setCache(cityToFetch, unitToFetch, {
+        weatherData: weatherRes.data,
+        forecastData: forecastRes.data,
+      });
     } catch (err) {
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // [Change #2] ✅ NEW — Handle Cancellation Silently
+      // When .abort() is called, Axios throws a special CanceledError.
+      // axios.isCancel(err) detects this specific error type.
+      // We RETURN early — no error banner, no state update — because this
+      // was an intentional cancellation triggered by a newer search, not
+      // a real failure the user needs to know about.
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      if (axios.isCancel(err)) {
+        console.log('Request cancelled — superseded by a newer search.');
+        return; // Exit silently, the newer request is already running
+      }
+
+      // All other errors (401, 404, network failure) are handled as before
+      const status = err.response?.status;
       console.error('Weather fetch error:', err);
-      setError(err.message || 'Error fetching weather data');
+
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // [Change #3] ❌ OLD APPROACH — Setting inline <Alert> banner state
+      // if (status === 404) {
+      //   setError(`City "${cityToFetch}" not found. Please check spelling.`);
+      // } else {
+      //   setError(err.message || 'Error fetching weather data');
+      // }
+      //
+      // [Change #3] ✅ NEW APPROACH — Uniform Toastify Pop-up Notifications
+      // All error feedback (404, 401, generic errors) now displays via toastify
+      // toasts for complete visual uniformity across the application.
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      if (status === 401) {
+        // OpenWeather API key newly created — still propagating (10-30m delay)
+        setIsActivatingKey(true);
+        const fallback = generateFallbackWeather(cityToFetch.trim(), unitToFetch);
+        setCurrentWeather(fallback.currentWeather);
+        setForecast(fallback.forecast);
+        setCurrentCity(cityToFetch.trim());
+        toast.info('🔑 API key is activating. Displaying demo data.', { toastId: 'key-activating' });
+      } else if (status === 404) {
+        toast.error(`City "${cityToFetch}" not found. Please check spelling.`, { toastId: 'city-not-found' });
+      } else if (status >= 500) {
+        // Handled centrally by weatherApi.js response interceptor toast
+      } else if (err.code !== 'ECONNABORTED' && status !== 429 && err.response) {
+        toast.error(err.message || 'Error fetching weather data', { toastId: 'generic-error' });
+      }
     } finally {
       setLoading(false);
     }
