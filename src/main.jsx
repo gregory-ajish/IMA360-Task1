@@ -20,26 +20,28 @@ import './index.css'
 import 'react-toastify/dist/ReactToastify.css'
 import { ToastContainer } from 'react-toastify'
 
+import { Provider } from 'react-redux';
+import store from './store/store.js';
+
 // The root App component — the top of the entire component tree
 import App from './App.jsx'
 
-// Find the <div id="root"> element in index.html and mount the React app into it.
-// Everything React renders will live inside that div.
-// ToastContainer is the single global mount point for all toasts in the app.
-// position, autoClose, and other defaults can be configured here.
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
-    <ToastContainer
-      position="bottom-left"
-      autoClose={3000}
-      hideProgressBar={false}
-      newestOnTop
-      closeOnClick={false}
-      pauseOnFocusLoss
-      draggable
-      pauseOnHover
-      theme="colored"
-    />
+    <Provider store={store}>
+      <App />
+      <ToastContainer
+        position="bottom-left"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
+    </Provider>
   </StrictMode>,
 )
+
