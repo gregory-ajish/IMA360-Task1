@@ -65,7 +65,7 @@ weatherApi.interceptors.response.use(
     }
     // 2. API Rate Limit Hit (HTTP 429)
     else if (error.response?.status === 429) {
-      toast.warn('⚠️ API rate limit reached. Please wait a moment before searching again.', {
+      toast.warn(' API rate limit reached. Please wait a moment before searching again.', {
         toastId: 'rate-limit-error',
       });
     }
