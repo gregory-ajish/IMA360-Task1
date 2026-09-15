@@ -83,7 +83,6 @@ export const Navbar = ({
               size="small"
               layout="horizontal"
               title="Test App"
-              subtitle="Enterprise Suite"
             />
           </Box>
 

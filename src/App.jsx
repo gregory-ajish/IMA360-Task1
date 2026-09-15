@@ -16,6 +16,7 @@ import { PublicRoute } from './components/routes/PublicRoute';       // Guards p
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { RevenueTrackerPage } from './pages/RevenueTrackerPage';
+import { WeatherPage } from './pages/WeatherPage';
 
 /**
  * Helper component that resets window scroll position to (0,0) on every route change.
@@ -104,6 +105,16 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <RevenueTrackerPage mode={mode} toggleMode={toggleMode} />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* /weather — Standalone Protected Weather Forecast Page powered by OpenWeatherMap API */}
+            <Route
+              path="/weather"
+              element={
+                <ProtectedRoute>
+                  <WeatherPage mode={mode} toggleMode={toggleMode} />
                 </ProtectedRoute>
               }
             />

@@ -33,7 +33,11 @@ import {
   Divider,
   Tooltip,
 } from '@mui/material';
-import { Logout as LogoutIcon } from '@mui/icons-material';
+import {
+  Logout as LogoutIcon,
+  PersonOutlined as ProfileIcon,
+  SettingsOutlined as SettingsIcon,
+} from '@mui/icons-material';
 import { blcColors } from '../../theme';
 
 /**
@@ -44,49 +48,66 @@ import { blcColors } from '../../theme';
  * @param {Object} props.currentUser - Active session user data object ({ name, username, role }).
  * @param {Function} props.onLogout - Callback function invoked when the user confirms logging out.
  * @param {boolean} props.isDark - True if dark mode is active; false otherwise.
+ * @param {Function} [props.onProfileClick] - Optional callback for Profile menu item.
+ * @param {Function} [props.onSettingsClick] - Optional callback for Settings menu item.
  * @returns {React.ReactElement} The rendered user avatar button and anchored popover menu.
  */
-export const UserMenu = ({ currentUser, onLogout, isDark }) => {
-  // anchorEl tracks which DOM element opened the dropdown menu (null when menu is closed)
+export const UserMenu = ({ currentUser, onLogout, isDark, onProfileClick, onSettingsClick }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
-  
-  // Boolean flag derived from anchor existence
   const isMenuOpen = Boolean(anchorEl);
 
-  /**
-   * Opens the dropdown menu anchored below the clicked avatar button.
-   * @param {React.MouseEvent<HTMLElement>} e - The click event object.
-   */
   const handleProfileMenuOpen = (e) => setAnchorEl(e.currentTarget);
-  
-  /**
-   * Closes the dropdown menu by clearing the anchor element reference.
-   */
   const handleMenuClose = () => setAnchorEl(null);
 
-  /**
-   * Closes the dropdown menu and triggers the application-level logout routine.
-   */
   const handleLogoutClick = () => {
     handleMenuClose();
     onLogout();
   };
 
-  /**
-   * Converts a user's full name into a 1 or 2 letter uppercase initials monogram.
-   * Example: "Alex Morgan" -> "AM", "Cher" -> "C", null/empty -> "U".
-   *
-   * @param {string} [name] - The user's full name string.
-   * @returns {string} Uppercase initials monogram.
-   */
+  const handleProfileClick = () => {
+    handleMenuClose();
+    if (onProfileClick) onProfileClick();
+  };
+
+  const handleSettingsClick = () => {
+    handleMenuClose();
+    if (onSettingsClick) onSettingsClick();
+  };
+
   const getInitials = (name) => {
-    if (!name) return 'U'; // Safe fallback initial if name is missing
+    if (!name) return 'U';
     return name
       .split(' ')
       .map((n) => n[0])
       .join('')
       .toUpperCase()
       .substring(0, 2);
+  };
+
+  // Shared menu item styles
+  const menuItemSx = {
+    borderRadius: '6px',
+    py: 0.6,
+    px: 1.5,
+    gap: 1.2,
+    display: 'flex',
+    alignItems: 'center',
+    minHeight: 'unset',
+    '&:hover': {
+      bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
+    },
+  };
+
+  const menuIconSx = {
+    fontSize: 17,
+    color: isDark ? '#94a3b8' : '#374151',
+  };
+
+  const menuTextSx = {
+    fontFamily: '"Inter", sans-serif',
+    fontSize: '0.82rem',
+    fontWeight: 400,
+    color: isDark ? '#e2e8f0' : '#111827',
   };
 
   return (
@@ -103,12 +124,11 @@ export const UserMenu = ({ currentUser, onLogout, isDark }) => {
           aria-expanded={isMenuOpen ? 'true' : undefined}
           aria-label="open user account menu"
         >
-          {/* Circular avatar with calculated initials */}
           <Avatar
             sx={{
               width: 34,
               height: 34,
-              bgcolor: blcColors.navyAccent, // Navy accent circle background
+              bgcolor: blcColors.navyAccent,
               fontFamily: '"JetBrains Mono", monospace',
               fontSize: '0.8rem',
               fontWeight: 800,
@@ -125,92 +145,77 @@ export const UserMenu = ({ currentUser, onLogout, isDark }) => {
         anchorEl={anchorEl}
         open={isMenuOpen}
         onClose={handleMenuClose}
-        // Positions the menu neatly aligned below the right edge of the avatar
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         PaperProps={{
-          elevation: isDark ? 0 : 4, // Dark mode relies on border; light mode uses soft drop shadow
+          elevation: isDark ? 0 : 3,
           sx: {
-            minWidth: 220,
+            minWidth: 190,
+            maxWidth: 210,
             borderRadius: '10px',
-            mt: 1, // Vertical gap between avatar button and menu top
-            p: 1,
+            mt: 0.75,
+            p: 0.75,
             bgcolor: isDark ? blcColors.darkCard : '#ffffff',
-            border: `1px solid ${isDark ? blcColors.darkBorder : '#e0e5f2'}`,
-            boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : undefined,
+            border: `1px solid ${isDark ? blcColors.darkBorder : '#e5e7eb'}`,
+            boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 16px rgba(0,0,0,0.12)',
           },
         }}
       >
-        {/* ── User Information Header Section ── */}
-        <Box sx={{ px: 2, py: 1.5 }}>
-          {/* Display Name */}
+        {/* ── User Info Header ── */}
+        <Box sx={{ px: 1.5, pt: 1, pb: 0.75 }}>
           <Typography
             sx={{
-              fontFamily: '"JetBrains Mono", monospace',
-              fontWeight: 700,
-              fontSize: '0.875rem',
-              color: isDark ? '#e2e8f0' : blcColors.textDark,
+              fontFamily: '"Inter", sans-serif',
+              fontWeight: 600,
+              fontSize: '0.82rem',
+              color: isDark ? '#e2e8f0' : '#111827',
+              lineHeight: 1.3,
             }}
           >
             {currentUser?.name || 'User'}
           </Typography>
-
-          {/* Username / Handle */}
           <Typography
             sx={{
-              fontFamily: '"JetBrains Mono", monospace',
-              fontSize: '0.72rem',
-              color: isDark ? '#475569' : '#9ca3af',
+              fontFamily: '"Inter", sans-serif',
+              fontSize: '0.7rem',
+              color: isDark ? '#64748b' : '#9ca3af',
+              mt: 0.15,
             }}
-            noWrap
           >
-            {currentUser?.username || ''}
+            {currentUser?.role || 'Member'}
           </Typography>
-
-          {/* Organizational Role badge (e.g. "Product Lead", "Senior Engineer") */}
-          <Chip
-            label={currentUser?.role || 'Member'}
-            size="small"
-            sx={{
-              mt: 1,
-              height: 20,
-              fontSize: '0.65rem',
-              fontFamily: '"JetBrains Mono", monospace',
-              bgcolor: `${blcColors.navyAccent}18`, // Translucent navy fill
-              color: blcColors.navyAccent,
-              border: `1px solid ${blcColors.navyAccent}35`,
-            }}
-          />
         </Box>
 
-        {/* Separator line between user info and action items */}
-        <Divider sx={{ my: 1, borderColor: isDark ? blcColors.darkBorder : '#e0e5f2' }} />
+        <Divider sx={{ my: 0.5, borderColor: isDark ? blcColors.darkBorder : '#e5e7eb' }} />
 
-        {/* ── Logout Action Item ── */}
+        {/* ── Profile ── */}
+        <MenuItem id="profile-menu-item" onClick={handleProfileClick} sx={menuItemSx}>
+          <ProfileIcon sx={menuIconSx} />
+          <Typography sx={menuTextSx}>Profile</Typography>
+        </MenuItem>
+
+        {/* ── Settings ── */}
+        <MenuItem id="settings-menu-item" onClick={handleSettingsClick} sx={menuItemSx}>
+          <SettingsIcon sx={menuIconSx} />
+          <Typography sx={menuTextSx}>Settings</Typography>
+        </MenuItem>
+
+        <Divider sx={{ my: 0.5, borderColor: isDark ? blcColors.darkBorder : '#e5e7eb' }} />
+
+        {/* ── Sign Out ── */}
         <MenuItem
           id="logout-menu-item"
           onClick={handleLogoutClick}
           sx={{
-            borderRadius: '6px',
-            color: '#ef4444', // Red text signals signout / destructive action
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
+            ...menuItemSx,
             '&:hover': {
-              bgcolor: isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.08)',
+              bgcolor: isDark ? 'rgba(239, 68, 68, 0.10)' : 'rgba(239, 68, 68, 0.07)',
             },
           }}
         >
-          <LogoutIcon sx={{ color: '#ef4444', fontSize: '18px' }} />
-          <Typography
-            sx={{
-              fontFamily: '"JetBrains Mono", monospace',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              color: '#ef4444',
-            }}
-          >
-            Log Out
+          <LogoutIcon sx={{ fontSize: 17, color: '#ef4444' }} />
+          <Typography sx={{ ...menuTextSx, color: '#ef4444' }}>
+            Sign Out
           </Typography>
         </MenuItem>
       </Menu>
