@@ -157,7 +157,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
         if (err?.status === 401) {
           const fallback = generateFallbackDemoData(city || 'Berlin', unit);
           dispatch(setDemoFallback(fallback));
-          toast.info('🔑 API key is activating. Displaying demo data.', { toastId: 'demo-fallback' });
+          toast.info('API key is activating. Displaying demo data.', { toastId: 'demo-fallback' });
         }
       });
   }, []);
@@ -175,7 +175,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
         if (err?.status === 401) {
           const fallback = generateFallbackDemoData(queryCity, unit);
           dispatch(setDemoFallback(fallback));
-          toast.info('🔑 API key is activating. Displaying demo data.', { toastId: 'demo-fallback' });
+          toast.info('API key is activating. Displaying demo data.', { toastId: 'demo-fallback' });
         } else if (err?.status === 404) {
           toast.error(`City "${queryCity}" not found. Please check spelling.`);
         }
