@@ -59,7 +59,7 @@ weatherApi.interceptors.response.use(
   (error) => {
     // 1. Request Timeout (ECONNABORTED)
     if (error.code === 'ECONNABORTED') {
-      toast.error('⏱️ Request timed out. Please check your connection and try again.', {
+      toast.error('Request timed out. Please check your connection and try again.', {
         toastId: 'timeout-error',
       });
     }
@@ -71,13 +71,13 @@ weatherApi.interceptors.response.use(
     }
     // 3. Network Offline / Server Unreachable
     else if (!error.response && !axios.isCancel(error)) {
-      toast.error('📡 Network offline / Server unreachable. Please check your connection.', {
+      toast.error('Network offline / Server unreachable. Please check your connection.', {
         toastId: 'network-error',
       });
     }
     // 4. Server Error (HTTP 5xx)
     else if (error.response?.status >= 500) {
-      toast.error('🔥 Server error. Weather service is temporarily unavailable.', {
+      toast.error('Server error. Weather service is temporarily unavailable.', {
         toastId: 'server-error',
       });
     }
