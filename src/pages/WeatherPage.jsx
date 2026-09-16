@@ -52,7 +52,7 @@ import {
   setUnit,
   setCity,
   setDemoFallback,
-} from '../store/weatherSlice';
+} from '../store/actions/weatherActions';
 
 /**
  * Formats epoch timestamp (seconds) into full date string (e.g. "Tuesday, Aug 5, 2025")
