@@ -11,7 +11,8 @@
 //   - Toast notification when an app card is clicked
 //   - Logout button in the user dropdown menu
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 
 // MUI layout and UI components
@@ -24,10 +25,13 @@ import {
   Snackbar,
   Alert,
   Paper,
+  Skeleton,
 } from '@mui/material';
 
 import { useAuth } from '../context/AuthContext'; // currentUser + logout from global context
-import appsData from '../data/apps.json';         // Static app list (categories + apps)
+
+// Redux Actions & Thunks
+import { fetchDashboardThunk } from '../store/actions/dashboardActions';
 import { blcColors } from '../theme';            // Brand color palette
 
 // Common / Modular Components
@@ -43,7 +47,16 @@ import { AppCard } from '../components/common/AppCard';
 export const DashboardPage = ({ mode, toggleMode }) => {
   const { currentUser, logout, isAdmin } = useAuth(); // Auth state and logout action
   const navigate = useNavigate();            // For redirecting to /login after logout
+  const dispatch = useDispatch();            // For dispatching Redux actions
   const isDark = mode === 'dark';            // Shorthand for conditional dark styling
+
+  // Redux Selectors — read dashboard data from the store
+  const { categories: appsCategories, loading } = useSelector((state) => state.dashboard);
+
+  // Fetch dashboard apps on initial mount (calls mock API via thunk)
+  useEffect(() => {
+    dispatch(fetchDashboardThunk());
+  }, []);
 
   // ─── State ──────────────────────────────────────────────────────────────
   // searchQuery: the live string typed in the search bar
@@ -94,7 +107,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
   const filteredCategories = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
-    return appsData.categories
+    return (appsCategories || [])
       .map((cat) => ({
         ...cat,
         apps: cat.apps.filter((a) => {
@@ -107,7 +120,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
         }),
       }))
       .filter((cat) => cat.apps.length > 0); // Remove empty categories
-  }, [searchQuery, isAdmin]);
+  }, [searchQuery, isAdmin, appsCategories]);
 
   // Total count of visible apps after filtering — used in the search result count text
   const totalAppsCount = useMemo(
@@ -164,11 +177,27 @@ export const DashboardPage = ({ mode, toggleMode }) => {
           <Box sx={{ display: { xs: 'none', md: 'block' } }} />
         </Box>
 
+        {/* ── Loading Skeleton ── Shown while mock API call is in progress */}
+        {loading && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {[1, 2, 3].map((i) => (
+              <Box key={i}>
+                <Skeleton variant="text" width={200} height={28} sx={{ mb: 2, borderRadius: '6px' }} />
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' }, gap: 2.5 }}>
+                  {[1, 2, 3, 4, 5].map((j) => (
+                    <Skeleton key={j} variant="rectangular" height={120} sx={{ borderRadius: '12px' }} />
+                  ))}
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        )}
+
         {/* ── Categorized App Grid ──
             Maps over filteredCategories (filtered by useMemo above).
             Each category renders a header with a count badge, then a responsive grid of cards.
             If search returns no results, shows an empty state message instead. */}
-        {filteredCategories.length > 0 ? (
+        {!loading && filteredCategories.length > 0 ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {filteredCategories.map((category) => (
               <Box key={category.name} component="section">
@@ -240,7 +269,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
               </Box>
             ))}
           </Box>
-        ) : (
+        ) : !loading ? (
           /* ── Empty State ──
              Shown when search finds no matching apps.
              Centered message prompting the user to try a different keyword. */
@@ -262,7 +291,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
               Try a different keyword or clear the search.
             </Typography>
           </Paper>
-        )}
+        ) : null}
       </Container>
 
       {/* ── Toast Notification ──────────────────────────────────────────────
