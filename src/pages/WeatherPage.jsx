@@ -20,7 +20,6 @@ import {
   Link,
   TextField,
   Grid,
-  Button,
   Select,
   MenuItem,
   FormControl,
@@ -45,6 +44,7 @@ import { useAuth } from '../context/AuthContext';
 
 // Common Components
 import { Navbar } from '../components/dashboard/Navbar';
+import { AppButton } from '../components/common/AppButton';
 
 // Redux Actions & Thunks
 import {
@@ -349,25 +349,24 @@ export const WeatherPage = ({ mode, toggleMode }) => {
                 },
               }}
             />
-            <Button
+            <AppButton
               type="submit"
-              variant="contained"
+              variant="primary"
               size="small"
               disabled={loading || !searchInput.trim()}
+              loading={loading}
               sx={{
                 px: 2.2,
                 py: 0.5,
                 borderRadius: '8px',
                 bgcolor: '#4f46e5',
-                textTransform: 'none',
-                fontWeight: 600,
                 fontSize: '0.78rem',
                 boxShadow: 'none',
                 '&:hover': { bgcolor: '#4338ca' },
               }}
             >
               Search
-            </Button>
+            </AppButton>
           </Paper>
         </Box>
 
