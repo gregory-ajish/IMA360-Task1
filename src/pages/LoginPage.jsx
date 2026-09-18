@@ -52,9 +52,6 @@ import {
   VisibilityOff,                           // Eye-slash icon — hide password
   PersonOutlineOutlined as UserIcon,       // Person icon in username field
   LockOutlined as LockIcon,               // Lock icon in password field
-  DarkMode as DarkModeIcon,               // Moon icon — switch to dark
-  LightMode as LightModeIcon,             // Sun icon — switch to light
-  HubOutlined,                             // Hub/network icon — app logo
   EmailOutlined as MailIcon,               // Email icon for password reset
   Close as CloseIcon,                      // Close icon for dialog
 } from '@mui/icons-material';

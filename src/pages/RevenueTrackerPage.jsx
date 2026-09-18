@@ -34,6 +34,7 @@ import {
   Save as SaveIcon,
   RestartAlt as ResetIcon,
   TableChart as TableChartIcon,
+  ViewColumn as ViewColumnIcon,
 } from '@mui/icons-material';
 
 // Handsontable React wrapper and modules
@@ -49,10 +50,11 @@ import { toast } from 'react-toastify';
 import { blcColors, typographyTokens } from '../theme';
 import { useAuth } from '../context/AuthContext';
 
-// Common Components
+// Common & Feature Components
 import { Navbar } from '../components/dashboard/Navbar';
 import { AppButton } from '../components/common/AppButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { ViewManagementModal } from '../components/revenue/ViewManagementModal';
 
 // Register all Handsontable modules (renderers, editors, validators, plugins)
 registerAllModules();
@@ -73,6 +75,21 @@ const initialData = [
   ['Jul 2026', 221800, 28000, 3400, 246400, 240000, 'Exceeded'],
   ['Aug 2026', 246400, 16500, 5200, 257700, 255000, 'On Track'],
   ['Sep 2026', 257700, 31000, 2900, 285800, 270000, 'Exceeded'],
+];
+
+/**
+ * Master column configuration metadata for the Revenue Tracker ledger.
+ * Maps visual columns to raw data array indices (dataIndex) so Handsontable
+ * can reorder and hide columns without corrupting underlying row data.
+ */
+export const DEFAULT_REVENUE_COLUMNS = [
+  { id: 'month', label: 'Month', dataIndex: 0, type: 'text' },
+  { id: 'startingMrr', label: 'Starting MRR ($)', dataIndex: 1, type: 'numeric', width: 120, numericFormat: { pattern: '$0,0' } },
+  { id: 'expansion', label: 'Expansion ($)', dataIndex: 2, type: 'numeric', numericFormat: { pattern: '$0,0' } },
+  { id: 'churn', label: 'Churn ($)', dataIndex: 3, type: 'numeric', numericFormat: { pattern: '$0,0' } },
+  { id: 'netRevenue', label: 'Net Revenue ($)', dataIndex: 4, type: 'numeric', numericFormat: { pattern: '$0,0' } },
+  { id: 'target', label: 'Target ($)', dataIndex: 5, type: 'numeric', numericFormat: { pattern: '$0,0' } },
+  { id: 'status', label: 'Status', dataIndex: 6, type: 'dropdown', source: ['Exceeded', 'On Track', 'Behind'] },
 ];
 
 /**
@@ -128,6 +145,58 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [rowToDelete, setRowToDelete] = useState(null);
 
+  // View Management modal & column reordering state
+  const [viewManagementOpen, setViewManagementOpen] = useState(false);
+
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('revenue_visible_columns');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Error reading saved visible columns:', e);
+    }
+    return DEFAULT_REVENUE_COLUMNS;
+  });
+
+  const [hiddenColumns, setHiddenColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('revenue_hidden_columns');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error('Error reading saved hidden columns:', e);
+    }
+    return [];
+  });
+
+  const handleColumnsChange = (newVisible, newHidden) => {
+    setVisibleColumns(newVisible);
+    setHiddenColumns(newHidden);
+    try {
+      localStorage.setItem('revenue_visible_columns', JSON.stringify(newVisible));
+      localStorage.setItem('revenue_hidden_columns', JSON.stringify(newHidden));
+    } catch (e) {
+      console.error('Error saving columns layout to localStorage:', e);
+    }
+  };
+
+  const handleResetColumns = () => {
+    setVisibleColumns(DEFAULT_REVENUE_COLUMNS);
+    setHiddenColumns([]);
+    try {
+      localStorage.removeItem('revenue_visible_columns');
+      localStorage.removeItem('revenue_hidden_columns');
+    } catch (e) {
+      console.error('Error resetting columns:', e);
+    }
+    toast.info('Columns reset to default view.');
+  };
+
   const handleRequestDelete = (visualRow) => {
     if (!isAdmin) return;
     setRowToDelete(visualRow);
@@ -171,6 +240,13 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Re-render Handsontable whenever column visibility or order changes
+  useEffect(() => {
+    if (hotRef.current?.hotInstance) {
+      hotRef.current.hotInstance.render();
+    }
+  }, [visibleColumns]);
 
   const handleSave = () => {
     if (!isAdmin) return;
@@ -217,19 +293,27 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
   };
 
   const getColumns = () => {
-    const baseCols = [
-      { type: 'text', readOnly: !isAdmin },
-      { type: 'numeric', numericFormat: { pattern: '$0,0' }, readOnly: !isAdmin },
-      { type: 'numeric', numericFormat: { pattern: '$0,0' }, readOnly: !isAdmin },
-      { type: 'numeric', numericFormat: { pattern: '$0,0' }, readOnly: !isAdmin },
-      { type: 'numeric', numericFormat: { pattern: '$0,0' }, readOnly: !isAdmin },
-      { type: 'numeric', numericFormat: { pattern: '$0,0' }, readOnly: !isAdmin },
-      {
-        type: 'dropdown',
-        source: ['Exceeded', 'On Track', 'Behind'],
+    const baseCols = visibleColumns.map((col) => {
+      const defaultConfig = DEFAULT_REVENUE_COLUMNS.find((d) => d.id === col.id) || {};
+      const colDef = {
+        data: col.dataIndex ?? defaultConfig.dataIndex,
+        type: col.type || defaultConfig.type || 'text',
         readOnly: !isAdmin,
-      },
-    ];
+      };
+      const width = col.width || defaultConfig.width;
+      if (width) {
+        colDef.width = width;
+      }
+      const numFormat = col.numericFormat || defaultConfig.numericFormat;
+      if (numFormat) {
+        colDef.numericFormat = numFormat;
+      }
+      const source = col.source || defaultConfig.source;
+      if (source) {
+        colDef.source = source;
+      }
+      return colDef;
+    });
 
     if (isAdmin) {
       baseCols.push({
@@ -244,15 +328,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
   };
 
   const getColHeaders = () => {
-    const headers = [
-      'Month',
-      'Starting MRR ($)',
-      'Expansion ($)',
-      'Churn ($)',
-      'Net Revenue ($)',
-      'Target ($)',
-      'Status',
-    ];
+    const headers = visibleColumns.map((col) => col.label);
     if (isAdmin) {
       headers.push('Action');
     }
@@ -393,6 +469,38 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
               : '0 8px 32px rgba(30,58,138,0.08)',
           }}
         >
+          {/* Table Header Controls (aligned above Actions column) */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              mb: 1.5,
+            }}
+          >
+            <Tooltip title="View Management" placement="left" arrow>
+              <IconButton
+                aria-label="View Management"
+                onClick={() => setViewManagementOpen(true)}
+                sx={{
+                  bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                  color: isDark ? '#94a3b8' : '#475569',
+                  border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
+                  borderRadius: '8px',
+                  p: 0.85,
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
+                    color: isDark ? '#ffffff' : blcColors.navyAccent,
+                    borderColor: blcColors.navyAccent,
+                  },
+                }}
+              >
+                <ViewColumnIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
           <Box
             sx={{
               borderRadius: '8px',
@@ -433,16 +541,18 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
               autoWrapRow={true}
               autoWrapCol={true}
               beforeColumnSort={(currentSortConfig, destinationSortConfigs) => {
+                const actionColIndex = visibleColumns.length;
                 if (
                   isAdmin &&
                   destinationSortConfigs &&
-                  destinationSortConfigs.some((cfg) => cfg.column === 7)
+                  destinationSortConfigs.some((cfg) => cfg.column === actionColIndex)
                 ) {
                   return false;
                 }
               }}
               afterOnCellMouseDown={(event, coords) => {
-                if (isAdmin && coords && coords.col === 7 && coords.row >= 0) {
+                const actionColIndex = visibleColumns.length;
+                if (isAdmin && coords && coords.col === actionColIndex && coords.row >= 0) {
                   if (event) {
                     event.stopImmediatePropagation?.();
                     event.preventDefault?.();
@@ -469,6 +579,17 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
           onCancel={handleCancelDelete}
         />
       )}
+
+      {/* View Management popup modal */}
+      <ViewManagementModal
+        open={viewManagementOpen}
+        onClose={() => setViewManagementOpen(false)}
+        visibleColumns={visibleColumns}
+        hiddenColumns={hiddenColumns}
+        onColumnsChange={handleColumnsChange}
+        onResetColumns={handleResetColumns}
+        isDark={isDark}
+      />
     </Box>
   );
 };
