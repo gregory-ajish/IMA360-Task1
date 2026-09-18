@@ -4,9 +4,11 @@
 //   A theme-aware popup modal for managing table columns in the Revenue Tracker.
 //   Powered by @dnd-kit to provide smooth, accessible drag-and-drop reordering
 //   and moving columns between "Visible Columns" and "Hidden Columns".
+//   Uses local working state during drag so the background Handsontable grid
+//   and localStorage are only updated ONCE when clicking "Done".
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -82,7 +84,7 @@ function DroppableContainer({ id, children, isDark, title, count, icon, emptyTex
         flexDirection: 'column',
         minHeight: 360,
         maxHeight: 460,
-        transition: 'all 0.2s ease',
+        transition: 'border-color 0.15s ease, background-color 0.15s ease',
       }}
     >
       {/* Box Header */}
@@ -201,7 +203,7 @@ function SortableColumnCard({ col, isDark, onToggleVisibility, isVisible, isOver
   } = useSortable({ id: col.id });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.35 : 1,
   };
@@ -232,7 +234,6 @@ function SortableColumnCard({ col, isDark, onToggleVisibility, isVisible, isOver
           : '0 1px 3px rgba(0,0,0,0.04)',
         cursor: 'grab',
         userSelect: 'none',
-        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
         '&:hover': {
           borderColor: blcColors.navyAccent,
           boxShadow: isDark
@@ -304,6 +305,18 @@ export const ViewManagementModal = ({
 }) => {
   const [activeId, setActiveId] = useState(null);
 
+  // Local working state — avoids re-rendering the background table during drag
+  const [localVisible, setLocalVisible] = useState(visibleColumns);
+  const [localHidden, setLocalHidden] = useState(hiddenColumns);
+
+  // Sync internal working state with props whenever the modal is opened
+  useEffect(() => {
+    if (open) {
+      setLocalVisible(visibleColumns);
+      setLocalHidden(hiddenColumns);
+    }
+  }, [open, visibleColumns, hiddenColumns]);
+
   // Setup sensors with a 5px activation constraint so clicks don't initiate accidental drags
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -320,17 +333,17 @@ export const ViewManagementModal = ({
   const findContainer = (id) => {
     if (id === 'visible') return 'visible';
     if (id === 'hidden') return 'hidden';
-    if (visibleColumns.some((col) => col.id === id)) return 'visible';
-    if (hiddenColumns.some((col) => col.id === id)) return 'hidden';
+    if (localVisible.some((col) => col.id === id)) return 'visible';
+    if (localHidden.some((col) => col.id === id)) return 'hidden';
     return null;
   };
 
   // Find the active column object being dragged
   const activeCol =
-    visibleColumns.find((c) => c.id === activeId) ||
-    hiddenColumns.find((c) => c.id === activeId);
+    localVisible.find((c) => c.id === activeId) ||
+    localHidden.find((c) => c.id === activeId);
 
-  // ── Handlers ──
+  // ── Drag Handlers (Operate strictly on local in-memory state) ──
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
   };
@@ -346,9 +359,9 @@ export const ViewManagementModal = ({
       return;
     }
 
-    // Moving item from one container to the other
-    let newVisible = [...visibleColumns];
-    let newHidden = [...hiddenColumns];
+    // Moving item from one container to the other in local state (zero lag)
+    let newVisible = [...localVisible];
+    let newHidden = [...localHidden];
 
     if (activeContainer === 'visible' && overContainer === 'hidden') {
       const itemToMove = newVisible.find((c) => c.id === active.id);
@@ -361,7 +374,8 @@ export const ViewManagementModal = ({
       } else {
         newHidden.push(itemToMove);
       }
-      onColumnsChange(newVisible, newHidden);
+      setLocalVisible(newVisible);
+      setLocalHidden(newHidden);
     } else if (activeContainer === 'hidden' && overContainer === 'visible') {
       const itemToMove = newHidden.find((c) => c.id === active.id);
       if (!itemToMove) return;
@@ -373,7 +387,8 @@ export const ViewManagementModal = ({
       } else {
         newVisible.push(itemToMove);
       }
-      onColumnsChange(newVisible, newHidden);
+      setLocalVisible(newVisible);
+      setLocalHidden(newHidden);
     }
   };
 
@@ -387,42 +402,54 @@ export const ViewManagementModal = ({
 
     if (!activeContainer || !overContainer) return;
 
-    // If reordering within the same container
+    // Reordering within the same container in local state
     if (activeContainer === overContainer && active.id !== over.id) {
       if (activeContainer === 'visible') {
-        const oldIndex = visibleColumns.findIndex((c) => c.id === active.id);
-        const newIndex = visibleColumns.findIndex((c) => c.id === over.id);
+        const oldIndex = localVisible.findIndex((c) => c.id === active.id);
+        const newIndex = localVisible.findIndex((c) => c.id === over.id);
         if (oldIndex !== -1 && newIndex !== -1) {
-          const reordered = arrayMove(visibleColumns, oldIndex, newIndex);
-          onColumnsChange(reordered, hiddenColumns);
+          setLocalVisible(arrayMove(localVisible, oldIndex, newIndex));
         }
       } else {
-        const oldIndex = hiddenColumns.findIndex((c) => c.id === active.id);
-        const newIndex = hiddenColumns.findIndex((c) => c.id === over.id);
+        const oldIndex = localHidden.findIndex((c) => c.id === active.id);
+        const newIndex = localHidden.findIndex((c) => c.id === over.id);
         if (oldIndex !== -1 && newIndex !== -1) {
-          const reordered = arrayMove(hiddenColumns, oldIndex, newIndex);
-          onColumnsChange(visibleColumns, reordered);
+          setLocalHidden(arrayMove(localHidden, oldIndex, newIndex));
         }
       }
     }
   };
 
-  // Quick one-click toggle visibility
+  // Quick one-click toggle visibility in local state
   const handleToggleVisibility = (colId) => {
-    const isCurrentlyVisible = visibleColumns.some((c) => c.id === colId);
+    const isCurrentlyVisible = localVisible.some((c) => c.id === colId);
     if (isCurrentlyVisible) {
-      // Don't allow hiding the last remaining column
-      if (visibleColumns.length <= 1) return;
-      const itemToHide = visibleColumns.find((c) => c.id === colId);
-      const newVisible = visibleColumns.filter((c) => c.id !== colId);
-      const newHidden = [...hiddenColumns, itemToHide];
-      onColumnsChange(newVisible, newHidden);
+      if (localVisible.length <= 1) return; // Prevent hiding all columns
+      const itemToHide = localVisible.find((c) => c.id === colId);
+      setLocalVisible((prev) => prev.filter((c) => c.id !== colId));
+      setLocalHidden((prev) => [...prev, itemToHide]);
     } else {
-      const itemToShow = hiddenColumns.find((c) => c.id === colId);
-      const newHidden = hiddenColumns.filter((c) => c.id !== colId);
-      const newVisible = [...visibleColumns, itemToShow];
-      onColumnsChange(newVisible, newHidden);
+      const itemToShow = localHidden.find((c) => c.id === colId);
+      setLocalHidden((prev) => prev.filter((c) => c.id !== colId));
+      setLocalVisible((prev) => [...prev, itemToShow]);
     }
+  };
+
+  // Reset columns handler
+  const handleReset = () => {
+    if (onResetColumns) {
+      onResetColumns();
+    }
+    const allCols = [...localVisible, ...localHidden];
+    // Restore all into visible
+    setLocalVisible(allCols);
+    setLocalHidden([]);
+  };
+
+  // Commit changes to Handsontable grid and localStorage ONLY on "Done"
+  const handleApply = () => {
+    onColumnsChange(localVisible, localHidden);
+    onClose();
   };
 
   return (
@@ -492,7 +519,7 @@ export const ViewManagementModal = ({
                 mt: 0.25,
               }}
             >
-              Drag cards to reorder columns or move them between boxes to show/hide
+              Drag cards to reorder or show/hide columns. Changes apply when you click Done.
             </Typography>
           </Box>
         </Box>
@@ -532,19 +559,19 @@ export const ViewManagementModal = ({
             {/* Box 1: Visible Columns */}
             <SortableContext
               id="visible"
-              items={visibleColumns.map((c) => c.id)}
+              items={localVisible.map((c) => c.id)}
               strategy={verticalListSortingStrategy}
             >
               <DroppableContainer
                 id="visible"
                 title="Visible Columns"
-                count={visibleColumns.length}
+                count={localVisible.length}
                 icon={<VisibilityIcon fontSize="small" sx={{ color: blcColors.navyAccent }} />}
                 emptyText="No visible columns"
                 emptySubtext="Drag columns here to display them in the table"
                 isDark={isDark}
               >
-                {visibleColumns.map((col) => (
+                {localVisible.map((col) => (
                   <SortableColumnCard
                     key={col.id}
                     col={col}
@@ -559,19 +586,19 @@ export const ViewManagementModal = ({
             {/* Box 2: Hidden Columns */}
             <SortableContext
               id="hidden"
-              items={hiddenColumns.map((c) => c.id)}
+              items={localHidden.map((c) => c.id)}
               strategy={verticalListSortingStrategy}
             >
               <DroppableContainer
                 id="hidden"
                 title="Hidden Columns"
-                count={hiddenColumns.length}
+                count={localHidden.length}
                 icon={<VisibilityOffIcon fontSize="small" sx={{ color: isDark ? '#94a3b8' : '#64748b' }} />}
                 emptyText="No hidden columns"
                 emptySubtext="Drag or click arrow to hide columns from the table"
                 isDark={isDark}
               >
-                {hiddenColumns.map((col) => (
+                {localHidden.map((col) => (
                   <SortableColumnCard
                     key={col.id}
                     col={col}
@@ -589,7 +616,7 @@ export const ViewManagementModal = ({
             {activeCol ? (
               <SortableColumnCard
                 col={activeCol}
-                isVisible={visibleColumns.some((c) => c.id === activeCol.id)}
+                isVisible={localVisible.some((c) => c.id === activeCol.id)}
                 isDark={isDark}
                 isOverlay={true}
                 onToggleVisibility={() => {}}
@@ -607,22 +634,31 @@ export const ViewManagementModal = ({
           borderTop: `1px solid ${isDark ? blcColors.darkBorder : '#f1f5f9'}`,
           display: 'flex',
           justifyContent: 'space-between',
+          alignItems: 'center',
           gap: 1.5,
         }}
       >
-        {onResetColumns && (
-          <AppButton
-            variant="ghost"
-            size="small"
-            startIcon={<ResetIcon />}
-            onClick={onResetColumns}
-          >
-            Reset to Default
+        <Box>
+          {onResetColumns && (
+            <AppButton
+              variant="ghost"
+              size="small"
+              startIcon={<ResetIcon />}
+              onClick={handleReset}
+            >
+              Reset to Default
+            </AppButton>
+          )}
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <AppButton variant="ghost" size="medium" onClick={onClose}>
+            Cancel
           </AppButton>
-        )}
-        <AppButton variant="primary" size="medium" onClick={onClose}>
-          Done
-        </AppButton>
+          <AppButton variant="primary" size="medium" onClick={handleApply}>
+            Done
+          </AppButton>
+        </Box>
       </DialogActions>
     </Dialog>
   );
