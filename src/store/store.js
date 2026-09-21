@@ -2,11 +2,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import weatherReducer from './reducers/weatherReducer';
 import dashboardReducer from './reducers/dashboardReducer';
+import viewsReducer from './reducers/viewsReducer';
 
 export const store = configureStore({
   reducer: {
     weather: weatherReducer,
     dashboard: dashboardReducer,
+    views: viewsReducer,
   },
 });
 
