@@ -258,22 +258,6 @@ export const SavedViewsModal = ({
                             />
                           )}
                         </Box>
-                        {view.createdAt && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: isDark ? '#64748b' : '#94a3b8',
-                              fontSize: '0.72rem',
-                            }}
-                          >
-                            {new Date(view.createdAt).toLocaleDateString(undefined, {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </Typography>
-                        )}
                       </Box>
                     </Box>
 
