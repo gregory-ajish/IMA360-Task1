@@ -10,10 +10,6 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Box,
   Typography,
   IconButton,
@@ -22,7 +18,6 @@ import {
   Tooltip,
 } from '@mui/material';
 import {
-  Close as CloseIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
   ViewColumn as ViewColumnIcon,
@@ -54,6 +49,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { blcColors, typographyTokens } from '../../theme';
 import { AppButton } from '../common/AppButton';
+import { Popup } from '../common/Popup';
 
 // ─── Droppable Container Box Component ───────────────────────────────────────
 function DroppableContainer({ id, children, isDark, title, count, icon, emptyText, emptySubtext }) {
@@ -453,213 +449,129 @@ export const ViewManagementModal = ({
   };
 
   return (
-    <Dialog
+    <Popup
       open={open}
       onClose={onClose}
+      title="View Management"
+      subtitle="Drag cards to reorder or show/hide columns. Changes apply when you click Done."
+      icon={<ViewColumnIcon fontSize="small" />}
       maxWidth="md"
-      fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: '16px',
-            bgcolor: isDark ? blcColors.darkCard : '#ffffff',
-            color: isDark ? '#e2e8f0' : blcColors.textDark,
-            border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-            boxShadow: isDark
-              ? '0 24px 64px rgba(0,0,0,0.7)'
-              : '0 20px 50px rgba(15,23,42,0.12)',
-            overflow: 'hidden',
-          },
-        },
-      }}
-    >
-      {/* ── Modal Header ── */}
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          px: 3,
-          py: 2.5,
-          borderBottom: `1px solid ${isDark ? blcColors.darkBorder : '#f1f5f9'}`,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 38,
-              height: 38,
-              borderRadius: '10px',
-              bgcolor: `${blcColors.navyAccent}18`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: blcColors.navyAccent,
-            }}
-          >
-            <ViewColumnIcon fontSize="small" />
-          </Box>
-          <Box>
-            <Typography
-              variant="h6"
-              sx={{
-                fontFamily: typographyTokens.fontMono,
-                fontWeight: typographyTokens.weightBold,
-                fontSize: '1.15rem',
-                lineHeight: 1.2,
-              }}
-            >
-              View Management
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: isDark ? '#94a3b8' : '#64748b',
-                fontSize: '0.8rem',
-                mt: 0.25,
-              }}
-            >
-              Drag cards to reorder or show/hide columns. Changes apply when you click Done.
-            </Typography>
-          </Box>
-        </Box>
-
-        <IconButton
-          onClick={onClose}
-          size="small"
-          aria-label="Close dialog"
+      isDark={isDark}
+      actions={
+        <Box
           sx={{
-            color: isDark ? '#94a3b8' : '#64748b',
-            '&:hover': {
-              bgcolor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
-              color: isDark ? '#ffffff' : '#0f172a',
-            },
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
           }}
         >
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </DialogTitle>
-
-      {/* ── Modal Body: Two Drag & Drop Boxes ── */}
-      <DialogContent sx={{ p: 3, pt: 3 }}>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-              gap: 2.5,
-            }}
-          >
-            {/* Box 1: Visible Columns */}
-            <SortableContext
-              id="visible"
-              items={localVisible.map((c) => c.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <DroppableContainer
-                id="visible"
-                title="Visible Columns"
-                count={localVisible.length}
-                icon={<VisibilityIcon fontSize="small" sx={{ color: blcColors.navyAccent }} />}
-                emptyText="No visible columns"
-                emptySubtext="Drag columns here to display them in the table"
-                isDark={isDark}
+          <Box>
+            {onResetColumns && (
+              <AppButton
+                variant="ghost"
+                size="small"
+                startIcon={<ResetIcon />}
+                onClick={handleReset}
               >
-                {localVisible.map((col) => (
-                  <SortableColumnCard
-                    key={col.id}
-                    col={col}
-                    isVisible={true}
-                    isDark={isDark}
-                    onToggleVisibility={handleToggleVisibility}
-                  />
-                ))}
-              </DroppableContainer>
-            </SortableContext>
-
-            {/* Box 2: Hidden Columns */}
-            <SortableContext
-              id="hidden"
-              items={localHidden.map((c) => c.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <DroppableContainer
-                id="hidden"
-                title="Hidden Columns"
-                count={localHidden.length}
-                icon={<VisibilityOffIcon fontSize="small" sx={{ color: isDark ? '#94a3b8' : '#64748b' }} />}
-                emptyText="No hidden columns"
-                emptySubtext="Drag or click arrow to hide columns from the table"
-                isDark={isDark}
-              >
-                {localHidden.map((col) => (
-                  <SortableColumnCard
-                    key={col.id}
-                    col={col}
-                    isVisible={false}
-                    isDark={isDark}
-                    onToggleVisibility={handleToggleVisibility}
-                  />
-                ))}
-              </DroppableContainer>
-            </SortableContext>
+                Reset to Default
+              </AppButton>
+            )}
           </Box>
 
-          {/* Floating Drag Overlay */}
-          <DragOverlay>
-            {activeCol ? (
-              <SortableColumnCard
-                col={activeCol}
-                isVisible={localVisible.some((c) => c.id === activeCol.id)}
-                isDark={isDark}
-                isOverlay={true}
-                onToggleVisibility={() => {}}
-              />
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      </DialogContent>
-
-      {/* ── Modal Footer ── */}
-      <DialogActions
-        sx={{
-          px: 3,
-          py: 2,
-          borderTop: `1px solid ${isDark ? blcColors.darkBorder : '#f1f5f9'}`,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 1.5,
-        }}
-      >
-        <Box>
-          {onResetColumns && (
-            <AppButton
-              variant="ghost"
-              size="small"
-              startIcon={<ResetIcon />}
-              onClick={handleReset}
-            >
-              Reset to Default
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <AppButton variant="ghost" size="medium" onClick={onClose}>
+              Cancel
             </AppButton>
-          )}
+            <AppButton variant="primary" size="medium" onClick={handleApply}>
+              Done
+            </AppButton>
+          </Box>
+        </Box>
+      }
+    >
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gap: 2.5,
+          }}
+        >
+          {/* Box 1: Visible Columns */}
+          <SortableContext
+            id="visible"
+            items={localVisible.map((c) => c.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <DroppableContainer
+              id="visible"
+              title="Visible Columns"
+              count={localVisible.length}
+              icon={<VisibilityIcon fontSize="small" sx={{ color: blcColors.navyAccent }} />}
+              emptyText="No visible columns"
+              emptySubtext="Drag columns here to display them in the table"
+              isDark={isDark}
+            >
+              {localVisible.map((col) => (
+                <SortableColumnCard
+                  key={col.id}
+                  col={col}
+                  isVisible={true}
+                  isDark={isDark}
+                  onToggleVisibility={handleToggleVisibility}
+                />
+              ))}
+            </DroppableContainer>
+          </SortableContext>
+
+          {/* Box 2: Hidden Columns */}
+          <SortableContext
+            id="hidden"
+            items={localHidden.map((c) => c.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <DroppableContainer
+              id="hidden"
+              title="Hidden Columns"
+              count={localHidden.length}
+              icon={<VisibilityOffIcon fontSize="small" sx={{ color: isDark ? '#94a3b8' : '#64748b' }} />}
+              emptyText="No hidden columns"
+              emptySubtext="Drag or click arrow to hide columns from the table"
+              isDark={isDark}
+            >
+              {localHidden.map((col) => (
+                <SortableColumnCard
+                  key={col.id}
+                  col={col}
+                  isVisible={false}
+                  isDark={isDark}
+                  onToggleVisibility={handleToggleVisibility}
+                />
+              ))}
+            </DroppableContainer>
+          </SortableContext>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <AppButton variant="ghost" size="medium" onClick={onClose}>
-            Cancel
-          </AppButton>
-          <AppButton variant="primary" size="medium" onClick={handleApply}>
-            Done
-          </AppButton>
-        </Box>
-      </DialogActions>
-    </Dialog>
+        {/* Floating Drag Overlay */}
+        <DragOverlay>
+          {activeCol ? (
+            <SortableColumnCard
+              col={activeCol}
+              isVisible={localVisible.some((c) => c.id === activeCol.id)}
+              isDark={isDark}
+              isOverlay={true}
+              onToggleVisibility={() => {}}
+            />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+    </Popup>
   );
 };
