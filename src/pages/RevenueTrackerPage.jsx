@@ -71,7 +71,7 @@ registerAllModules();
 // Shared localStorage key — both Admin and User read/write from the same key
 const SHARED_STORAGE_KEY = 'revenue_ledger_shared';
 
-export const DEFAULT_ROW_COUNT = 10_00_000;
+export const DEFAULT_ROW_COUNT = 5_000;
 
 /**
  * Procedural data generator for 100,000 enterprise revenue rows.
@@ -635,7 +635,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
                     fontSize: '0.85rem',
                   }}
                 >
-                  Initializing 100,000 ledger records...
+                  Initializing {DEFAULT_ROW_COUNT} ledger records...
                 </Typography>
               </Box>
             ) : (
