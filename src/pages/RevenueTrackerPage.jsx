@@ -27,6 +27,7 @@ import {
   Link,
   Tooltip,
   CircularProgress,
+  Chip,
 } from '@mui/material';
 
 // Material-UI icons
@@ -71,23 +72,29 @@ registerAllModules();
 // Shared localStorage key — both Admin and User read/write from the same key
 const SHARED_STORAGE_KEY = 'revenue_ledger_shared';
 
-export const DEFAULT_ROW_COUNT = 5_000;
+export const TOTAL_AVAILABLE_ROWS = 1_000_000;
+export const INITIAL_BATCH_SIZE = 100;
+export const BATCH_SIZE = 100;
 
 /**
- * Procedural data generator for 100,000 enterprise revenue rows.
+ * Deterministic batch generator for lazy-loading up to 1,000,000 rows.
+ * Computes each row dynamically in O(1) time without keeping 1M rows in RAM.
  */
-export const generateRevenueData = (count = DEFAULT_ROW_COUNT) => {
+export const generateRevenueBatch = (startIndex = 0, count = BATCH_SIZE) => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const data = new Array(count);
-  let mrr = 145000;
-  for (let i = 0; i < count; i++) {
+  const batch = [];
+  const endIndex = Math.min(startIndex + count, TOTAL_AVAILABLE_ROWS);
+
+  for (let i = startIndex; i < endIndex; i++) {
     const expansion = Math.floor(12000 + ((i * 17) % 18000));
     const churn = Math.floor(2000 + ((i * 7) % 6000));
+    const mrr = Math.max(50000, Math.floor(145000 + ((i * 131) % 120000)));
     const net = mrr + expansion - churn;
     const target = mrr + 14000;
-    const year = 2022 + (Math.floor(i / 12) % 5); // Keeps years strictly realistic (2022–2026)
-    data[i] = [
+    const year = 2022 + (Math.floor(i / 12) % 5);
+
+    batch.push([
       `${months[i % 12]} ${year} (#${i + 1})`,
       mrr,
       expansion,
@@ -95,10 +102,9 @@ export const generateRevenueData = (count = DEFAULT_ROW_COUNT) => {
       net,
       target,
       net >= target ? 'Exceeded' : net >= target * 0.95 ? 'On Track' : 'Behind',
-    ];
-    mrr = Math.max(50000, Math.floor(net * 0.98 + (i % 5) * 1500));
+    ]);
   }
-  return data;
+  return batch;
 };
 
 /**
@@ -155,18 +161,22 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
       const saved = localStorage.getItem(SHARED_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === DEFAULT_ROW_COUNT) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
       }
     } catch (err) {
       console.error('Error reading revenue ledger from localStorage:', err);
     }
-    return generateRevenueData(DEFAULT_ROW_COUNT);
+    return generateRevenueBatch(0, INITIAL_BATCH_SIZE);
   };
 
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const isFetchingRef = useRef(false);
+  const hasMoreRef = useRef(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [rowToDelete, setRowToDelete] = useState(null);
 
@@ -315,10 +325,13 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
     } catch (err) {
       console.error('Failed to clear stored revenue ledger:', err);
     }
-    const freshData = generateRevenueData(DEFAULT_ROW_COUNT);
-    setData(freshData);
+    const freshBatch = generateRevenueBatch(0, INITIAL_BATCH_SIZE);
+    setData(freshBatch);
+    setHasMore(true);
+    hasMoreRef.current = true;
+    isFetchingRef.current = false;
     if (hotRef.current?.hotInstance) {
-      hotRef.current.hotInstance.loadData(freshData);
+      hotRef.current.hotInstance.loadData(freshBatch);
       const filterPlugin = hotRef.current.hotInstance.getPlugin('filters');
       if (filterPlugin) {
         filterPlugin.clearConditions();
@@ -329,7 +342,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
         sortingPlugin.clearSort();
       }
     }
-    toast.info('Spreadsheet reset to default values.');
+    toast.info('Spreadsheet reset to initial batch.');
   };
 
   const handleLogout = () => {
@@ -635,13 +648,65 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
                     fontSize: '0.85rem',
                   }}
                 >
-                  Initializing {DEFAULT_ROW_COUNT} ledger records...
+                  Initializing initial batch...
                 </Typography>
               </Box>
             ) : (
               <HotTable
                 ref={hotRef}
                 data={data}
+                afterScrollVertically={() => {
+                  if (isFetchingRef.current || !hasMoreRef.current) return; {/*busy fetching, no more rows*/ }
+                  const hot = hotRef.current?.hotInstance;
+                  if (!hot) return;
+
+                  let lastRow = -1;
+                  try {
+                    if (hot.view && hot.view.wt && hot.view.wt.wtTable) {
+                      {/*try to get last visible row*/ }
+                      lastRow = hot.view.wt.wtTable.getLastVisibleRow();
+                    }
+                  } catch {
+                    lastRow = -1;
+                  }
+
+                  if (lastRow === -1 || lastRow === undefined) {
+                    const holder = hot.rootElement?.querySelector('.wtHolder');
+                    if (holder) {
+                      const scrollBottom = holder.scrollTop + holder.clientHeight;
+                      const totalHeight = holder.scrollHeight;
+                      if (scrollBottom >= totalHeight - 140) {
+                        lastRow = hot.countRows() - 1;
+                      }
+                    }
+                  }
+
+                  const currentCount = hot.countRows();
+                  if (lastRow >= currentCount - 20) {
+                    {/*last visible rows is less than 20 then load next batch*/ }
+                    if (currentCount >= TOTAL_AVAILABLE_ROWS) {
+                      setHasMore(false);
+                      hasMoreRef.current = false;
+                      return;
+                    }
+
+                    isFetchingRef.current = true;
+                    setIsFetchingMore(true);
+
+                    const nextBatch = generateRevenueBatch(currentCount, BATCH_SIZE); {/* generate next batch of rows*/ }
+                    if (nextBatch.length > 0) {
+                      setData((prev) => [...prev, ...nextBatch]); {/*update data with next batch*/ }
+                    } else {
+                      setHasMore(false);
+                      hasMoreRef.current = false;
+                    }
+
+                    setTimeout(() => {
+                      isFetchingRef.current = false;
+                      setIsFetchingMore(false);
+                    }, 50);
+                  }
+                }}
                 renderAllRows={false}
                 viewportRowRenderingOffset={30}
                 renderAllColumns={false}
@@ -690,6 +755,61 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
                 }}
                 columns={getColumns()}
               />
+            )}
+          </Box>
+
+          {/* Lazy Loading Live Status Footer */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mt: 1.5,
+              px: 0.5,
+              fontSize: '0.8rem',
+              color: isDark ? '#94a3b8' : '#64748b',
+              fontFamily: typographyTokens.fontMono,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <span>
+                Loaded <strong>{data.length.toLocaleString()}</strong> of{' '}
+                <strong>{TOTAL_AVAILABLE_ROWS.toLocaleString()}</strong> rows
+              </span>
+              {hasMore ? (
+                <Chip
+                  label="Lazy Loading Active"
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: '0.7rem',
+                    bgcolor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff',
+                    color: '#3b82f6',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    fontWeight: 600,
+                  }}
+                />
+              ) : (
+                <Chip
+                  label="All 1,000,000 Rows Loaded"
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: '0.7rem',
+                    bgcolor: 'rgba(34, 197, 94, 0.15)',
+                    color: '#22c55e',
+                    border: '1px solid rgba(34, 197, 94, 0.25)',
+                    fontWeight: 600,
+                  }}
+                />
+              )}
+            </Box>
+
+            {isFetchingMore && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: blcColors.navyAccent, fontWeight: 600 }}>
+                <CircularProgress size={14} thickness={5} />
+                <span>Fetching next {BATCH_SIZE} rows...</span>
+              </Box>
             )}
           </Box>
         </Paper>
