@@ -26,6 +26,8 @@ import {
   Breadcrumbs,
   Link,
   Tooltip,
+  CircularProgress,
+  Chip,
 } from '@mui/material';
 
 // Material-UI icons
@@ -70,20 +72,40 @@ registerAllModules();
 // Shared localStorage key — both Admin and User read/write from the same key
 const SHARED_STORAGE_KEY = 'revenue_ledger_shared';
 
+export const TOTAL_AVAILABLE_ROWS = 1_000_000;
+export const INITIAL_BATCH_SIZE = 100;
+export const BATCH_SIZE = 100;
+
 /**
- * Initial seed dataset for the Revenue Tracker ledger.
+ * Deterministic batch generator for lazy-loading up to 1,000,000 rows.
+ * Computes each row dynamically in O(1) time without keeping 1M rows in RAM.
  */
-const initialData = [
-  ['Jan 2026', 145000, 18000, 4200, 158800, 150000, 'Exceeded'],
-  ['Feb 2026', 158800, 22500, 3100, 178200, 170000, 'Exceeded'],
-  ['Mar 2026', 178200, 14000, 6800, 185400, 185000, 'On Track'],
-  ['Apr 2026', 185400, 19200, 5100, 199500, 200000, 'On Track'],
-  ['May 2026', 199500, 25000, 4800, 219700, 215000, 'Exceeded'],
-  ['Jun 2026', 219700, 11000, 8900, 221800, 230000, 'Behind'],
-  ['Jul 2026', 221800, 28000, 3400, 246400, 240000, 'Exceeded'],
-  ['Aug 2026', 246400, 16500, 5200, 257700, 255000, 'On Track'],
-  ['Sep 2026', 257700, 31000, 2900, 285800, 270000, 'Exceeded'],
-];
+export const generateRevenueBatch = (startIndex = 0, count = BATCH_SIZE) => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const batch = [];
+  const endIndex = Math.min(startIndex + count, TOTAL_AVAILABLE_ROWS);
+
+  for (let i = startIndex; i < endIndex; i++) {
+    const expansion = Math.floor(12000 + ((i * 17) % 18000));
+    const churn = Math.floor(2000 + ((i * 7) % 6000));
+    const mrr = Math.max(50000, Math.floor(145000 + ((i * 131) % 120000)));
+    const net = mrr + expansion - churn;
+    const target = mrr + 14000;
+    const year = 2022 + (Math.floor(i / 12) % 5);
+
+    batch.push([
+      `${months[i % 12]} ${year} (#${i + 1})`,
+      mrr,
+      expansion,
+      churn,
+      net,
+      target,
+      net >= target ? 'Exceeded' : net >= target * 0.95 ? 'On Track' : 'Behind',
+    ]);
+  }
+  return batch;
+};
 
 /**
  * Master column configuration metadata for the Revenue Tracker ledger.
@@ -91,13 +113,13 @@ const initialData = [
  * can reorder and hide columns without corrupting underlying row data.
  */
 export const DEFAULT_REVENUE_COLUMNS = [
-  { id: 'month', label: 'Month', dataIndex: 0, type: 'text' },
-  { id: 'startingMrr', label: 'Starting MRR ($)', dataIndex: 1, type: 'numeric', width: 120, numericFormat: { pattern: '$0,0' } },
-  { id: 'expansion', label: 'Expansion ($)', dataIndex: 2, type: 'numeric', numericFormat: { pattern: '$0,0' } },
-  { id: 'churn', label: 'Churn ($)', dataIndex: 3, type: 'numeric', numericFormat: { pattern: '$0,0' } },
-  { id: 'netRevenue', label: 'Net Revenue ($)', dataIndex: 4, type: 'numeric', numericFormat: { pattern: '$0,0' } },
-  { id: 'target', label: 'Target ($)', dataIndex: 5, type: 'numeric', numericFormat: { pattern: '$0,0' } },
-  { id: 'status', label: 'Status', dataIndex: 6, type: 'dropdown', source: ['Exceeded', 'On Track', 'Behind'] },
+  { id: 'month', label: 'Month', dataIndex: 0, type: 'text', width: 150 },
+  { id: 'startingMrr', label: 'Starting MRR ($)', dataIndex: 1, type: 'numeric', width: 130, numericFormat: { pattern: '$0,0' } },
+  { id: 'expansion', label: 'Expansion ($)', dataIndex: 2, type: 'numeric', width: 120, numericFormat: { pattern: '$0,0' } },
+  { id: 'churn', label: 'Churn ($)', dataIndex: 3, type: 'numeric', width: 110, numericFormat: { pattern: '$0,0' } },
+  { id: 'netRevenue', label: 'Net Revenue ($)', dataIndex: 4, type: 'numeric', width: 130, numericFormat: { pattern: '$0,0' } },
+  { id: 'target', label: 'Target ($)', dataIndex: 5, type: 'numeric', width: 120, numericFormat: { pattern: '$0,0' } },
+  { id: 'status', label: 'Status', dataIndex: 6, type: 'dropdown', width: 110, source: ['Exceeded', 'On Track', 'Behind'] },
 ];
 
 /**
@@ -146,10 +168,15 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
     } catch (err) {
       console.error('Error reading revenue ledger from localStorage:', err);
     }
-    return initialData.map((row) => [...row]);
+    return generateRevenueBatch(0, INITIAL_BATCH_SIZE);
   };
 
-  const [data, setData] = useState(getInitialLedgerData);
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const isFetchingRef = useRef(false);
+  const hasMoreRef = useRef(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [rowToDelete, setRowToDelete] = useState(null);
 
@@ -259,20 +286,12 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
   useEffect(() => {
     // Scroll window to top immediately on page load
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    const timer = setTimeout(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    }, 50);
 
-    const latestData = getInitialLedgerData();
-    setData(latestData);
-    if (hotRef.current?.hotInstance) {
-      hotRef.current.hotInstance.loadData(latestData);
-      const filterPlugin = hotRef.current.hotInstance.getPlugin('filters');
-      if (filterPlugin) {
-        filterPlugin.clearConditions();
-        filterPlugin.filter();
-      }
-    }
+    // Defer heavy 100k data hydration by one tick so router transition is instant
+    const timer = setTimeout(() => {
+      setData(getInitialLedgerData());
+      setIsLoading(false);
+    }, 16);
 
     return () => clearTimeout(timer);
   }, []);
@@ -306,10 +325,13 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
     } catch (err) {
       console.error('Failed to clear stored revenue ledger:', err);
     }
-    const freshData = initialData.map((row) => [...row]);
-    setData(freshData);
+    const freshBatch = generateRevenueBatch(0, INITIAL_BATCH_SIZE);
+    setData(freshBatch);
+    setHasMore(true);
+    hasMoreRef.current = true;
+    isFetchingRef.current = false;
     if (hotRef.current?.hotInstance) {
-      hotRef.current.hotInstance.loadData(freshData);
+      hotRef.current.hotInstance.loadData(freshBatch);
       const filterPlugin = hotRef.current.hotInstance.getPlugin('filters');
       if (filterPlugin) {
         filterPlugin.clearConditions();
@@ -320,7 +342,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
         sortingPlugin.clearSort();
       }
     }
-    toast.info('Spreadsheet reset to default values.');
+    toast.info('Spreadsheet reset to initial batch.');
   };
 
   const handleLogout = () => {
@@ -590,6 +612,10 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
               borderRadius: '8px',
               overflow: 'hidden',
               border: `1px solid ${isDark ? '#334155' : '#cbd5e1'}`,
+              height: 550,
+              minHeight: 550,
+              position: 'relative',
+              bgcolor: isDark ? '#0f172a' : '#f8fafc',
               '& .handsontable': {
                 fontFamily: typographyTokens.fontSans,
                 fontSize: typographyTokens.fontSizeSm,
@@ -602,50 +628,189 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
               },
             }}
           >
-            <HotTable
-              ref={hotRef}
-              data={data}
-              className={isDark ? 'ht-theme-main-dark' : 'ht-theme-main'}
-              colHeaders={getColHeaders()}
-              rowHeaders={true}
-              height="550"
-              width="100%"
-              stretchH="all"
-              columnSorting={true}
-              filters={true}
-              dropdownMenu={[
-                'filter_by_condition',
-                'filter_by_value',
-                'filter_action_bar',
-              ]}
-              contextMenu={isAdmin ? true : false}
-              manualColumnResize={true}
-              manualRowResize={true}
-              licenseKey="non-commercial-and-evaluation"
-              autoWrapRow={true}
-              autoWrapCol={true}
-              beforeColumnSort={(currentSortConfig, destinationSortConfigs) => {
-                const actionColIndex = visibleColumns.length;
-                if (
-                  isAdmin &&
-                  destinationSortConfigs &&
-                  destinationSortConfigs.some((cfg) => cfg.column === actionColIndex)
-                ) {
-                  return false;
-                }
-              }}
-              afterOnCellMouseDown={(event, coords) => {
-                const actionColIndex = visibleColumns.length;
-                if (isAdmin && coords && coords.col === actionColIndex && coords.row >= 0) {
-                  if (event) {
-                    event.stopImmediatePropagation?.();
-                    event.preventDefault?.();
+            {isLoading ? (
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  gap: 1.5,
+                  color: isDark ? '#94a3b8' : '#64748b',
+                }}
+              >
+                <CircularProgress size={32} sx={{ color: blcColors.navyAccent }} />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontFamily: typographyTokens.fontMono,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  Initializing initial batch...
+                </Typography>
+              </Box>
+            ) : (
+              <HotTable
+                ref={hotRef}
+                data={data}
+                afterScrollVertically={() => {
+                  if (isFetchingRef.current || !hasMoreRef.current) return; {/*busy fetching, no more rows*/ }
+                  const hot = hotRef.current?.hotInstance;
+                  if (!hot) return;
+
+                  let lastRow = -1;
+                  try {
+                    if (hot.view && hot.view.wt && hot.view.wt.wtTable) {
+                      {/*try to get last visible row*/ }
+                      lastRow = hot.view.wt.wtTable.getLastVisibleRow();
+                    }
+                  } catch {
+                    lastRow = -1;
                   }
-                  handleRequestDelete(coords.row);
-                }
-              }}
-              columns={getColumns()}
-            />
+
+                  if (lastRow === -1 || lastRow === undefined) {
+                    const holder = hot.rootElement?.querySelector('.wtHolder');
+                    if (holder) {
+                      const scrollBottom = holder.scrollTop + holder.clientHeight;
+                      const totalHeight = holder.scrollHeight;
+                      if (scrollBottom >= totalHeight - 140) {
+                        lastRow = hot.countRows() - 1;
+                      }
+                    }
+                  }
+
+                  const currentCount = hot.countRows();
+                  if (lastRow >= currentCount - 20) {
+                    {/*last visible rows is less than 20 then load next batch*/ }
+                    if (currentCount >= TOTAL_AVAILABLE_ROWS) {
+                      setHasMore(false);
+                      hasMoreRef.current = false;
+                      return;
+                    }
+
+                    isFetchingRef.current = true;
+                    setIsFetchingMore(true);
+
+                    const nextBatch = generateRevenueBatch(currentCount, BATCH_SIZE); {/* generate next batch of rows*/ }
+                    if (nextBatch.length > 0) {
+                      setData((prev) => [...prev, ...nextBatch]); {/*update data with next batch*/ }
+                    } else {
+                      setHasMore(false);
+                      hasMoreRef.current = false;
+                    }
+
+                    setTimeout(() => {
+                      isFetchingRef.current = false;
+                      setIsFetchingMore(false);
+                    }, 50);
+                  }
+                }}
+                renderAllRows={false}
+                viewportRowRenderingOffset={30}
+                renderAllColumns={false}
+                viewportColumnRenderingOffset={3}
+                rowHeights={32}
+                autoRowSize={false}
+                autoColumnSize={false}
+                className={isDark ? 'ht-theme-main-dark' : 'ht-theme-main'}
+                colHeaders={getColHeaders()}
+                rowHeaders={true}
+                height="550"
+                width="100%"
+                stretchH="all"
+                columnSorting={true}
+                filters={true}
+                dropdownMenu={[
+                  'filter_by_condition',
+                  'filter_by_value',
+                  'filter_action_bar',
+                ]}
+                contextMenu={isAdmin ? true : false}
+                manualColumnResize={true}
+                manualRowResize={true}
+                licenseKey="non-commercial-and-evaluation"
+                autoWrapRow={true}
+                autoWrapCol={true}
+                beforeColumnSort={(currentSortConfig, destinationSortConfigs) => {
+                  const actionColIndex = visibleColumns.length;
+                  if (
+                    isAdmin &&
+                    destinationSortConfigs &&
+                    destinationSortConfigs.some((cfg) => cfg.column === actionColIndex)
+                  ) {
+                    return false;
+                  }
+                }}
+                afterOnCellMouseDown={(event, coords) => {
+                  const actionColIndex = visibleColumns.length;
+                  if (isAdmin && coords && coords.col === actionColIndex && coords.row >= 0) {
+                    if (event) {
+                      event.stopImmediatePropagation?.();
+                      event.preventDefault?.();
+                    }
+                    handleRequestDelete(coords.row);
+                  }
+                }}
+                columns={getColumns()}
+              />
+            )}
+          </Box>
+
+          {/* Lazy Loading Live Status Footer */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mt: 1.5,
+              px: 0.5,
+              fontSize: '0.8rem',
+              color: isDark ? '#94a3b8' : '#64748b',
+              fontFamily: typographyTokens.fontMono,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <span>
+                Loaded <strong>{data.length.toLocaleString()}</strong> of{' '}
+                <strong>{TOTAL_AVAILABLE_ROWS.toLocaleString()}</strong> rows
+              </span>
+              {hasMore ? (
+                <Chip
+                  label="Lazy Loading Active"
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: '0.7rem',
+                    bgcolor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff',
+                    color: '#3b82f6',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    fontWeight: 600,
+                  }}
+                />
+              ) : (
+                <Chip
+                  label="All 1,000,000 Rows Loaded"
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: '0.7rem',
+                    bgcolor: 'rgba(34, 197, 94, 0.15)',
+                    color: '#22c55e',
+                    border: '1px solid rgba(34, 197, 94, 0.25)',
+                    fontWeight: 600,
+                  }}
+                />
+              )}
+            </Box>
+
+            {isFetchingMore && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: blcColors.navyAccent, fontWeight: 600 }}>
+                <CircularProgress size={14} thickness={5} />
+                <span>Fetching next {BATCH_SIZE} rows...</span>
+              </Box>
+            )}
           </Box>
         </Paper>
       </Container>
