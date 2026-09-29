@@ -18,7 +18,7 @@
 //   - Confirmation Modal: Uses ConfirmDialog before removing any row.
 // ============================================================================
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Material-UI components
@@ -45,11 +45,8 @@ import {
   BookmarkBorder as SavedViewsIcon,
 } from '@mui/icons-material';
 
-// Handsontable React wrapper and modules
-import { HotTable } from '@handsontable/react';
-import { registerAllModules } from 'handsontable/registry';
-import 'handsontable/styles/handsontable.min.css';
-import 'handsontable/styles/ht-theme-main.min.css';
+// Global Shared DataTable Component
+import { DataTable } from '../components/common/DataTable';
 
 // Toast notifications
 import { toast } from 'react-toastify';
@@ -70,11 +67,14 @@ import { SavedViewsModal } from '../components/revenue/SavedViewsModal';
 import { useSelector, useDispatch } from 'react-redux';
 import { saveView, setActiveView } from '../store/actions/viewsActions';
 
-// Register all Handsontable modules
-registerAllModules();
-
 // Shared localStorage key
 const SHARED_STORAGE_KEY = 'revenue_ledger_shared';
+
+const DROPDOWN_MENU_OPTIONS = [
+  'filter_by_condition',
+  'filter_by_value',
+  'filter_action_bar',
+];
 
 export const TOTAL_AVAILABLE_ROWS = 1_000_000;
 export const INITIAL_BATCH_SIZE = 100;
@@ -325,18 +325,24 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
           });
           isFetchingRef.current = false;
           setIsFetchingMore(false);
-        } else if (type === 'SORT_COMPLETE') {
+        } else if (type === 'SORT_COMPLETE' || type === 'FILTER_COMPLETE') {
           setData(rows);
           setTotalFilteredRows(totalCount);
           totalFilteredRowsRef.current = totalCount;
-          setActiveSort({ columnId, direction });
-          activeSortRef.current = { columnId, direction };
+          if (type === 'SORT_COMPLETE') {
+            setActiveSort({ columnId, direction });
+            activeSortRef.current = { columnId, direction };
+          }
           setIsProcessing(false);
           setHasMore(rows.length < totalCount);
           hasMoreRef.current = rows.length < totalCount;
           isFetchingRef.current = false;
           setIsFetchingMore(false);
-          hotRef.current?.hotInstance?.scrollViewportTo({ row: 0, col: 0 });
+          try {
+            hotRef.current?.hotInstance?.scrollViewportTo({ row: 0, col: 0 });
+          } catch {
+            // Safely ignore scroll if row 0 is hidden by active filter
+          }
         } else if (type === 'RESET_COMPLETE') {
           setData(rows);
           setTotalFilteredRows(totalCount);
@@ -348,7 +354,11 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
           hasMoreRef.current = true;
           isFetchingRef.current = false;
           setIsFetchingMore(false);
-          hotRef.current?.hotInstance?.scrollViewportTo({ row: 0, col: 0 });
+          try {
+            hotRef.current?.hotInstance?.scrollViewportTo({ row: 0, col: 0 });
+          } catch {
+            // Safely ignore scroll if row 0 is hidden by active filter
+          }
         }
       };
 
@@ -382,6 +392,20 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
       type: 'SORT',
       payload: { columnId, direction, count: INITIAL_BATCH_SIZE },
     });
+  }, []);
+
+  const handleBeforeFilter = useCallback((conditionsStack) => {
+    if (workerRef.current) {
+      setIsProcessing(true);
+      workerRef.current.postMessage({
+        type: 'FILTER',
+        payload: {
+          filters: { conditionsStack },
+          count: INITIAL_BATCH_SIZE,
+        },
+      });
+    }
+    return false;
   }, []);
 
   const handleSave = () => {
@@ -425,7 +449,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
     navigate('/login', { replace: true });
   };
 
-  const getColumns = () => {
+  const columns = useMemo(() => {
     const baseCols = visibleColumns.map((col) => {
       const defaultConfig = DEFAULT_REVENUE_COLUMNS.find((d) => d.id === col.id) || {};
       const colDef = {
@@ -458,9 +482,9 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
     }
 
     return baseCols;
-  };
+  }, [visibleColumns, isAdmin]);
 
-  const getColHeaders = () => {
+  const colHeaders = useMemo(() => {
     const headers = visibleColumns.map((col) => {
       if (activeSort.columnId === col.id) {
         if (activeSort.direction === 'asc') return `${col.label} ▲`;
@@ -472,7 +496,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
       headers.push('Action');
     }
     return headers;
-  };
+  }, [visibleColumns, activeSort, isAdmin]);
 
   return (
     <Box
@@ -688,198 +712,152 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
             </Tooltip>
           </Box>
 
-          {/* Handsontable Container */}
-          <Box
-            sx={{
-              borderRadius: '8px',
-              overflow: 'hidden',
-              border: `1px solid ${isDark ? '#334155' : '#cbd5e1'}`,
-              height: 550,
-              minHeight: 550,
-              position: 'relative',
-              bgcolor: isDark ? '#0f172a' : '#f8fafc',
-              '& .handsontable': {
-                fontFamily: typographyTokens.fontSans,
-                fontSize: typographyTokens.fontSizeSm,
-              },
-              '& .htCore th': {
-                bgcolor: isDark ? '#1e293b' : '#f8fafc',
-                color: isDark ? '#94a3b8' : '#475569',
-                fontWeight: typographyTokens.weightBold,
-                fontFamily: typographyTokens.fontMono,
-              },
+          {/* Global DataTable Component */}
+          <DataTable
+            ref={hotRef}
+            data={data}
+            columns={columns}
+            colHeaders={colHeaders}
+            rowHeaders={true}
+            height={550}
+            width="100%"
+            stretchH="all"
+            isLoading={isLoading}
+            loadingText="Initializing 1,000,000 records in Web Worker..."
+            isDark={isDark}
+            renderAllRows={false}
+            viewportRowRenderingOffset={30}
+            renderAllColumns={false}
+            viewportColumnRenderingOffset={3}
+            rowHeights={32}
+            autoRowSize={false}
+            autoColumnSize={false}
+            columnSorting={true}
+            filters={true}
+            dropdownMenu={DROPDOWN_MENU_OPTIONS}
+            contextMenu={isAdmin ? true : false}
+            manualColumnResize={true}
+            manualRowResize={true}
+            licenseKey="non-commercial-and-evaluation"
+            autoWrapRow={true}
+            autoWrapCol={true}
+            afterScrollVertically={() => {
+              if (isFetchingRef.current || !hasMoreRef.current || isProcessing) return;
+              const hot = hotRef.current?.hotInstance;
+              if (!hot) return;
+
+              let lastRow = -1;
+              try {
+                if (hot.view && hot.view.wt && hot.view.wt.wtTable) {
+                  lastRow = hot.view.wt.wtTable.getLastVisibleRow();
+                }
+              } catch {
+                lastRow = -1;
+              }
+
+              if (lastRow === -1 || lastRow === undefined) {
+                const holder = hot.rootElement?.querySelector('.wtHolder');
+                if (holder) {
+                  const scrollBottom = holder.scrollTop + holder.clientHeight;
+                  const totalHeight = holder.scrollHeight;
+                  if (scrollBottom >= totalHeight - 140) {
+                    lastRow = hot.countRows() - 1;
+                  }
+                }
+              }
+
+              const currentCount = hot.countRows();
+              if (lastRow >= currentCount - 20) {
+                if (currentCount >= totalFilteredRowsRef.current) {
+                  setHasMore(false);
+                  hasMoreRef.current = false;
+                  return;
+                }
+
+                isFetchingRef.current = true;
+                setIsFetchingMore(true);
+
+                // Ask Web Worker for the next batch of 100 rows
+                if (workerRef.current) {
+                  workerRef.current.postMessage({
+                    type: 'GET_ROWS',
+                    payload: { startIndex: currentCount, count: BATCH_SIZE },
+                  });
+                } else {
+                  const nextBatch = generateRevenueBatch(currentCount, BATCH_SIZE);
+                  if (nextBatch.length > 0) {
+                    setData((prev) => [...prev, ...nextBatch]);
+                  } else {
+                    setHasMore(false);
+                    hasMoreRef.current = false;
+                  }
+                  setTimeout(() => {
+                    isFetchingRef.current = false;
+                    setIsFetchingMore(false);
+                  }, 50);
+                }
+              }
             }}
-          >
-            {isLoading ? (
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  gap: 1.5,
-                  color: isDark ? '#94a3b8' : '#64748b',
-                }}
-              >
-                <CircularProgress size={32} sx={{ color: blcColors.navyAccent }} />
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontFamily: typographyTokens.fontMono,
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  Initializing 1,000,000 records in Web Worker...
-                </Typography>
-              </Box>
-            ) : (
-              <HotTable
-                ref={hotRef}
-                data={data}
-                afterScrollVertically={() => {
-                  if (isFetchingRef.current || !hasMoreRef.current || isProcessing) return;
-                  const hot = hotRef.current?.hotInstance;
-                  if (!hot) return;
+            beforeColumnSort={(currentSortConfig, destinationSortConfigs) => {
+              const actionColIndex = visibleColumns.length;
+              if (
+                isAdmin &&
+                destinationSortConfigs &&
+                destinationSortConfigs.some((cfg) => cfg.column === actionColIndex)
+              ) {
+                return false;
+              }
 
-                  let lastRow = -1;
-                  try {
-                    if (hot.view && hot.view.wt && hot.view.wt.wtTable) {
-                      lastRow = hot.view.wt.wtTable.getLastVisibleRow();
-                    }
-                  } catch {
-                    lastRow = -1;
-                  }
-
-                  if (lastRow === -1 || lastRow === undefined) {
-                    const holder = hot.rootElement?.querySelector('.wtHolder');
-                    if (holder) {
-                      const scrollBottom = holder.scrollTop + holder.clientHeight;
-                      const totalHeight = holder.scrollHeight;
-                      if (scrollBottom >= totalHeight - 140) {
-                        lastRow = hot.countRows() - 1;
-                      }
-                    }
-                  }
-
-                  const currentCount = hot.countRows();
-                  if (lastRow >= currentCount - 20) {
-                    if (currentCount >= totalFilteredRowsRef.current) {
-                      setHasMore(false);
-                      hasMoreRef.current = false;
-                      return;
-                    }
-
-                    isFetchingRef.current = true;
-                    setIsFetchingMore(true);
-
-                    // Ask Web Worker for the next batch of 100 rows
-                    if (workerRef.current) {
-                      workerRef.current.postMessage({
-                        type: 'GET_ROWS',
-                        payload: { startIndex: currentCount, count: BATCH_SIZE },
-                      });
-                    } else {
-                      const nextBatch = generateRevenueBatch(currentCount, BATCH_SIZE);
-                      if (nextBatch.length > 0) {
-                        setData((prev) => [...prev, ...nextBatch]);
-                      } else {
-                        setHasMore(false);
-                        hasMoreRef.current = false;
-                      }
-                      setTimeout(() => {
-                        isFetchingRef.current = false;
-                        setIsFetchingMore(false);
-                      }, 50);
-                    }
-                  }
-                }}
-                renderAllRows={false}
-                viewportRowRenderingOffset={30}
-                renderAllColumns={false}
-                viewportColumnRenderingOffset={3}
-                rowHeights={32}
-                autoRowSize={false}
-                autoColumnSize={false}
-                className={isDark ? 'ht-theme-main-dark' : 'ht-theme-main'}
-                colHeaders={getColHeaders()}
-                rowHeaders={true}
-                height="550"
-                width="100%"
-                stretchH="all"
-                columnSorting={true}
-                filters={true}
-                dropdownMenu={[
-                  'filter_by_condition',
-                  'filter_by_value',
-                  'filter_action_bar',
-                ]}
-                contextMenu={isAdmin ? true : false}
-                manualColumnResize={true}
-                manualRowResize={true}
-                licenseKey="non-commercial-and-evaluation"
-                autoWrapRow={true}
-                autoWrapCol={true}
-                beforeColumnSort={(currentSortConfig, destinationSortConfigs) => {
-                  const actionColIndex = visibleColumns.length;
-                  if (
-                    isAdmin &&
-                    destinationSortConfigs &&
-                    destinationSortConfigs.some((cfg) => cfg.column === actionColIndex)
-                  ) {
-                    return false;
-                  }
-
-                  // Delegate sorting across all 1,000,000 rows to the Web Worker
-                  if (destinationSortConfigs && destinationSortConfigs.length > 0) {
-                    const dest = destinationSortConfigs[0];
-                    const colDef = visibleColumns[dest.column];
-                    if (colDef) {
-                      // Correctly cycle sort directions: none -> asc -> desc -> none
-                      let nextDir = 'asc';
-                      if (activeSortRef.current.columnId === colDef.id) {
-                        if (activeSortRef.current.direction === 'asc') {
-                          nextDir = 'desc';
-                        } else if (activeSortRef.current.direction === 'desc') {
-                          nextDir = 'none';
-                        } else {
-                          nextDir = 'asc';
-                        }
+              // Defer state updates to allow Handsontable to cleanly complete its event handling
+              setTimeout(() => {
+                if (destinationSortConfigs && destinationSortConfigs.length > 0) {
+                  const dest = destinationSortConfigs[0];
+                  const colDef = visibleColumns[dest.column];
+                  if (colDef) {
+                    // Correctly cycle sort directions: none -> asc -> desc -> none
+                    let nextDir = 'asc';
+                    if (activeSortRef.current.columnId === colDef.id) {
+                      if (activeSortRef.current.direction === 'asc') {
+                        nextDir = 'desc';
+                      } else if (activeSortRef.current.direction === 'desc') {
+                        nextDir = 'none';
                       } else {
                         nextDir = 'asc';
                       }
-
-                      const nextSort = {
-                        columnId: nextDir === 'none' ? null : colDef.id,
-                        direction: nextDir,
-                      };
-                      activeSortRef.current = nextSort;
-                      setActiveSort(nextSort);
-                      triggerWorkerSort(nextSort.columnId, nextDir);
+                    } else {
+                      nextDir = 'asc';
                     }
-                  } else {
-                    activeSortRef.current = { columnId: null, direction: 'none' };
-                    setActiveSort(activeSortRef.current);
-                    triggerWorkerSort(null, 'none');
-                  }
 
-                  // Suppress local Handsontable 100-row sorting; worker sorts all 1,000,000 rows!
-                  return false;
-                }}
-                afterOnCellMouseDown={(event, coords) => {
-                  const actionColIndex = visibleColumns.length;
-                  if (isAdmin && coords && coords.col === actionColIndex && coords.row >= 0) {
-                    if (event) {
-                      event.stopImmediatePropagation?.();
-                      event.preventDefault?.();
-                    }
-                    handleRequestDelete(coords.row);
+                    const nextSort = {
+                      columnId: nextDir === 'none' ? null : colDef.id,
+                      direction: nextDir,
+                    };
+                    activeSortRef.current = nextSort;
+                    setActiveSort(nextSort);
+                    triggerWorkerSort(nextSort.columnId, nextDir);
                   }
-                }}
-                columns={getColumns()}
-              />
-            )}
-          </Box>
+                } else {
+                  activeSortRef.current = { columnId: null, direction: 'none' };
+                  setActiveSort(activeSortRef.current);
+                  triggerWorkerSort(null, 'none');
+                }
+              }, 0);
+
+              // Suppress local Handsontable 100-row sorting; worker sorts all 1,000,000 rows!
+              return false;
+            }}
+            beforeFilter={handleBeforeFilter}
+            afterOnCellMouseDown={(event, coords) => {
+              const actionColIndex = visibleColumns.length;
+              if (isAdmin && coords && coords.col === actionColIndex && coords.row >= 0) {
+                if (event) {
+                  event.stopImmediatePropagation?.();
+                  event.preventDefault?.();
+                }
+                handleRequestDelete(coords.row);
+              }
+            }}
+          />
 
           {/* Lazy Loading Live Status Footer */}
           {(isFetchingMore || isProcessing) && (
