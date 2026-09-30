@@ -71,6 +71,41 @@ if (Filters && Filters.prototype && !Filters.prototype.__patchedForNullEntries) 
   };
 }
 
+/**
+ * Custom HTML cell renderer for reusable Action / Delete column buttons.
+ */
+export const deleteButtonRenderer = (instance, td, row, col, prop, value, cellProperties) => {
+  td.innerHTML = `
+    <button
+      type="button"
+      class="rt-delete-btn"
+      title="Delete row"
+      style="
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #ef4444;
+        border-radius: 4px;
+        transition: background 0.15s ease;
+      "
+      onmouseover="this.style.background='rgba(239,68,68,0.1)'"
+      onmouseout="this.style.background='transparent'"
+    >
+      <svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+      </svg>
+    </button>
+  `;
+  td.style.textAlign = 'center';
+  td.style.verticalAlign = 'middle';
+  td.style.padding = '0';
+  return td;
+};
+
 export const DataTable = forwardRef(function DataTable(
   {
     data = [],
@@ -106,11 +141,62 @@ export const DataTable = forwardRef(function DataTable(
     beforeColumnSort,
     afterScrollVertically,
     afterOnCellMouseDown,
+    onCellClick,
+    onRowClick,
+    onDeleteRow,
+    actionColumnIndex,
     sx = {},
     ...restProps
   },
   ref
 ) {
+  // Centralized Table Mouse Down / Click Handler
+  const handleCellMouseDown = (event, coords) => {
+    if (!coords || coords.row < 0) return;
+
+    const rowIndex = coords.row;
+    const colIndex = coords.col;
+    const rowData = data[rowIndex] ?? null;
+
+    let cellValue = null;
+    if (rowData) {
+      if (Array.isArray(rowData)) {
+        cellValue = rowData[colIndex];
+      } else if (typeof rowData === 'object' && columns && columns[colIndex]) {
+        cellValue = rowData[columns[colIndex].data];
+      }
+    }
+
+    // Determine if the clicked cell is in the Action / Delete column
+    const isActionCol =
+      actionColumnIndex !== undefined
+        ? colIndex === actionColumnIndex
+        : onDeleteRow && columns && colIndex === columns.length - 1;
+
+    if (isActionCol && onDeleteRow) {
+      if (event) {
+        event.stopImmediatePropagation?.();
+        event.preventDefault?.();
+      }
+      onDeleteRow(rowIndex, rowData);
+    }
+
+    // Generic Cell Click Callback
+    if (onCellClick) {
+      onCellClick(event, coords, cellValue, rowData);
+    }
+
+    // Generic Row Click Callback
+    if (onRowClick) {
+      onRowClick(event, coords, rowData);
+    }
+
+    // Forward to any custom afterOnCellMouseDown passed from parent
+    if (afterOnCellMouseDown) {
+      afterOnCellMouseDown(event, coords);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -186,7 +272,7 @@ export const DataTable = forwardRef(function DataTable(
           licenseKey={licenseKey}
           beforeColumnSort={beforeColumnSort}
           afterScrollVertically={afterScrollVertically}
-          afterOnCellMouseDown={afterOnCellMouseDown}
+          afterOnCellMouseDown={handleCellMouseDown}
           {...restProps}
         />
       )}
