@@ -53,27 +53,29 @@ export const SearchBar = ({
         placeholder="Search applications by name or description..."
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)} // Propagates text input up to parent state
-        InputProps={{
-          // Magnifying glass icon on the left of the input field
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon sx={{ color: isDark ? '#475569' : '#9ca3af', fontSize: 20 }} />
-            </InputAdornment>
-          ),
-          // Clear (X) icon button on the right — conditionally rendered only when text exists
-          endAdornment: searchQuery ? (
-            <InputAdornment position="end">
-              <IconButton
-                id="clear-search-btn"
-                size="small"
-                onClick={onClear}
-                aria-label="clear search input"
-              >
-                <ClearIcon fontSize="small" />
-              </IconButton>
-            </InputAdornment>
-          ) : null,
-          sx: { fontFamily: '"Inter", sans-serif' },
+        slotProps={{
+          input: {
+            // Magnifying glass icon on the left of the input field
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: isDark ? '#475569' : '#9ca3af', fontSize: 20 }} />
+              </InputAdornment>
+            ),
+            // Clear (X) icon button on the right — conditionally rendered only when text exists
+            endAdornment: searchQuery ? (
+              <InputAdornment position="end">
+                <IconButton
+                  id="clear-search-btn"
+                  size="small"
+                  onClick={onClear}
+                  aria-label="clear search input"
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+            sx: { fontFamily: '"Inter", sans-serif' },
+          },
         }}
         sx={{
           bgcolor: isDark ? blcColors.darkInput : '#ffffff', // Theme-based input background
