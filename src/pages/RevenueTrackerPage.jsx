@@ -51,7 +51,7 @@ import { SavedViewsModal } from '../components/revenue/SavedViewsModal';
 
 // Redux hooks and actions
 import { useSelector, useDispatch } from 'react-redux';
-import { saveView, setActiveView } from '../store/actions/viewsActions';
+import { saveView, setActiveView } from '../store/viewsReducer';
 
 // Shared localStorage key
 const SHARED_STORAGE_KEY = 'revenue_ledger_shared';
