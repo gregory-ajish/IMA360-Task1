@@ -56,6 +56,7 @@ import { saveView, setActiveView } from '../store/viewsReducer';
 // Shared localStorage key
 const SHARED_STORAGE_KEY = 'revenue_ledger_shared';
 
+
 const DROPDOWN_MENU_OPTIONS = [
   'filter_by_condition',
   'filter_by_value',
