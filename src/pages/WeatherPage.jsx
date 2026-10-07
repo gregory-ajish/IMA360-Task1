@@ -341,11 +341,13 @@ export const WeatherPage = ({ mode, toggleMode }) => {
               placeholder="Search for a place..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              InputProps={{
-                disableUnderline: true,
-                sx: {
-                  fontSize: '0.84rem',
-                  color: isDark ? '#f8fafc' : '#0f172a',
+              slotProps={{
+                input: {
+                  disableUnderline: true,
+                  sx: {
+                    fontSize: '0.84rem',
+                    color: isDark ? '#f8fafc' : '#0f172a',
+                  },
                 },
               }}
             />
