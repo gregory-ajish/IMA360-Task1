@@ -1,8 +1,11 @@
 // store.js
+// Central store — brings together every feature's slice into one store.
+// Each key becomes state.weather, state.dashboard, state.views.
+
 import { configureStore } from '@reduxjs/toolkit';
-import weatherReducer from './reducers/weatherReducer';
-import dashboardReducer from './reducers/dashboardReducer';
-import viewsReducer from './reducers/viewsReducer';
+import weatherReducer from './weatherReducer';
+import dashboardReducer from './dashboardReducer';
+import viewsReducer from './viewsReducer';
 
 export const store = configureStore({
   reducer: {

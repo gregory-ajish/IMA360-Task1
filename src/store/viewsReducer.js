@@ -1,16 +1,8 @@
 // viewsReducer.js
-// ============================================================================
-// PURPOSE:
-//   Dedicated Reducer for managing Revenue Tracker saved views in Redux.
-// ============================================================================
+// One file owns the views state and how it changes.
+// Uses createSlice. No async work, so no separate actions file needed.
 
-import { createReducer } from '@reduxjs/toolkit';
-import {
-  saveView,
-  deleteView,
-  setActiveView,
-  loadSavedViews,
-} from '../actions/viewsActions';
+import { createSlice } from '@reduxjs/toolkit';
 
 const STORAGE_KEY = 'revenue_saved_views';
 
@@ -31,14 +23,6 @@ const getInitialSavedViews = () => {
 };
 
 /**
- * Initial state for the Views Redux slice
- */
-export const initialState = {
-  views: getInitialSavedViews(),
-  activeViewId: null,
-};
-
-/**
  * Helper to persist views to localStorage
  */
 const persistViews = (views) => {
@@ -50,12 +34,18 @@ const persistViews = (views) => {
 };
 
 /**
- * Views Reducer responding to view actions
+ * Views slice — manages Revenue Tracker saved views.
+ * createSlice auto-generates action creators for each reducer entry.
  */
-const viewsReducer = createReducer(initialState, (builder) => {
-  builder
+const viewsSlice = createSlice({
+  name: 'views',
+  initialState: {
+    views: getInitialSavedViews(),
+    activeViewId: null,
+  },
+  reducers: {
     // 💾 Save a new view (or update existing if same name/id)
-    .addCase(saveView, (state, action) => {
+    saveView: (state, action) => {
       const newView = action.payload;
       const existingIndex = state.views.findIndex(
         (v) => v.id === newView.id || v.name.toLowerCase() === newView.name.toLowerCase()
@@ -69,28 +59,33 @@ const viewsReducer = createReducer(initialState, (builder) => {
 
       state.activeViewId = newView.id;
       persistViews(state.views);
-    })
+    },
 
     // 🗑️ Delete an existing view by ID
-    .addCase(deleteView, (state, action) => {
+    deleteView: (state, action) => {
       const viewId = action.payload;
       state.views = state.views.filter((v) => v.id !== viewId);
       if (state.activeViewId === viewId) {
         state.activeViewId = null;
       }
       persistViews(state.views);
-    })
+    },
 
     // 🎯 Set the active view
-    .addCase(setActiveView, (state, action) => {
+    setActiveView: (state, action) => {
       state.activeViewId = action.payload;
-    })
+    },
 
     // 🔄 Load saved views from external source / localStorage
-    .addCase(loadSavedViews, (state, action) => {
+    loadSavedViews: (state, action) => {
       state.views = action.payload || [];
       persistViews(state.views);
-    });
+    },
+  },
 });
 
-export default viewsReducer;
+// Auto-generated action creators from createSlice
+export const { saveView, deleteView, setActiveView, loadSavedViews } = viewsSlice.actions;
+
+// Default export is the reducer, plugs straight into store.js
+export default viewsSlice.reducer;
