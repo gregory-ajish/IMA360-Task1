@@ -22,17 +22,17 @@ const dashboardSlice = createSlice({
   // extraReducers handles the async thunk lifecycle (pending/fulfilled/rejected)
   extraReducers: (builder) => {
     builder
-      // 🟡 PENDING — mock API call started → show loading state
+      //  PENDING — mock API call started → show loading state
       .addCase(fetchDashboardThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      // 🟢 FULFILLED — mock API returned data → store the categories
+      //  FULFILLED — mock API returned data → store the categories
       .addCase(fetchDashboardThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.categories = action.payload.categories;
       })
-      // 🔴 REJECTED — mock API failed → store the error
+      //  REJECTED — mock API failed → store the error
       .addCase(fetchDashboardThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Failed to load dashboard apps';
