@@ -156,6 +156,10 @@ export const DataTable = forwardRef(function DataTable(
     afterScrollVertically: customAfterScrollVertically,
     beforeColumnSort: customBeforeColumnSort,
     actionColumnIndex,
+    useWorker = true,
+    onFilterComplete,
+    onSortComplete,
+    onDataLoaded,
     sx = {},
     ...restProps
   },
@@ -190,6 +194,14 @@ export const DataTable = forwardRef(function DataTable(
   // Web Worker Management
   // ──────────────────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!useWorker) {
+      setData(dataset);
+      setIsLoading(false);
+      setTotalFilteredRows(totalRows || dataset.length);
+      setHasMore(false);
+      return;
+    }
+
     let worker;
     try {
       worker = new Worker(new URL('./tableWorker.js', import.meta.url), {
@@ -207,6 +219,9 @@ export const DataTable = forwardRef(function DataTable(
           setIsLoading(false);
           setHasMore(rows.length < totalCount);
           hasMoreRef.current = rows.length < totalCount;
+          if (onDataLoaded) {
+            onDataLoaded(rows, totalCount);
+          }
         } else if (type === 'ROWS_LOADED') {
           setData((prev) => {
             const next = [...prev, ...rows];
@@ -224,6 +239,14 @@ export const DataTable = forwardRef(function DataTable(
           if (type === 'SORT_COMPLETE') {
             setActiveSort({ columnId, direction });
             activeSortRef.current = { columnId, direction };
+            if (onSortComplete) {
+              onSortComplete(rows, totalCount);
+            }
+          }
+          if (type === 'FILTER_COMPLETE') {
+            if (onFilterComplete) {
+              onFilterComplete(rows, totalCount);
+            }
           }
           setIsProcessing(false);
           setHasMore(rows.length < totalCount);
@@ -272,10 +295,14 @@ export const DataTable = forwardRef(function DataTable(
     return () => {
       if (worker) worker.terminate();
     };
-  }, []);
+  }, [useWorker]);
 
   // Update worker dataset if parent changes dataset or totalRows
   useEffect(() => {
+    if (!useWorker) {
+      setData(dataset);
+      return;
+    }
     if (workerRef.current && Array.isArray(dataset) && dataset.length > 0) {
       workerRef.current.postMessage({
         type: 'SET_DATASET',
@@ -288,7 +315,7 @@ export const DataTable = forwardRef(function DataTable(
     } else if (!workerRef.current && Array.isArray(dataset)) {
       setData(dataset.slice(0, batchSize));
     }
-  }, [dataset, totalRows, batchSize]);
+  }, [dataset, totalRows, batchSize, useWorker]);
 
   // ──────────────────────────────────────────────────────────────────────────
   // Sorting Handler
@@ -309,47 +336,70 @@ export const DataTable = forwardRef(function DataTable(
         return false;
       }
 
+      if (!useWorker) {
+        return true;
+      }
+
       setTimeout(() => {
-        if (destinationSortConfigs && destinationSortConfigs.length > 0) {
-          const dest = destinationSortConfigs[0];
-          const colDef = visibleColumnsList[dest.column] || (columns && columns[dest.column]);
-
-          if (colDef && workerRef.current) {
-            let nextDir = 'asc';
-            if (activeSortRef.current.columnId === (colDef.id || colDef.data)) {
-              if (activeSortRef.current.direction === 'asc') {
-                nextDir = 'desc';
-              } else if (activeSortRef.current.direction === 'desc') {
-                nextDir = 'none';
-              } else {
-                nextDir = 'asc';
-              }
-            } else {
-              nextDir = 'asc';
-            }
-
-            const colId = colDef.id || colDef.data;
-            const dataIdx = colDef.dataIndex ?? colDef.data ?? dest.column;
-            const colType = colDef.type || 'text';
-
+        if (!destinationSortConfigs || destinationSortConfigs.length === 0) {
+          activeSortRef.current = { columnId: null, direction: 'none' };
+          setActiveSort({ columnId: null, direction: 'none' });
+          if (workerRef.current) {
             setIsProcessing(true);
             workerRef.current.postMessage({
               type: 'SORT',
               payload: {
-                columnId: nextDir === 'none' ? null : colId,
-                dataIndex: nextDir === 'none' ? null : dataIdx,
-                direction: nextDir,
-                type: colType,
+                columnId: null,
+                dataIndex: null,
+                direction: 'none',
+                type: 'text',
                 count: batchSize,
               },
             });
           }
+          return;
+        }
+
+        const dest = destinationSortConfigs[0];
+        const colDef = (visibleColumnsList && visibleColumnsList.length > 0)
+          ? visibleColumnsList[dest.column]
+          : (columns && columns[dest.column]);
+
+        if (colDef && workerRef.current) {
+          const colId = colDef.id !== undefined ? colDef.id : colDef.data;
+          let nextDir = 'asc';
+          if (activeSortRef.current.columnId === colId) {
+            if (activeSortRef.current.direction === 'asc') {
+              nextDir = 'desc';
+            } else if (activeSortRef.current.direction === 'desc') {
+              nextDir = 'none';
+            } else {
+              nextDir = 'asc';
+            }
+          } else {
+            nextDir = 'asc';
+          }
+
+          const dataIdx = colDef.dataIndex !== undefined ? colDef.dataIndex : (colDef.data !== undefined ? colDef.data : dest.column);
+          const colType = colDef.type || 'text';
+
+          setIsProcessing(true);
+          workerRef.current.postMessage({
+            type: 'SORT',
+            payload: {
+              columnId: nextDir === 'none' ? null : colId,
+              dataIndex: nextDir === 'none' ? null : dataIdx,
+              direction: nextDir,
+              type: colType,
+              count: batchSize,
+            },
+          });
         }
       }, 0);
 
       return false;
     },
-    [columns, visibleColumnsList, isAdmin, batchSize, customBeforeColumnSort]
+    [columns, visibleColumnsList, isAdmin, batchSize, customBeforeColumnSort, useWorker]
   );
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -357,6 +407,10 @@ export const DataTable = forwardRef(function DataTable(
   // ──────────────────────────────────────────────────────────────────────────
   const handleBeforeFilter = useCallback(
     (conditionsStack) => {
+      if (!useWorker) {
+        return true;
+      }
+
       if (workerRef.current) {
         setIsProcessing(true);
         workerRef.current.postMessage({
@@ -369,7 +423,7 @@ export const DataTable = forwardRef(function DataTable(
       }
       return false;
     },
-    [batchSize]
+    [batchSize, useWorker]
   );
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -465,8 +519,11 @@ export const DataTable = forwardRef(function DataTable(
   const processedColHeaders = React.useMemo(() => {
     if (!colHeaders || !Array.isArray(colHeaders)) return colHeaders;
     return colHeaders.map((headerText, index) => {
-      const colDef = visibleColumnsList[index] || (columns && columns[index]);
-      if (colDef && (colDef.id || colDef.data) === activeSort.columnId) {
+      const colDef = (visibleColumnsList && visibleColumnsList.length > 0)
+        ? visibleColumnsList[index]
+        : (columns && columns[index]);
+      const colId = colDef ? (colDef.id !== undefined ? colDef.id : colDef.data) : index;
+      if (colDef && colId === activeSort.columnId) {
         if (activeSort.direction === 'asc') return `${headerText} ▲`;
         if (activeSort.direction === 'desc') return `${headerText} ▼`;
       }

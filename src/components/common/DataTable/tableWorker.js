@@ -57,45 +57,102 @@ function buildConditionsMatchers(conditionsStack) {
 
       if (name === 'by_value') {
         const allowedVals = Array.isArray(args[0]) ? args[0] : [args[0]];
-        const set = new Set(allowedVals.map((v) => String(v).toLowerCase()));
-        matchers.push((rowIdx) => set.has(String(getRowValue(rowIdx, colIdx)).toLowerCase()));
-      } else if (name === 'contains') {
-        const str = String(args[0] || '').toLowerCase();
-        matchers.push((rowIdx) => String(getRowValue(rowIdx, colIdx) ?? '').toLowerCase().includes(str));
-      } else if (name === 'not_contains') {
-        const str = String(args[0] || '').toLowerCase();
-        matchers.push((rowIdx) => !String(getRowValue(rowIdx, colIdx) ?? '').toLowerCase().includes(str));
-      } else if (name === 'eq' || name === 'equal') {
-        const val = String(args[0] ?? '').toLowerCase();
-        matchers.push((rowIdx) => String(getRowValue(rowIdx, colIdx) ?? '').toLowerCase() === val);
-      } else if (name === 'not_equal' || name === 'neq') {
-        const val = String(args[0] ?? '').toLowerCase();
-        matchers.push((rowIdx) => String(getRowValue(rowIdx, colIdx) ?? '').toLowerCase() !== val);
-      } else if (name === 'gt' || name === 'greater_than') {
-        const num = Number(args[0]);
-        matchers.push((rowIdx) => Number(getRowValue(rowIdx, colIdx)) > num);
-      } else if (name === 'gte' || name === 'greater_than_or_equal') {
-        const num = Number(args[0]);
-        matchers.push((rowIdx) => Number(getRowValue(rowIdx, colIdx)) >= num);
-      } else if (name === 'lt' || name === 'less_than') {
-        const num = Number(args[0]);
-        matchers.push((rowIdx) => Number(getRowValue(rowIdx, colIdx)) < num);
-      } else if (name === 'lte' || name === 'less_than_or_equal') {
-        const num = Number(args[0]);
-        matchers.push((rowIdx) => Number(getRowValue(rowIdx, colIdx)) <= num);
-      } else if (name === 'between') {
-        const min = Number(args[0]);
-        const max = Number(args[1]);
+        const set = new Set(allowedVals.map((v) => String(v ?? '').replace(/[$,\s]/g, '').toLowerCase()));
         matchers.push((rowIdx) => {
-          const v = Number(getRowValue(rowIdx, colIdx));
-          return v >= min && v <= max;
+          const rawCell = getRowValue(rowIdx, colIdx);
+          if (rawCell === null || rawCell === undefined) return false;
+          const clean = String(rawCell).replace(/[$,\s]/g, '').toLowerCase();
+          return set.has(clean) || set.has(String(rawCell).toLowerCase());
+        });
+      } else if (name === 'contains') {
+        const str = String(args[0] || '').replace(/[$,\s]/g, '').toLowerCase();
+        matchers.push((rowIdx) => {
+          const rawCell = getRowValue(rowIdx, colIdx);
+          const cellStr = String(rawCell ?? '').toLowerCase();
+          const cleanCell = cellStr.replace(/[$,\s]/g, '');
+          return cellStr.includes(str) || cleanCell.includes(str);
+        });
+      } else if (name === 'not_contains') {
+        const str = String(args[0] || '').replace(/[$,\s]/g, '').toLowerCase();
+        matchers.push((rowIdx) => {
+          const rawCell = getRowValue(rowIdx, colIdx);
+          const cellStr = String(rawCell ?? '').toLowerCase();
+          const cleanCell = cellStr.replace(/[$,\s]/g, '');
+          return !cellStr.includes(str) && !cleanCell.includes(str);
+        });
+      } else if (name === 'eq' || name === 'equal') {
+        const rawArg = args[0] ?? '';
+        const cleanArg = String(rawArg).replace(/[$,\s]/g, '').trim().toLowerCase();
+        matchers.push((rowIdx) => {
+          const rawCell = getRowValue(rowIdx, colIdx);
+          if (rawCell === null || rawCell === undefined) return false;
+          const cleanCell = String(rawCell).replace(/[$,\s]/g, '').trim().toLowerCase();
+          if (cleanCell === cleanArg) return true;
+          const numCell = Number(cleanCell);
+          const numArg = Number(cleanArg);
+          if (!isNaN(numCell) && !isNaN(numArg) && cleanArg !== '') {
+            return numCell === numArg;
+          }
+          return false;
+        });
+      } else if (name === 'not_equal' || name === 'neq') {
+        const rawArg = args[0] ?? '';
+        const cleanArg = String(rawArg).replace(/[$,\s]/g, '').trim().toLowerCase();
+        matchers.push((rowIdx) => {
+          const rawCell = getRowValue(rowIdx, colIdx);
+          if (rawCell === null || rawCell === undefined) return true;
+          const cleanCell = String(rawCell).replace(/[$,\s]/g, '').trim().toLowerCase();
+          if (cleanCell === cleanArg) return false;
+          const numCell = Number(cleanCell);
+          const numArg = Number(cleanArg);
+          if (!isNaN(numCell) && !isNaN(numArg) && cleanArg !== '') {
+            return numCell !== numArg;
+          }
+          return true;
+        });
+      } else if (name === 'gt' || name === 'greater_than') {
+        const num = Number(String(args[0] ?? '').replace(/[$,\s]/g, ''));
+        matchers.push((rowIdx) => {
+          const rawCell = getRowValue(rowIdx, colIdx);
+          const numCell = Number(String(rawCell ?? '').replace(/[$,\s]/g, ''));
+          return !isNaN(numCell) && numCell > num;
+        });
+      } else if (name === 'gte' || name === 'greater_than_or_equal') {
+        const num = Number(String(args[0] ?? '').replace(/[$,\s]/g, ''));
+        matchers.push((rowIdx) => {
+          const rawCell = getRowValue(rowIdx, colIdx);
+          const numCell = Number(String(rawCell ?? '').replace(/[$,\s]/g, ''));
+          return !isNaN(numCell) && numCell >= num;
+        });
+      } else if (name === 'lt' || name === 'less_than') {
+        const num = Number(String(args[0] ?? '').replace(/[$,\s]/g, ''));
+        matchers.push((rowIdx) => {
+          const rawCell = getRowValue(rowIdx, colIdx);
+          const numCell = Number(String(rawCell ?? '').replace(/[$,\s]/g, ''));
+          return !isNaN(numCell) && numCell < num;
+        });
+      } else if (name === 'lte' || name === 'less_than_or_equal') {
+        const num = Number(String(args[0] ?? '').replace(/[$,\s]/g, ''));
+        matchers.push((rowIdx) => {
+          const rawCell = getRowValue(rowIdx, colIdx);
+          const numCell = Number(String(rawCell ?? '').replace(/[$,\s]/g, ''));
+          return !isNaN(numCell) && numCell <= num;
+        });
+      } else if (name === 'between') {
+        const min = Number(String(args[0] ?? '').replace(/[$,\s]/g, ''));
+        const max = Number(String(args[1] ?? '').replace(/[$,\s]/g, ''));
+        matchers.push((rowIdx) => {
+          const rawCell = getRowValue(rowIdx, colIdx);
+          const v = Number(String(rawCell ?? '').replace(/[$,\s]/g, ''));
+          return !isNaN(v) && v >= min && v <= max;
         });
       } else if (name === 'not_between') {
-        const min = Number(args[0]);
-        const max = Number(args[1]);
+        const min = Number(String(args[0] ?? '').replace(/[$,\s]/g, ''));
+        const max = Number(String(args[1] ?? '').replace(/[$,\s]/g, ''));
         matchers.push((rowIdx) => {
-          const v = Number(getRowValue(rowIdx, colIdx));
-          return v < min || v > max;
+          const rawCell = getRowValue(rowIdx, colIdx);
+          const v = Number(String(rawCell ?? '').replace(/[$,\s]/g, ''));
+          return !isNaN(v) && (v < min || v > max);
         });
       } else if (name === 'begins_with') {
         const str = String(args[0] || '').toLowerCase();
@@ -172,14 +229,30 @@ function applySort() {
 
   if (type === 'numeric') {
     sub.sort((a, b) => {
-      const valA = Number(getRowValue(a, dataIndex)) || 0;
-      const valB = Number(getRowValue(b, dataIndex)) || 0;
-      return isAsc ? valA - valB : valB - valA;
+      const rawA = getRowValue(a, dataIndex);
+      const rawB = getRowValue(b, dataIndex);
+      const aEmpty = rawA === null || rawA === undefined || rawA === '';
+      const bEmpty = rawB === null || rawB === undefined || rawB === '';
+      if (aEmpty && bEmpty) return 0;
+      if (aEmpty) return 1;
+      if (bEmpty) return -1;
+
+      const numA = Number(String(rawA).replace(/[$,\s]/g, '')) || 0;
+      const numB = Number(String(rawB).replace(/[$,\s]/g, '')) || 0;
+      return isAsc ? numA - numB : numB - numA;
     });
   } else {
     sub.sort((a, b) => {
-      const valA = String(getRowValue(a, dataIndex) ?? '').toLowerCase();
-      const valB = String(getRowValue(b, dataIndex) ?? '').toLowerCase();
+      const rawA = getRowValue(a, dataIndex);
+      const rawB = getRowValue(b, dataIndex);
+      const aEmpty = rawA === null || rawA === undefined || rawA === '';
+      const bEmpty = rawB === null || rawB === undefined || rawB === '';
+      if (aEmpty && bEmpty) return 0;
+      if (aEmpty) return 1;
+      if (bEmpty) return -1;
+
+      const valA = String(rawA).toLowerCase();
+      const valB = String(rawB).toLowerCase();
       if (valA < valB) return isAsc ? -1 : 1;
       if (valA > valB) return isAsc ? 1 : -1;
       return 0;

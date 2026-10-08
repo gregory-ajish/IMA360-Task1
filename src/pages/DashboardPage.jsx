@@ -87,6 +87,8 @@ export const DashboardPage = ({ mode, toggleMode }) => {
       navigate('/revenue-tracker');
     } else if (app.id === 50 || app.title === 'Weather') {
       navigate('/weather');
+    } else if (app.id === 51 || app.title === 'Sales Summary') {
+      navigate('/sales-summary');
     } else {
       setToast({ open: true, message: `Launching "${app.title}"...`, severity: 'success' });
     }

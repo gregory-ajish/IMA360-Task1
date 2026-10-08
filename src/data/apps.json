@@ -121,6 +121,12 @@
           "title": "Weather",
           "description": "Live weather conditions and 5-day forecast powered by OpenWeather",
           "icon": "WbSunny"
+        },
+        {
+          "id": 51,
+          "title": "Sales Summary",
+          "description": "Column aggregate functions (Sum, Avg, Min, Max) on sales data",
+          "icon": "Summarize"
         }
       ]
     },
