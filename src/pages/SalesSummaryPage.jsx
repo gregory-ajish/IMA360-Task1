@@ -220,21 +220,12 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
   // Exact column pixel widths measured from Handsontable header DOM
   const [columnWidths, setColumnWidths] = useState(null);
 
-  // Pre-generate raw dataset: 50 sales rows + exactly 5 empty spare rows (TOTAL = 55 rows)
-  const rawSalesData = useMemo(() => generateSalesDataset(), []);
-
-  const dataset = useMemo(() => {
-    const data = [...rawSalesData];
-    // Exactly 5 empty spare rows for user input
-    for (let i = 0; i < 5; i++) {
-      data.push([null, null, null, null, null, null]);
-    }
-    return data;
-  }, [rawSalesData]);
+  // Pre-generate raw dataset: 50 sales rows
+  const [dataset, setDataset] = useState(() => generateSalesDataset());
 
   // Aggregates state displayed in the dedicated footer
   const [aggregates, setAggregates] = useState(() =>
-    calculateAggregatesFromRows(rawSalesData, 'sum')
+    calculateAggregatesFromRows(dataset, 'sum')
   );
 
   // Sync ref with state
@@ -294,7 +285,7 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
     toast.info(`Switched to ${newType.charAt(0).toUpperCase() + newType.slice(1)} aggregation`);
   }, []);
 
-  // afterChange hook: Formula recalculation, Gaps compaction, and Summary aggregate updates
+  // afterChange hook: Upward compaction when spare rows have gaps, keeping exactly 5 spare rows at the bottom
   const handleAfterChange = useCallback((changes, source) => {
     if (!changes || changes.length === 0) return;
     if (source === 'loadData' || source === 'calc' || source === 'compact') return;
@@ -305,50 +296,11 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
 
     const totalRows = hot.countRows();
 
-    // 1. Formula calculations for edited rows
-    const formulaUpdates = [];
-    changes.forEach(([row, prop, oldValue, newValue]) => {
-      if (row >= totalRows) return;
+    // Only run compaction when no filters are active
+    const filtersPlugin = hot.getPlugin('filters');
+    const isFiltered = filtersPlugin && !filtersPlugin.conditionCollection?.isEmpty?.();
 
-      if (prop === 1 || prop === 2) {
-        // Units Sold (col 1) or Unit Price (col 2) changed
-        const unitsRaw = prop === 1 ? newValue : hot.getDataAtCell(row, 1);
-        const priceRaw = prop === 2 ? newValue : hot.getDataAtCell(row, 2);
-
-        const units = parseNumber(unitsRaw);
-        const price = parseNumber(priceRaw);
-
-        if (units !== null && price !== null) {
-          const revenue = units * price;
-          const cost = Math.round(revenue * 0.4);
-          const profit = revenue - cost;
-          formulaUpdates.push([row, 3, revenue]);
-          formulaUpdates.push([row, 4, cost]);
-          formulaUpdates.push([row, 5, profit]);
-        } else if (units === null && price === null) {
-          formulaUpdates.push([row, 3, null]);
-          formulaUpdates.push([row, 4, null]);
-          formulaUpdates.push([row, 5, null]);
-        }
-      } else if (prop === 3) {
-        // Revenue (col 3) changed directly
-        const rev = parseNumber(newValue);
-        if (rev !== null) {
-          const cost = Math.round(rev * 0.4);
-          const profit = rev - cost;
-          formulaUpdates.push([row, 4, cost]);
-          formulaUpdates.push([row, 5, profit]);
-        }
-      }
-    });
-
-    if (formulaUpdates.length > 0) {
-      hot.setDataAtCell(formulaUpdates, 'calc');
-    }
-
-    // 2. Row Compaction Logic
-    // Only run compaction when no filters are active (all rows are visible)
-    if (totalRows >= dataset.length) {
+    if (!isFiltered) {
       const isRowBlank = (r) => {
         for (let c = 0; c < 6; c++) {
           const v = hot.getDataAtCell(r, c);
@@ -359,31 +311,43 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
         return true;
       };
 
+      // Collect all filled rows in order and check for gaps between filled rows
+      const filledRows = [];
       let seenEmpty = false;
       let hasGaps = false;
+
       for (let r = 0; r < totalRows; r++) {
         const blank = isRowBlank(r);
         if (blank) {
           seenEmpty = true;
-        } else if (seenEmpty) {
-          hasGaps = true;
-          break;
+        } else {
+          if (seenEmpty) {
+            hasGaps = true; // An empty row was encountered before this filled row
+          }
+          const rowData = [0, 1, 2, 3, 4, 5].map((c) => hot.getDataAtCell(r, c));
+          filledRows.push({ originalRow: r, data: rowData });
         }
       }
 
-      if (hasGaps) {
+      // The table must ALWAYS have all filled rows + EXACTLY 5 empty spare rows
+      const desiredTotalRows = filledRows.length + 5;
+      const needsRowAdjustment = totalRows !== desiredTotalRows;
+
+      if (hasGaps || needsRowAdjustment) {
         isCompactingRef.current = true;
         try {
-          const filledRows = [];
-          for (let r = 0; r < totalRows; r++) {
-            if (!isRowBlank(r)) {
-              const rowData = [0, 1, 2, 3, 4, 5].map((c) => hot.getDataAtCell(r, c));
-              filledRows.push({ originalRow: r, data: rowData });
-            }
+          // Adjust total row count so it strictly equals desiredTotalRows (exactly 5 spare rows)
+          let currentCount = hot.countRows();
+          if (currentCount < desiredTotalRows) {
+            hot.alter('insert_row_below', currentCount - 1, desiredTotalRows - currentCount);
+          } else if (currentCount > desiredTotalRows) {
+            hot.alter('remove_row', desiredTotalRows, currentCount - desiredTotalRows);
           }
 
+          currentCount = hot.countRows();
+
           const compactionChanges = [];
-          for (let r = 0; r < totalRows; r++) {
+          for (let r = 0; r < currentCount; r++) {
             const targetRowData = r < filledRows.length
               ? filledRows[r].data
               : [null, null, null, null, null, null];
@@ -398,14 +362,20 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
           if (compactionChanges.length > 0) {
             hot.setDataAtCell(compactionChanges, 'compact');
 
-            // Seamlessly restore focus to the row that moved
+            // Seamlessly restore focus to the row that moved upward
             const lastChange = changes[changes.length - 1];
             if (lastChange) {
               const editedRow = lastChange[0];
               const editedCol = lastChange[1];
               const newIdx = filledRows.findIndex((item) => item.originalRow === editedRow);
               if (newIdx !== -1 && newIdx !== editedRow) {
-                hot.selectCell(newIdx, editedCol);
+                setTimeout(() => {
+                  try {
+                    hot.selectCell(newIdx, editedCol);
+                  } catch {
+                    // ignore if cell is already selected
+                  }
+                }, 0);
               }
             }
           }
@@ -415,9 +385,18 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
       }
     }
 
-    // 3. Immediately update summary aggregates in the dedicated footer
+    // Immediately update summary aggregates in the dedicated footer
     setAggregates(computeAggregates(hot, aggregateTypeRef.current));
-  }, [dataset.length]);
+  }, []);
+
+  // Sync latest grid data to dataset right before sorting so tableWorker uses updated data
+  const handleBeforeColumnSort = useCallback(() => {
+    const hot = hotRef.current?.hotInstance;
+    if (hot) {
+      setDataset(hot.getData());
+    }
+    return true;
+  }, []);
 
   // Callbacks from generic Web Worker on filter, sort, or initial load
   const handleFilterComplete = useCallback((filteredRows) => {
@@ -679,11 +658,13 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
               columnSorting={true}
               filters={true}
               dropdownMenu={DROPDOWN_MENU_OPTIONS}
+              minSpareRows={5}
               manualColumnResize={true}
               autoWrapRow={true}
               autoWrapCol={true}
               licenseKey="non-commercial-and-evaluation"
               isDark={isDark}
+              beforeColumnSort={handleBeforeColumnSort}
               afterChange={handleAfterChange}
               afterRender={syncColumnWidths}
               onFilterComplete={handleFilterComplete}
@@ -773,26 +754,6 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
             </Box>
           </Box>
 
-          {/* Footer info */}
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              mt: 2,
-              px: 0.5,
-            }}
-          >
-            <Typography
-              sx={{
-                fontFamily: typographyTokens.fontMono,
-                fontSize: '0.75rem',
-                color: isDark ? '#475569' : '#94a3b8',
-              }}
-            >
-              50 sales rows + 5 spare rows • {NUMERIC_COL_INDICES.length} numeric columns aggregated
-            </Typography>
-          </Box>
         </Paper>
       </Container>
     </Box>
