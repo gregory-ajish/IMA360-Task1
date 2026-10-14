@@ -155,6 +155,8 @@ export const DataTable = forwardRef(function DataTable(
     onRowClick,
     afterScrollVertically: customAfterScrollVertically,
     beforeColumnSort: customBeforeColumnSort,
+    beforeFilter: customBeforeFilter,
+    afterChange: customAfterChange,
     actionColumnIndex,
     useWorker = true,
     onFilterComplete,
@@ -318,6 +320,40 @@ export const DataTable = forwardRef(function DataTable(
   }, [dataset, totalRows, batchSize, useWorker]);
 
   // ──────────────────────────────────────────────────────────────────────────
+  // Cell Change Handler (syncs live cell edits to Web Worker)
+  // ──────────────────────────────────────────────────────────────────────────
+  const handleAfterChange = useCallback(
+    (changes, source) => {
+      // 1. Run custom compaction / change hooks first
+      if (customAfterChange) {
+        customAfterChange(changes, source);
+      }
+
+      // 2. Sync settled data to Web Worker asynchronously
+      if (useWorker && workerRef.current && changes && changes.length > 0) {
+        if (source !== 'loadData' && source !== 'worker') {
+          setTimeout(() => {
+            const hot = innerHotRef.current?.hotInstance;
+            if (renderAllRows && hot && activeSortRef.current.direction === 'none') {
+              const currentRows = hot.getData();
+              workerRef.current?.postMessage({
+                type: 'SYNC_DATASET',
+                payload: { rows: currentRows, totalCount: currentRows.length },
+              });
+            } else {
+              workerRef.current?.postMessage({
+                type: 'UPDATE_CELLS',
+                payload: { changes },
+              });
+            }
+          }, 0);
+        }
+      }
+    },
+    [useWorker, customAfterChange, renderAllRows]
+  );
+
+  // ──────────────────────────────────────────────────────────────────────────
   // Sorting Handler
   // ──────────────────────────────────────────────────────────────────────────
   const handleBeforeColumnSort = useCallback(
@@ -407,6 +443,11 @@ export const DataTable = forwardRef(function DataTable(
   // ──────────────────────────────────────────────────────────────────────────
   const handleBeforeFilter = useCallback(
     (conditionsStack) => {
+      if (customBeforeFilter) {
+        const customResult = customBeforeFilter(conditionsStack);
+        if (customResult === false) return false;
+      }
+
       if (!useWorker) {
         return true;
       }
@@ -423,7 +464,7 @@ export const DataTable = forwardRef(function DataTable(
       }
       return false;
     },
-    [batchSize, useWorker]
+    [batchSize, useWorker, customBeforeFilter]
   );
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -606,6 +647,7 @@ export const DataTable = forwardRef(function DataTable(
           licenseKey={licenseKey}
           beforeColumnSort={handleBeforeColumnSort}
           beforeFilter={handleBeforeFilter}
+          afterChange={handleAfterChange}
           afterScrollVertically={handleAfterScrollVertically}
           afterOnCellMouseDown={handleCellMouseDown}
           {...restProps}

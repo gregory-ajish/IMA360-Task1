@@ -336,6 +336,36 @@ self.onmessage = function (e) {
       count,
       totalCount: activeCount,
     });
+  } else if (type === 'UPDATE_CELLS') {
+    const { changes = [] } = payload;
+    for (const change of changes) {
+      const [visualRow, prop, , newVal] = change;
+      const physicalIdx = (activeIndices && activeIndices.length > visualRow)
+        ? activeIndices[visualRow]
+        : visualRow;
+      if (dataset[physicalIdx]) {
+        if (Array.isArray(dataset[physicalIdx])) {
+          dataset[physicalIdx][prop] = newVal;
+        } else if (typeof dataset[physicalIdx] === 'object') {
+          dataset[physicalIdx][prop] = newVal;
+        }
+      }
+    }
+  } else if (type === 'SYNC_DATASET') {
+    const { rows = [], totalCount } = payload;
+    dataset = rows;
+    totalRowsCount = totalCount || rows.length;
+
+    if (activeIndices.length < totalRowsCount) {
+      activeIndices = new Uint32Array(totalRowsCount);
+    }
+    for (let i = 0; i < totalRowsCount; i++) {
+      activeIndices[i] = i;
+    }
+    activeCount = totalRowsCount;
+
+    applyFilters();
+    applySort();
   } else if (type === 'SORT') {
     const t0 = performance.now();
     const { columnId, dataIndex, direction, type: sortType = 'text' } = payload;

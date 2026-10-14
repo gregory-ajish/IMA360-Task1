@@ -73,6 +73,10 @@ const generateSalesDataset = () => {
       profit,       // 5: Profit ($)
     ]);
   }
+  // Initialize exactly 5 empty spare rows at the bottom
+  for (let i = 0; i < 5; i++) {
+    data.push([null, null, null, null, null, null]);
+  }
   return data;
 };
 
@@ -336,7 +340,7 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
       if (hasGaps || needsRowAdjustment) {
         isCompactingRef.current = true;
         try {
-          // Adjust total row count so it strictly equals desiredTotalRows (exactly 5 spare rows)
+          // 1. Strictly synchronize total row count to desiredTotalRows (filledRows + exactly 5 spare rows)
           let currentCount = hot.countRows();
           if (currentCount < desiredTotalRows) {
             hot.alter('insert_row_below', currentCount - 1, desiredTotalRows - currentCount);
@@ -346,6 +350,7 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
 
           currentCount = hot.countRows();
 
+          // 2. Shift non-empty rows upward to eliminate any empty row gaps
           const compactionChanges = [];
           for (let r = 0; r < currentCount; r++) {
             const targetRowData = r < filledRows.length
@@ -389,12 +394,7 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
     setAggregates(computeAggregates(hot, aggregateTypeRef.current));
   }, []);
 
-  // Sync latest grid data to dataset right before sorting so tableWorker uses updated data
   const handleBeforeColumnSort = useCallback(() => {
-    const hot = hotRef.current?.hotInstance;
-    if (hot) {
-      setDataset(hot.getData());
-    }
     return true;
   }, []);
 
@@ -658,7 +658,7 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
               columnSorting={true}
               filters={true}
               dropdownMenu={DROPDOWN_MENU_OPTIONS}
-              minSpareRows={5}
+              minSpareRows={0}
               manualColumnResize={true}
               autoWrapRow={true}
               autoWrapCol={true}
