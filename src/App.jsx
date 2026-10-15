@@ -17,6 +17,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { RevenueTrackerPage } from './pages/RevenueTrackerPage';
 import { WeatherPage } from './pages/WeatherPage';
+import { SalesSummaryPage } from './pages/SalesSummaryPage';
 
 /**
  * Helper component that resets window scroll position to (0,0) on every route change.
@@ -115,6 +116,16 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <WeatherPage mode={mode} toggleMode={toggleMode} />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* /sales-summary — Sales Summary with Handsontable ColumnSummary aggregate demo */}
+            <Route
+              path="/sales-summary"
+              element={
+                <ProtectedRoute>
+                  <SalesSummaryPage mode={mode} toggleMode={toggleMode} />
                 </ProtectedRoute>
               }
             />

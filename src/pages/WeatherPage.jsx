@@ -47,12 +47,8 @@ import { Navbar } from '../components/dashboard/Navbar';
 import { AppButton } from '../components/common/AppButton';
 
 // Redux Actions & Thunks
-import {
-  fetchWeatherThunk,
-  setUnit,
-  setCity,
-  setDemoFallback,
-} from '../store/actions/weatherActions';
+import { fetchWeatherThunk } from '../store/weatherActions';
+import { setUnit, setCity, setDemoFallback } from '../store/weatherReducer';
 
 /**
  * Formats epoch timestamp (seconds) into full date string (e.g. "Tuesday, Aug 5, 2025")

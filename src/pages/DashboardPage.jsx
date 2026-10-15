@@ -31,7 +31,7 @@ import {
 import { useAuth } from '../context/AuthContext'; // currentUser + logout from global context
 
 // Redux Actions & Thunks
-import { fetchDashboardThunk } from '../store/actions/dashboardActions';
+import { fetchDashboardThunk } from '../store/dashboardActions';
 import { blcColors } from '../theme';            // Brand color palette
 
 // Common / Modular Components
@@ -87,6 +87,8 @@ export const DashboardPage = ({ mode, toggleMode }) => {
       navigate('/revenue-tracker');
     } else if (app.id === 50 || app.title === 'Weather') {
       navigate('/weather');
+    } else if (app.id === 51 || app.title === 'Sales Summary') {
+      navigate('/sales-summary');
     } else {
       setToast({ open: true, message: `Launching "${app.title}"...`, severity: 'success' });
     }

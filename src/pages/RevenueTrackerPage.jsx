@@ -1,21 +1,8 @@
 // RevenueTrackerPage.jsx
 // ============================================================================
 // PURPOSE:
-//   A standalone, protected web page for the Revenue Tracker enterprise-grade
-//   spreadsheet powered by Handsontable at route `/revenue-tracker`.
-//
-// FEATURES & ARCHITECTURE:
-//   - Full Page Layout: Includes top Navbar, back navigation to /home, and sticky controls.
-//   - Handsontable Grid: High-performance data grid with Excel-like interaction.
-//   - Web Worker + TypedArrays (1,000,000 Rows):
-//       * Offloads 1M row sorting and filtering to a dedicated Web Worker background thread.
-//       * Stores records in compact Columnar TypedArrays (~25 MB total memory).
-//       * Main UI thread maintains 60 FPS (zero freezing, zero lagging, zero tab crashes).
-//       * Sorts in ~100ms, filters in ~4ms, and lazy-loads batches of 100 on vertical scroll.
-//   - Shared Storage: Reads and writes to `revenue_ledger_shared` in localStorage.
-//   - Role-Based Access: Admin can edit cells, save changes, reset data, and delete rows.
-//     User (Viewer) sees read-only data with edit options hidden.
-//   - Confirmation Modal: Uses ConfirmDialog before removing any row.
+//   A protected web page for the Revenue Tracker enterprise-grade spreadsheet
+//   powered by Handsontable & Web Worker at route `/revenue-tracker`.
 // ============================================================================
 
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
@@ -31,7 +18,6 @@ import {
   Breadcrumbs,
   Link,
   Tooltip,
-  CircularProgress,
 } from '@mui/material';
 
 // Material-UI icons
@@ -45,7 +31,7 @@ import {
   BookmarkBorder as SavedViewsIcon,
 } from '@mui/icons-material';
 
-// Global Shared DataTable Component
+// Global Shared DataTable Component & Action Renderer
 import { DataTable, deleteButtonRenderer } from '../components/common/DataTable';
 
 // Toast notifications
@@ -65,10 +51,11 @@ import { SavedViewsModal } from '../components/revenue/SavedViewsModal';
 
 // Redux hooks and actions
 import { useSelector, useDispatch } from 'react-redux';
-import { saveView, setActiveView } from '../store/actions/viewsActions';
+import { saveView, setActiveView } from '../store/viewsReducer';
 
 // Shared localStorage key
 const SHARED_STORAGE_KEY = 'revenue_ledger_shared';
+
 
 const DROPDOWN_MENU_OPTIONS = [
   'filter_by_condition',
@@ -77,36 +64,35 @@ const DROPDOWN_MENU_OPTIONS = [
 ];
 
 export const TOTAL_AVAILABLE_ROWS = 1_000_000;
-export const INITIAL_BATCH_SIZE = 100;
-export const BATCH_SIZE = 100;
 
 /**
- * Procedural fallback batch generator for lazy-loading rows directly if worker is unavailable.
+ * Procedurally generates the 1,000,000 dataset for Revenue Tracker.
+ * Moved from Web Worker to Revenue Tracker page as domain-specific data provider.
  */
-export const generateRevenueBatch = (startIndex = 0, count = BATCH_SIZE) => {
+export const generateRevenueDataset = (totalCount = TOTAL_AVAILABLE_ROWS) => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const batch = [];
-  const endIndex = Math.min(startIndex + count, TOTAL_AVAILABLE_ROWS);
+  const dataset = new Array(totalCount);
 
-  for (let i = startIndex; i < endIndex; i++) {
+  for (let i = 0; i < totalCount; i++) {
     const expansion = Math.floor(12000 + ((i * 17) % 18000));
     const churn = Math.floor(2000 + ((i * 7) % 6000));
     const mrr = Math.max(50000, Math.floor(145000 + ((i * 131) % 120000)));
     const net = mrr + expansion - churn;
     const target = mrr + 14000;
     const year = 2022 + (Math.floor(i / 12) % 5);
+    const status = net >= target ? 'Exceeded' : net >= target * 0.95 ? 'On Track' : 'Behind';
 
-    batch.push([
+    dataset[i] = [
       `${months[i % 12]} ${year} (#${i + 1})`,
       mrr,
       expansion,
       churn,
       net,
       target,
-      net >= target ? 'Exceeded' : net >= target * 0.95 ? 'On Track' : 'Behind',
-    ]);
+      status,
+    ];
   }
-  return batch;
+  return dataset;
 };
 
 /**
@@ -122,8 +108,6 @@ export const DEFAULT_REVENUE_COLUMNS = [
   { id: 'status', label: 'Status', dataIndex: 6, type: 'dropdown', width: 110, source: ['Exceeded', 'On Track', 'Behind'] },
 ];
 
-
-
 /**
  * RevenueTrackerPage Component
  */
@@ -133,24 +117,9 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
   const isDark = mode === 'dark';
 
   const hotRef = useRef(null);
-  const workerRef = useRef(null);
 
-  // Table Data and Loading State
-  const [data, setData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const isFetchingRef = useRef(false);
-  const hasMoreRef = useRef(true);
-
-  // Total filtered/available rows tracked in worker
-  const [totalFilteredRows, setTotalFilteredRows] = useState(TOTAL_AVAILABLE_ROWS);
-  const totalFilteredRowsRef = useRef(TOTAL_AVAILABLE_ROWS);
-
-  // Sorting State
-  const [activeSort, setActiveSort] = useState({ columnId: null, direction: 'none' });
-  const activeSortRef = useRef({ columnId: null, direction: 'none' });
-  const [isProcessing, setIsProcessing] = useState(false);
+  // Generate 1M row dataset for Revenue Tracker
+  const dataset = useMemo(() => generateRevenueDataset(TOTAL_AVAILABLE_ROWS), []);
 
   // Delete Confirmation state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -158,8 +127,6 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
 
   // Redux views state & Save View modal state
   const dispatch = useDispatch();
-  const savedViews = useSelector((state) => state.views?.views || []);
-  const activeViewId = useSelector((state) => state.views?.activeViewId);
   const [saveViewModalOpen, setSaveViewModalOpen] = useState(false);
   const [savedViewsModalOpen, setSavedViewsModalOpen] = useState(false);
 
@@ -245,8 +212,6 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
     if (rowToDelete !== null && hotRef.current?.hotInstance) {
       const hot = hotRef.current.hotInstance;
       hot.alter('remove_row', rowToDelete, 1);
-      const updatedData = hot.getSourceData();
-      setData([...updatedData]);
       toast.success('Row removed successfully.');
     }
     setDeleteConfirmOpen(false);
@@ -258,131 +223,13 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
     setRowToDelete(null);
   };
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Initialize Web Worker for 1M Row Sorting, Filtering, and Hydration
-  // ──────────────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-
-    let worker;
-    try {
-      worker = new Worker(new URL('../workers/revenueWorker.js', import.meta.url), {
-        type: 'module',
-      });
-      workerRef.current = worker;
-
-      worker.onmessage = (e) => {
-        const { type, rows, totalCount, durationMs, columnId, direction } = e.data;
-
-        if (type === 'INIT_COMPLETE') {
-          setData(rows);
-          setTotalFilteredRows(totalCount);
-          totalFilteredRowsRef.current = totalCount;
-          setIsLoading(false);
-          setHasMore(rows.length < totalCount);
-          hasMoreRef.current = rows.length < totalCount;
-        } else if (type === 'ROWS_LOADED') {
-          setData((prev) => {
-            const next = [...prev, ...rows];
-            if (next.length >= totalCount) {
-              setHasMore(false);
-              hasMoreRef.current = false;
-            }
-            return next;
-          });
-          isFetchingRef.current = false;
-          setIsFetchingMore(false);
-        } else if (type === 'SORT_COMPLETE' || type === 'FILTER_COMPLETE') {
-          setData(rows);
-          setTotalFilteredRows(totalCount);
-          totalFilteredRowsRef.current = totalCount;
-          if (type === 'SORT_COMPLETE') {
-            setActiveSort({ columnId, direction });
-            activeSortRef.current = { columnId, direction };
-          }
-          setIsProcessing(false);
-          setHasMore(rows.length < totalCount);
-          hasMoreRef.current = rows.length < totalCount;
-          isFetchingRef.current = false;
-          setIsFetchingMore(false);
-          try {
-            hotRef.current?.hotInstance?.scrollViewportTo({ row: 0, col: 0 });
-          } catch {
-            // Safely ignore scroll if row 0 is hidden by active filter
-          }
-        } else if (type === 'RESET_COMPLETE') {
-          setData(rows);
-          setTotalFilteredRows(totalCount);
-          totalFilteredRowsRef.current = totalCount;
-          setActiveSort({ columnId: null, direction: 'none' });
-          activeSortRef.current = { columnId: null, direction: 'none' };
-          setIsProcessing(false);
-          setHasMore(true);
-          hasMoreRef.current = true;
-          isFetchingRef.current = false;
-          setIsFetchingMore(false);
-          try {
-            hotRef.current?.hotInstance?.scrollViewportTo({ row: 0, col: 0 });
-          } catch {
-            // Safely ignore scroll if row 0 is hidden by active filter
-          }
-        }
-      };
-
-      // Request initial 100 rows from worker
-      worker.postMessage({ type: 'INIT', payload: { count: INITIAL_BATCH_SIZE } });
-    } catch (err) {
-      console.warn('Web Worker initialization failed, falling back to local batch generator:', err);
-      setData(generateRevenueBatch(0, INITIAL_BATCH_SIZE));
-      setIsLoading(false);
-    }
-
-    return () => {
-      if (worker) worker.terminate();
-    };
-  }, []);
-
-  // Re-render Handsontable whenever column visibility or order changes
-  useEffect(() => {
-    if (hotRef.current?.hotInstance) {
-      hotRef.current.hotInstance.render();
-    }
-  }, [visibleColumns]);
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Worker Sorting Trigger
-  // ──────────────────────────────────────────────────────────────────────────
-  const triggerWorkerSort = useCallback((columnId, direction) => {
-    if (!workerRef.current) return;
-    setIsProcessing(true);
-    workerRef.current.postMessage({
-      type: 'SORT',
-      payload: { columnId, direction, count: INITIAL_BATCH_SIZE },
-    });
-  }, []);
-
-  const handleBeforeFilter = useCallback((conditionsStack) => {
-    if (workerRef.current) {
-      setIsProcessing(true);
-      workerRef.current.postMessage({
-        type: 'FILTER',
-        payload: {
-          filters: { conditionsStack },
-          count: INITIAL_BATCH_SIZE,
-        },
-      });
-    }
-    return false;
-  }, []);
-
   const handleSave = () => {
     if (!isAdmin) return;
     try {
       const currentData = hotRef.current?.hotInstance
         ? hotRef.current.hotInstance.getSourceData()
-        : data;
-      localStorage.setItem(SHARED_STORAGE_KEY, JSON.stringify(currentData));
-      setData(currentData);
+        : dataset;
+      localStorage.setItem(SHARED_STORAGE_KEY, JSON.stringify(currentData.slice(0, 100)));
       toast.success('Revenue ledger saved successfully!');
     } catch (err) {
       console.error('Failed to save revenue ledger to localStorage:', err);
@@ -396,17 +243,6 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
       localStorage.removeItem(SHARED_STORAGE_KEY);
     } catch (err) {
       console.error('Failed to clear stored revenue ledger:', err);
-    }
-
-    if (workerRef.current) {
-      setIsProcessing(true);
-      workerRef.current.postMessage({ type: 'RESET', payload: { count: INITIAL_BATCH_SIZE } });
-    } else {
-      const freshBatch = generateRevenueBatch(0, INITIAL_BATCH_SIZE);
-      setData(freshBatch);
-      setHasMore(true);
-      hasMoreRef.current = true;
-      isFetchingRef.current = false;
     }
     toast.info('Spreadsheet reset to initial default records.');
   };
@@ -452,18 +288,12 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
   }, [visibleColumns, isAdmin]);
 
   const colHeaders = useMemo(() => {
-    const headers = visibleColumns.map((col) => {
-      if (activeSort.columnId === col.id) {
-        if (activeSort.direction === 'asc') return `${col.label} ▲`;
-        if (activeSort.direction === 'desc') return `${col.label} ▼`;
-      }
-      return col.label;
-    });
+    const headers = visibleColumns.map((col) => col.label);
     if (isAdmin) {
       headers.push('Action');
     }
     return headers;
-  }, [visibleColumns, activeSort, isAdmin]);
+  }, [visibleColumns, isAdmin]);
 
   return (
     <Box
@@ -599,7 +429,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
               : '0 8px 32px rgba(30,58,138,0.08)',
           }}
         >
-          {/* Table Header Controls (aligned above Actions column) */}
+          {/* Table Header Controls */}
           <Box
             sx={{
               display: 'flex',
@@ -679,220 +509,63 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
             </Tooltip>
           </Box>
 
-          {/* Global DataTable Component */}
+          {/* Reusable Global DataTable Component */}
           <DataTable
             ref={hotRef}
-            data={data}
+            dataset={dataset}
+            totalRows={TOTAL_AVAILABLE_ROWS}
             columns={columns}
             colHeaders={colHeaders}
+            visibleColumnsList={visibleColumns}
             rowHeaders={true}
             height={550}
             width="100%"
             stretchH="all"
-            isLoading={isLoading}
-            loadingText="Initializing 1,000,000 records in Web Worker..."
+            loadingText="Initializing 1,000,000 records in generic Web Worker..."
             isDark={isDark}
-            renderAllRows={false}
-            viewportRowRenderingOffset={30}
-            renderAllColumns={false}
-            viewportColumnRenderingOffset={3}
-            rowHeights={32}
-            autoRowSize={false}
-            autoColumnSize={false}
-            columnSorting={true}
-            filters={true}
+            isAdmin={isAdmin}
+            onDeleteRow={handleRequestDelete}
             dropdownMenu={DROPDOWN_MENU_OPTIONS}
             contextMenu={isAdmin ? true : false}
-            manualColumnResize={true}
-            manualRowResize={true}
-            licenseKey="non-commercial-and-evaluation"
-            autoWrapRow={true}
-            autoWrapCol={true}
-            afterScrollVertically={() => {
-              if (isFetchingRef.current || !hasMoreRef.current || isProcessing) return;
-              const hot = hotRef.current?.hotInstance;
-              if (!hot) return;
-
-              let lastRow = -1;
-              try {
-                if (hot.view && hot.view.wt && hot.view.wt.wtTable) {
-                  lastRow = hot.view.wt.wtTable.getLastVisibleRow();
-                }
-              } catch {
-                lastRow = -1;
-              }
-
-              if (lastRow === -1 || lastRow === undefined) {
-                const holder = hot.rootElement?.querySelector('.wtHolder');
-                if (holder) {
-                  const scrollBottom = holder.scrollTop + holder.clientHeight;
-                  const totalHeight = holder.scrollHeight;
-                  if (scrollBottom >= totalHeight - 140) {
-                    lastRow = hot.countRows() - 1;
-                  }
-                }
-              }
-
-              const currentCount = hot.countRows();
-              if (lastRow >= currentCount - 20) {
-                if (currentCount >= totalFilteredRowsRef.current) {
-                  setHasMore(false);
-                  hasMoreRef.current = false;
-                  return;
-                }
-
-                isFetchingRef.current = true;
-                setIsFetchingMore(true);
-
-                // Ask Web Worker for the next batch of 100 rows
-                if (workerRef.current) {
-                  workerRef.current.postMessage({
-                    type: 'GET_ROWS',
-                    payload: { startIndex: currentCount, count: BATCH_SIZE },
-                  });
-                } else {
-                  const nextBatch = generateRevenueBatch(currentCount, BATCH_SIZE);
-                  if (nextBatch.length > 0) {
-                    setData((prev) => [...prev, ...nextBatch]);
-                  } else {
-                    setHasMore(false);
-                    hasMoreRef.current = false;
-                  }
-                  setTimeout(() => {
-                    isFetchingRef.current = false;
-                    setIsFetchingMore(false);
-                  }, 50);
-                }
-              }
-            }}
-            beforeColumnSort={(currentSortConfig, destinationSortConfigs) => {
-              const actionColIndex = visibleColumns.length;
-              if (
-                isAdmin &&
-                destinationSortConfigs &&
-                destinationSortConfigs.some((cfg) => cfg.column === actionColIndex)
-              ) {
-                return false;
-              }
-
-              // Defer state updates to allow Handsontable to cleanly complete its event handling
-              setTimeout(() => {
-                if (destinationSortConfigs && destinationSortConfigs.length > 0) {
-                  const dest = destinationSortConfigs[0];
-                  const colDef = visibleColumns[dest.column];
-                  if (colDef) {
-                    // Correctly cycle sort directions: none -> asc -> desc -> none
-                    let nextDir = 'asc';
-                    if (activeSortRef.current.columnId === colDef.id) {
-                      if (activeSortRef.current.direction === 'asc') {
-                        nextDir = 'desc';
-                      } else if (activeSortRef.current.direction === 'desc') {
-                        nextDir = 'none';
-                      } else {
-                        nextDir = 'asc';
-                      }
-                    } else {
-                      nextDir = 'asc';
-                    }
-
-                    const nextSort = {
-                      columnId: nextDir === 'none' ? null : colDef.id,
-                      direction: nextDir,
-                    };
-                    activeSortRef.current = nextSort;
-                    setActiveSort(nextSort);
-                    triggerWorkerSort(nextSort.columnId, nextDir);
-                  }
-                } else {
-                  activeSortRef.current = { columnId: null, direction: 'none' };
-                  setActiveSort(activeSortRef.current);
-                  triggerWorkerSort(null, 'none');
-                }
-              }, 0);
-
-              // Suppress local Handsontable 100-row sorting; worker sorts all 1,000,000 rows!
-              return false;
-            }}
-            beforeFilter={handleBeforeFilter}
-            onDeleteRow={isAdmin ? (row) => handleRequestDelete(row) : undefined}
           />
-
-          {/* Lazy Loading Live Status Footer */}
-          {(isFetchingMore || isProcessing) && (
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                alignItems: 'center',
-                mt: 1.5,
-                px: 0.5,
-                fontSize: '0.8rem',
-                color: blcColors.navyAccent,
-                fontFamily: typographyTokens.fontMono,
-                fontWeight: 600,
-                gap: 1,
-              }}
-            >
-              <CircularProgress size={14} thickness={5} />
-              <span>
-                {isProcessing
-                  ? 'Web Worker sorting/filtering 1M rows...'
-                  : `Fetching next ${BATCH_SIZE} rows...`}
-              </span>
-            </Box>
-          )}
         </Paper>
       </Container>
 
-      {/* Delete confirm dialog for admin */}
-      {isAdmin && (
-        <ConfirmDialog
-          open={deleteConfirmOpen}
-          title="Confirm Removal"
-          message="Are you sure you want to remove this row?"
-          confirmText="Remove Row"
-          cancelText="Cancel"
-          confirmVariant="danger"
-          onConfirm={handleConfirmDelete}
-          onCancel={handleCancelDelete}
-        />
-      )}
+      {/* ── Modals & Dialogs ── */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Confirm Row Deletion"
+        message="Are you sure you want to remove this ledger entry? This action will update the active grid view."
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDark={isDark}
+      />
 
-      {/* View Management popup modal */}
+      <SaveViewModal
+        open={saveViewModalOpen}
+        onClose={() => setSaveViewModalOpen(false)}
+        onSave={handleSaveView}
+        isDark={isDark}
+      />
+
+      <SavedViewsModal
+        open={savedViewsModalOpen}
+        onClose={() => setSavedViewsModalOpen(false)}
+        onApplyView={handleApplyView}
+        isDark={isDark}
+      />
+
       <ViewManagementModal
         open={viewManagementOpen}
         onClose={() => setViewManagementOpen(false)}
         visibleColumns={visibleColumns}
         hiddenColumns={hiddenColumns}
         onColumnsChange={handleColumnsChange}
-        onResetColumns={handleResetColumns}
-        isDark={isDark}
-      />
-
-      {/* Save View popup modal */}
-      {saveViewModalOpen && (
-        <SaveViewModal
-          open={saveViewModalOpen}
-          onClose={() => setSaveViewModalOpen(false)}
-          onSave={handleSaveView}
-          visibleColumns={visibleColumns}
-          hiddenColumns={hiddenColumns}
-          existingViews={savedViews}
-          isDark={isDark}
-        />
-      )}
-
-      {/* Saved Views popup modal */}
-      <SavedViewsModal
-        open={savedViewsModalOpen}
-        onClose={() => setSavedViewsModalOpen(false)}
-        savedViews={savedViews}
-        activeViewId={activeViewId}
-        onApplyView={handleApplyView}
+        onReset={handleResetColumns}
         isDark={isDark}
       />
     </Box>
   );
 };
-
-export default RevenueTrackerPage;

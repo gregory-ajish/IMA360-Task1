@@ -1,31 +1,11 @@
 // weatherActions.js
-// Dedicated action creators and asynchronous thunks for Weather state management
+// This file ONLY holds the async thunk for weather.
+// It calls the API, then the reducer (weatherReducer.js) handles the state changes
+// via extraReducers responding to the thunk's pending/fulfilled/rejected lifecycle.
 
-import { createAction, createAsyncThunk } from '@reduxjs/toolkit';
-import weatherApi, { getCached, setCache } from '../../api/weatherApi';
+import { createAsyncThunk } from '@reduxjs/toolkit';
+import weatherApi, { getCached, setCache } from '../api/weatherApi';
 
-// ─── Synchronous Action Creators ─────────────────────────────────────────────
-/**
- * Action to switch temperature unit between 'metric' (°C) and 'imperial' (°F)
- */
-export const setUnit = createAction('weather/setUnit');
-
-/**
- * Action to update the currently selected city name
- */
-export const setCity = createAction('weather/setCity');
-
-/**
- * Action to select a specific day for filtering the hourly forecast
- */
-export const setSelectedDay = createAction('weather/setSelectedDay');
-
-/**
- * Action to populate realistic demo fallback data (e.g. when API key is activating with 401)
- */
-export const setDemoFallback = createAction('weather/setDemoFallback');
-
-// ─── Asynchronous Thunks ─────────────────────────────────────────────────────
 /**
  * Async Thunk for fetching weather and forecast data from OpenWeatherMap API.
  * Handles:

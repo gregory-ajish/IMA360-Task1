@@ -1,10 +1,11 @@
 // dashboardActions.js
-// Dedicated action creators and asynchronous thunk for Dashboard state management
+// This file ONLY holds the async thunk for dashboard.
+// It calls the mock API, then the reducer (dashboardReducer.js) handles the state changes
+// via extraReducers responding to the thunk's pending/fulfilled/rejected lifecycle.
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { fetchDashboardApps } from '../../api/dashboardApi';
+import { fetchDashboardApps } from '../api/dashboardApi';
 
-// ─── Asynchronous Thunk ──────────────────────────────────────────────────────
 /**
  * Async Thunk for fetching dashboard app categories from the mock API.
  * Calls the mock API function (which returns apps.json data after a fake delay).
