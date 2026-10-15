@@ -25,9 +25,9 @@ import {
 } from '@mui/material';
 // Material-UI alert and delete icons
 import {
-  WarningAmber as WarningAmberIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
+  WarningAmberIcon,
+  DeleteIcon,
+} from '../../icons';
 // Hook to read active MUI theme mode (light vs dark)
 import { useTheme } from '@mui/material/styles';
 // Design system tokens for colors and typography

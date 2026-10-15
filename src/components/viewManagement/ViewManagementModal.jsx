@@ -17,15 +17,16 @@ import {
   Paper,
   Tooltip,
 } from '@mui/material';
+// Centralized App Icons
 import {
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
-  ViewColumn as ViewColumnIcon,
-  DragIndicator as DragIndicatorIcon,
-  RestartAlt as ResetIcon,
-  ArrowForward as ArrowForwardIcon,
-  ArrowBack as ArrowBackIcon,
-} from '@mui/icons-material';
+  VisibilityIcon,
+  VisibilityOffIcon,
+  ViewColumnIcon,
+  DragIndicatorIcon,
+  ResetIcon,
+  ArrowForwardIcon,
+  ArrowBackIcon,
+} from '../../icons';
 
 // @dnd-kit core and sortable imports
 import {
@@ -49,7 +50,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { blcColors, typographyTokens } from '../../theme';
 import { AppButton } from '../common/AppButton';
-import { Popup } from '../common/Popup';
+import { AppDialog } from '../common/AppDialog';
 
 // ─── Droppable Container Box Component ───────────────────────────────────────
 function DroppableContainer({ id, children, isDark, title, count, icon, emptyText, emptySubtext }) {
@@ -449,7 +450,7 @@ export const ViewManagementModal = ({
   };
 
   return (
-    <Popup
+    <AppDialog
       open={open}
       onClose={onClose}
       title="View Management"
@@ -572,6 +573,6 @@ export const ViewManagementModal = ({
           ) : null}
         </DragOverlay>
       </DndContext>
-    </Popup>
+    </AppDialog>
   );
 };

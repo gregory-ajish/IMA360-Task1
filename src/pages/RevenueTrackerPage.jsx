@@ -20,19 +20,19 @@ import {
   Tooltip,
 } from '@mui/material';
 
-// Material-UI icons
+// Centralized App Icons
 import {
-  ArrowBack as ArrowBackIcon,
-  Save as SaveIcon,
-  RestartAlt as ResetIcon,
-  TableChart as TableChartIcon,
-  ViewColumn as ViewColumnIcon,
-  Visibility as ViewsIcon,
-  BookmarkBorder as SavedViewsIcon,
-} from '@mui/icons-material';
+  ArrowBackIcon,
+  SaveIcon,
+  ResetIcon,
+  TableChartIcon,
+  ViewColumnIcon,
+  ViewsIcon,
+  SavedViewsIcon,
+} from '../icons';
 
 // Global Shared DataTable Component & Action Renderer
-import { DataTable, deleteButtonRenderer } from '../components/common/DataTable';
+import { DataTable, deleteButtonRenderer } from '../components/dataTable';
 
 // Toast notifications
 import { toast } from 'react-toastify';
@@ -45,9 +45,9 @@ import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/dashboard/Navbar';
 import { AppButton } from '../components/common/AppButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
-import { ViewManagementModal } from '../components/revenue/ViewManagementModal';
-import { SaveViewModal } from '../components/revenue/SaveViewModal';
-import { SavedViewsModal } from '../components/revenue/SavedViewsModal';
+import { ViewManagementModal } from '../components/viewManagement/ViewManagementModal';
+import { SaveViewModal } from '../components/viewManagement/SaveViewModal';
+import { SavedViewsModal } from '../components/viewManagement/SavedViewsModal';
 
 // Redux hooks and actions
 import { useSelector, useDispatch } from 'react-redux';

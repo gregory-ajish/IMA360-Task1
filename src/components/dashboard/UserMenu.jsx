@@ -34,10 +34,10 @@ import {
   Tooltip,
 } from '@mui/material';
 import {
-  Logout as LogoutIcon,
-  PersonOutlined as ProfileIcon,
-  SettingsOutlined as SettingsIcon,
-} from '@mui/icons-material';
+  LogoutIcon,
+  ProfileIcon,
+  SettingsIcon,
+} from '../../icons';
 import { blcColors } from '../../theme';
 
 /**

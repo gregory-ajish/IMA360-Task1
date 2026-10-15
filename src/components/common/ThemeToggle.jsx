@@ -18,9 +18,9 @@
 import React from 'react';
 import { IconButton, Tooltip } from '@mui/material';
 import {
-  DarkMode as DarkModeIcon,
-  LightMode as LightModeIcon,
-} from '@mui/icons-material';
+  DarkModeIcon,
+  LightModeIcon,
+} from '../../icons';
 import { blcColors } from '../../theme';
 
 /**

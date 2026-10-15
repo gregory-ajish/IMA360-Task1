@@ -18,7 +18,7 @@
 
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { HubOutlined } from '@mui/icons-material';
+import { HubOutlinedIcon as HubOutlined } from '../../icons';
 import { blcColors } from '../../theme';
 
 /**

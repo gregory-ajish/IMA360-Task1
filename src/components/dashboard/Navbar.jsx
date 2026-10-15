@@ -28,7 +28,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import { OpenInNew as ExternalLinkIcon } from '@mui/icons-material';
+import { ExternalLinkIcon } from '../../icons';
 import { AppLogo } from '../common/AppLogo';
 import { ThemeToggle } from '../common/ThemeToggle';
 import { UserMenu } from './UserMenu';

@@ -26,17 +26,17 @@ import {
   Skeleton,
 } from '@mui/material';
 
-// Material-UI Icons
+// Centralized App Icons
 import {
-  ArrowBack as ArrowBackIcon,
-  Search as SearchIcon,
-  Refresh as RefreshIcon,
-  Thermostat as ThermostatIcon,
-  Opacity as HumidityIcon,
-  Air as WindIcon,
-  WaterDrop as RainIcon,
-  CalendarMonth as CalendarIcon,
-} from '@mui/icons-material';
+  ArrowBackIcon,
+  SearchIcon,
+  RefreshIcon,
+  ThermostatIcon,
+  HumidityIcon,
+  WindIcon,
+  RainIcon,
+  CalendarIcon,
+} from '../icons';
 
 // Theme tokens & Context
 import { blcColors } from '../theme';

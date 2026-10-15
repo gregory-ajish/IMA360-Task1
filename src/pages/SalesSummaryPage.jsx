@@ -23,12 +23,12 @@ import {
   Chip,
 } from '@mui/material';
 
-// Material-UI icons
+// Centralized App Icons
 import {
-  ArrowBack as ArrowBackIcon,
-  Summarize as SummarizeIcon,
-  Functions as FunctionsIcon,
-} from '@mui/icons-material';
+  ArrowBackIcon,
+  SummarizeIcon,
+  FunctionsIcon,
+} from '../icons';
 
 // Handsontable registry (for plugins/styles)
 import { registerAllModules } from 'handsontable/registry';
@@ -40,7 +40,7 @@ import { blcColors, typographyTokens } from '../theme';
 import { useAuth } from '../context/AuthContext';
 
 // Common Components
-import { DataTable } from '../components/common/DataTable';
+import { DataTable } from '../components/dataTable';
 import { AppButton } from '../components/common/AppButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { Navbar } from '../components/dashboard/Navbar';

@@ -1,2 +1,2 @@
-// src/components/common/DataTable/index.js
+// src/components/dataTable/index.js
 export { DataTable, deleteButtonRenderer, default } from './DataTable';

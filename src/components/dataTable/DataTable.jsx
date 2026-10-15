@@ -21,7 +21,7 @@ import { Filters } from 'handsontable/plugins/filters';
 import { TrimRows } from 'handsontable/plugins/trimRows';
 import 'handsontable/styles/handsontable.min.css';
 import 'handsontable/styles/ht-theme-main.min.css';
-import { blcColors, typographyTokens } from '../../../theme';
+import { blcColors, typographyTokens } from '../../theme';
 
 // Register all Handsontable modules globally
 registerAllModules();
