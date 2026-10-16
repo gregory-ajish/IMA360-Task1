@@ -43,9 +43,9 @@ import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
 import { AppButton } from '../components/common/AppButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
-import { ViewManagementModal } from '../components/viewManagement/ViewManagementModal';
-import { SaveViewModal } from '../components/viewManagement/SaveViewModal';
-import { SavedViewsModal } from '../components/viewManagement/SavedViewsModal';
+import { ViewManagementModal } from '../components/dataTable/viewManagement/ViewManagementModal';
+import { SaveViewModal } from '../components/dataTable/viewManagement/SaveViewModal';
+import { SavedViewsModal } from '../components/dataTable/viewManagement/SavedViewsModal';
 
 // Redux hooks and actions
 import { useSelector, useDispatch } from 'react-redux';

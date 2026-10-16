@@ -49,7 +49,7 @@ import {
   BulkUpdater,
   PLAN_TIERS,
   ENGAGEMENT_CHANNELS,
-} from '../components/bulkUpdater/BulkUpdater';
+} from '../components/dataTable/bulkUpdater/BulkUpdater';
 
 // Register all Handsontable modules
 registerAllModules();
