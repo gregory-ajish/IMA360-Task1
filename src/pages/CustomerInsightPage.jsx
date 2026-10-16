@@ -22,14 +22,10 @@ import {
   Container,
   Paper,
   Typography,
-  IconButton,
-  Breadcrumbs,
-  Link,
-  Tooltip,
 } from '@mui/material';
 
 // Centralized App Icons
-import { ArrowBackIcon, InsightsIcon } from '../icons';
+import { InsightsIcon } from '../icons';
 
 // Toast notifications
 import { toast } from 'react-toastify';
@@ -44,6 +40,7 @@ import { blcColors, typographyTokens } from '../theme';
 import { useAuth } from '../context/AuthContext';
 
 // Common Components
+import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
 import { DataTable } from '../components/dataTable';
 
@@ -220,82 +217,13 @@ export const CustomerInsightPage = ({ mode, toggleMode }) => {
 
       {/* ── Main Container ── */}
       <Container maxWidth="xl" sx={{ mt: 3 }}>
-        {/* Top Header Card — matching Revenue Tracker page */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2.5,
-            mb: 2.5,
-            borderRadius: '12px',
-            bgcolor: isDark ? blcColors.darkCard : '#ffffff',
-            border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 2,
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Tooltip title="Back to Dashboard">
-              <IconButton
-                onClick={() => navigate('/home')}
-                sx={{
-                  bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
-                  color: isDark ? '#e2e8f0' : '#334155',
-                  '&:hover': {
-                    bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
-                  },
-                }}
-              >
-                <ArrowBackIcon />
-              </IconButton>
-            </Tooltip>
-
-            <Box>
-              <Breadcrumbs sx={{ mb: 0.5, fontSize: '0.85rem' }}>
-                <Link
-                  underline="hover"
-                  color="inherit"
-                  sx={{ cursor: 'pointer' }}
-                  onClick={() => navigate('/home')}
-                >
-                  Dashboard
-                </Link>
-                <Typography color="text.primary" sx={{ fontSize: '0.85rem' }}>
-                  Customer Insights
-                </Typography>
-              </Breadcrumbs>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '8px',
-                    bgcolor: `${blcColors.navyAccent}15`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: blcColors.navyAccent,
-                  }}
-                >
-                  <InsightsIcon fontSize="small" />
-                </Box>
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontFamily: typographyTokens.fontMono,
-                    fontWeight: typographyTokens.weightBold,
-                    color: isDark ? '#f1f5f9' : blcColors.navyAccent,
-                  }}
-                >
-                  Customer Insights — Interactive Ledger
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-        </Paper>
+        {/* Top Header Card — reusable PageHeader common component */}
+        <PageHeader
+          icon={<InsightsIcon />}
+          title="Customer Insights — Interactive Ledger"
+          breadcrumb="Customer Insights"
+          isDark={isDark}
+        />
 
         {/* Spreadsheet Card — matching Revenue Tracker layout */}
         <Paper

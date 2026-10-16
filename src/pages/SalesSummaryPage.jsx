@@ -16,16 +16,11 @@ import {
   Container,
   Paper,
   Typography,
-  IconButton,
-  Breadcrumbs,
-  Link,
-  Tooltip,
   Chip,
 } from '@mui/material';
 
 // Centralized App Icons
 import {
-  ArrowBackIcon,
   SummarizeIcon,
   FunctionsIcon,
 } from '../icons';
@@ -40,6 +35,7 @@ import { blcColors, typographyTokens } from '../theme';
 import { useAuth } from '../context/AuthContext';
 
 // Common Components
+import { PageHeader } from '../components/common/PageHeader';
 import { DataTable } from '../components/dataTable';
 import { AppButton } from '../components/common/AppButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
@@ -464,87 +460,13 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
       {/* ── Main Container ── */}
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         {/* Back navigation & Header bar */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            px: 3,
-            mb: 3,
-            borderRadius: '12px',
-            bgcolor: isDark ? blcColors.darkCard : '#ffffff',
-            color: isDark ? '#e2e8f0' : blcColors.textDark,
-            border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 2,
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Tooltip title="Back to Dashboard">
-              <IconButton
-                onClick={() => navigate('/home')}
-                sx={{
-                  bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
-                  color: isDark ? '#e2e8f0' : '#334155',
-                  '&:hover': {
-                    bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
-                  },
-                }}
-              >
-                <ArrowBackIcon />
-              </IconButton>
-            </Tooltip>
-
-            <Box>
-              <Breadcrumbs sx={{ mb: 0.5, fontSize: '0.85rem' }}>
-                <Link
-                  underline="hover"
-                  color="inherit"
-                  sx={{ cursor: 'pointer' }}
-                  onClick={() => navigate('/home')}
-                >
-                  Dashboard
-                </Link>
-                <Typography color="text.primary" sx={{ fontSize: '0.85rem' }}>
-                  Sales Summary
-                </Typography>
-              </Breadcrumbs>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '8px',
-                    bgcolor: `${blcColors.navyAccent}15`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: blcColors.navyAccent,
-                  }}
-                >
-                  <SummarizeIcon fontSize="small" />
-                </Box>
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontFamily: typographyTokens.fontMono,
-                    fontWeight: typographyTokens.weightBold,
-                  }}
-                >
-                  Sales Summary — Column Aggregates
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-
-          {/* Right: Quick actions including common ThemeToggle */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ThemeToggle mode={mode} toggleMode={toggleMode} />
-          </Box>
-        </Paper>
+        <PageHeader
+          icon={<SummarizeIcon />}
+          title="Sales Summary — Column Aggregates"
+          breadcrumb="Sales Summary"
+          isDark={isDark}
+          actions={<ThemeToggle mode={mode} toggleMode={toggleMode} />}
+        />
 
         {/* Spreadsheet Card */}
         <Paper
