@@ -1,12 +1,9 @@
 import React from 'react';
 // Material-UI primitive components used to construct the card layout
 import { Card, CardActionArea, Box, Typography, Chip } from '@mui/material';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import { LockOutlinedIcon, AdminPanelSettingsIcon, AppIcon } from '../../icons';
 // Hook to read active MUI theme values (like current mode 'light' or 'dark')
 import { useTheme } from '@mui/material/styles';
-// Reusable dynamic icon resolver component
-import { AppIcon } from './AppIcon';
 // Design system tokens for colors and typography
 import { blcColors, typographyTokens } from '../../theme';
 

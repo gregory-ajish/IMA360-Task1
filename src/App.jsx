@@ -18,6 +18,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { RevenueTrackerPage } from './pages/RevenueTrackerPage';
 import { WeatherPage } from './pages/WeatherPage';
 import { SalesSummaryPage } from './pages/SalesSummaryPage';
+import { CustomerInsightPage } from './pages/CustomerInsightPage';
 
 /**
  * Helper component that resets window scroll position to (0,0) on every route change.
@@ -126,6 +127,24 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <SalesSummaryPage mode={mode} toggleMode={toggleMode} />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* /customer-insights — Handsontable customer insights ledger with WebWorker sorting & filtering */}
+            <Route
+              path="/customer-insights"
+              element={
+                <ProtectedRoute>
+                  <CustomerInsightPage mode={mode} toggleMode={toggleMode} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/customer-insight"
+              element={
+                <ProtectedRoute>
+                  <CustomerInsightPage mode={mode} toggleMode={toggleMode} />
                 </ProtectedRoute>
               }
             />

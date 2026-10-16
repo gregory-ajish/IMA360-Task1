@@ -7,11 +7,11 @@
 
 import React, { useState } from 'react';
 import { Box, Typography, TextField } from '@mui/material';
-import { Save as SaveIcon } from '@mui/icons-material';
+import { SaveIcon } from '../../icons';
 
 import { blcColors, typographyTokens } from '../../theme';
 import { AppButton } from '../common/AppButton';
-import { Popup } from '../common/Popup';
+import { AppDialog } from '../common/AppDialog';
 
 export const SaveViewModal = ({
   open,
@@ -65,7 +65,7 @@ export const SaveViewModal = ({
   };
 
   return (
-    <Popup
+    <AppDialog
       open={open}
       onClose={handleClose}
       title="Save Current View"
@@ -137,6 +137,6 @@ export const SaveViewModal = ({
           }}
         />
       </Box>
-    </Popup>
+    </AppDialog>
   );
 };

@@ -16,29 +16,15 @@ import {
   Typography,
   IconButton,
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
+import { CloseIcon } from '../../icons';
 import { useTheme } from '@mui/material/styles';
 
 import { blcColors, typographyTokens } from '../../theme';
 
 /**
- * Reusable Popup Modal Component
- *
- * @param {Object} props
- * @param {boolean} props.open - Whether the popup is visible
- * @param {Function} props.onClose - Callback to close popup (Esc, backdrop, X button)
- * @param {string|React.ReactNode} props.title - Heading title of the popup
- * @param {string|React.ReactNode} [props.subtitle] - Optional subtitle below title
- * @param {React.ReactNode} [props.icon] - Optional icon displayed in the header
- * @param {'xs'|'sm'|'md'|'lg'|'xl'} [props.maxWidth='sm'] - Maximum width of the popup
- * @param {boolean} [props.fullWidth=true] - Whether dialog occupies full width up to maxWidth
- * @param {React.ReactNode} props.children - Main body content of the popup
- * @param {React.ReactNode} [props.actions] - Optional footer action buttons (AppButton, etc.)
- * @param {Object} [props.TransitionProps] - Optional Dialog transition props (e.g. onEnter)
- * @param {boolean} [props.isDark] - Force dark/light mode, or defaults to active theme
- * @param {number} [props.zIndex] - Optional custom z-index
+ * Reusable AppDialog Modal Component
  */
-export const Popup = ({
+export const AppDialog = ({
   open,
   onClose,
   title,
@@ -184,4 +170,5 @@ export const Popup = ({
   );
 };
 
-export default Popup;
+export const Popup = AppDialog;
+export default AppDialog;

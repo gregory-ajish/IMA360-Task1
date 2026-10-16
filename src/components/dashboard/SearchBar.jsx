@@ -22,7 +22,7 @@
 
 import React from 'react';
 import { Box, TextField, InputAdornment, IconButton, Typography } from '@mui/material';
-import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
+import { SearchIcon, ClearIcon } from '../../icons';
 import { blcColors } from '../../theme';
 
 /**

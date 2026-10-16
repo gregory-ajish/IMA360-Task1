@@ -15,24 +15,21 @@ import {
   Paper,
   Typography,
   IconButton,
-  Breadcrumbs,
-  Link,
   Tooltip,
 } from '@mui/material';
 
-// Material-UI icons
+// Centralized App Icons
 import {
-  ArrowBack as ArrowBackIcon,
-  Save as SaveIcon,
-  RestartAlt as ResetIcon,
-  TableChart as TableChartIcon,
-  ViewColumn as ViewColumnIcon,
-  Visibility as ViewsIcon,
-  BookmarkBorder as SavedViewsIcon,
-} from '@mui/icons-material';
+  SaveIcon,
+  ResetIcon,
+  TableChartIcon,
+  ViewColumnIcon,
+  ViewsIcon,
+  SavedViewsIcon,
+} from '../icons';
 
 // Global Shared DataTable Component & Action Renderer
-import { DataTable, deleteButtonRenderer } from '../components/common/DataTable';
+import { DataTable, deleteButtonRenderer } from '../components/dataTable';
 
 // Toast notifications
 import { toast } from 'react-toastify';
@@ -42,12 +39,13 @@ import { blcColors, typographyTokens } from '../theme';
 import { useAuth } from '../context/AuthContext';
 
 // Common & Feature Components
+import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
 import { AppButton } from '../components/common/AppButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
-import { ViewManagementModal } from '../components/revenue/ViewManagementModal';
-import { SaveViewModal } from '../components/revenue/SaveViewModal';
-import { SavedViewsModal } from '../components/revenue/SavedViewsModal';
+import { ViewManagementModal } from '../components/viewManagement/ViewManagementModal';
+import { SaveViewModal } from '../components/viewManagement/SaveViewModal';
+import { SavedViewsModal } from '../components/viewManagement/SavedViewsModal';
 
 // Redux hooks and actions
 import { useSelector, useDispatch } from 'react-redux';
@@ -316,105 +314,35 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
       {/* ── Main Container ── */}
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         {/* Back navigation & Header bar */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            px: 3,
-            mb: 3,
-            borderRadius: '12px',
-            bgcolor: isDark ? blcColors.darkCard : '#ffffff',
-            color: isDark ? '#e2e8f0' : blcColors.textDark,
-            border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 2,
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Tooltip title="Back to Dashboard">
-              <IconButton
-                onClick={() => navigate('/home')}
-                sx={{
-                  bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
-                  color: isDark ? '#e2e8f0' : '#334155',
-                  '&:hover': {
-                    bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
-                  },
-                }}
-              >
-                <ArrowBackIcon />
-              </IconButton>
-            </Tooltip>
-
-            <Box>
-              <Breadcrumbs sx={{ mb: 0.5, fontSize: '0.85rem' }}>
-                <Link
-                  underline="hover"
-                  color="inherit"
-                  sx={{ cursor: 'pointer' }}
-                  onClick={() => navigate('/home')}
+        <PageHeader
+          icon={<TableChartIcon />}
+          title="Revenue Tracker — Interactive Ledger"
+          breadcrumb="Revenue Tracker"
+          isDark={isDark}
+          actions={
+            isAdmin && (
+              <>
+                <AppButton
+                  onClick={handleReset}
+                  startIcon={<ResetIcon />}
+                  size="medium"
+                  variant="ghost"
                 >
-                  Dashboard
-                </Link>
-                <Typography color="text.primary" sx={{ fontSize: '0.85rem' }}>
-                  Revenue Tracker
-                </Typography>
-              </Breadcrumbs>
+                  Reset Data
+                </AppButton>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '8px',
-                    bgcolor: `${blcColors.navyAccent}15`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: blcColors.navyAccent,
-                  }}
+                <AppButton
+                  onClick={handleSave}
+                  size="medium"
+                  variant="primary"
+                  startIcon={<SaveIcon />}
                 >
-                  <TableChartIcon fontSize="small" />
-                </Box>
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontFamily: typographyTokens.fontMono,
-                    fontWeight: typographyTokens.weightBold,
-                  }}
-                >
-                  Revenue Tracker — Interactive Ledger
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-
-          {/* Action buttons (Admin only) */}
-          {isAdmin && (
-            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-              <AppButton
-                onClick={handleReset}
-                startIcon={<ResetIcon />}
-                size="medium"
-                variant="ghost"
-              >
-                Reset Data
-              </AppButton>
-
-              <AppButton
-                onClick={handleSave}
-                size="medium"
-                variant="primary"
-                startIcon={<SaveIcon />}
-              >
-                Save Changes
-              </AppButton>
-            </Box>
-          )}
-        </Paper>
+                  Save Changes
+                </AppButton>
+              </>
+            )
+          }
+        />
 
         {/* Spreadsheet Card */}
         <Paper

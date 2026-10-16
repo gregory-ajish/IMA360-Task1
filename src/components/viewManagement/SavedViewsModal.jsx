@@ -15,13 +15,13 @@ import {
   ListItem,
 } from '@mui/material';
 import {
-  BookmarkBorder as SavedViewsIcon,
-  TableChartOutlined as TableIcon,
-} from '@mui/icons-material';
+  SavedViewsIcon,
+  TableIcon,
+} from '../../icons';
 
 import { blcColors, typographyTokens } from '../../theme';
 import { AppButton } from '../common/AppButton';
-import { Popup } from '../common/Popup';
+import { AppDialog } from '../common/AppDialog';
 
 export const SavedViewsModal = ({
   open,
@@ -32,7 +32,7 @@ export const SavedViewsModal = ({
   isDark = false,
 }) => {
   return (
-    <Popup
+    <AppDialog
       open={open}
       onClose={onClose}
       title="Saved Views"
@@ -201,6 +201,6 @@ export const SavedViewsModal = ({
           </List>
         </>
       )}
-    </Popup>
+    </AppDialog>
   );
 };

@@ -46,15 +46,15 @@ import {
   DialogActions,
 } from '@mui/material';
 
-// MUI icons used in the form UI
+// Centralized App Icons
 import {
-  Visibility,                              // Eye icon — show password
-  VisibilityOff,                           // Eye-slash icon — hide password
-  PersonOutlineOutlined as UserIcon,       // Person icon in username field
-  LockOutlined as LockIcon,               // Lock icon in password field
-  EmailOutlined as MailIcon,               // Email icon for password reset
-  Close as CloseIcon,                      // Close icon for dialog
-} from '@mui/icons-material';
+  VisibilityIcon as Visibility,
+  VisibilityOffIcon as VisibilityOff,
+  UserIcon,
+  LockIcon,
+  MailIcon,
+  CloseIcon,
+} from '../icons';
 
 import { useAuth } from '../context/AuthContext'; // login() function from auth context
 import { blcColors } from '../theme';             // Brand color palette
