@@ -35,10 +35,7 @@ import {
   IconButton,
   InputAdornment,
   Stack,
-  Chip,
-  Paper,
   Container,
-  Tooltip,
   Link,
   Dialog,
   DialogTitle,
@@ -189,14 +186,6 @@ export const LoginPage = ({ mode, toggleMode }) => {
     } finally {
       setIsSubmitting(false); // Always re-enable the button
     }
-  };
-
-  // ─── Demo Auto-Fill Handler ──────────────────────────────────────────────
-  // Fills the form fields with demo credentials when a chip is clicked.
-  // shouldValidate: true runs validation immediately so errors clear on fill.
-  const handleFillDemo = (username, password) => {
-    setValue('identifier', username, { shouldValidate: true });
-    setValue('password', password, { shouldValidate: true });
   };
 
   // ─── JSX / UI ────────────────────────────────────────────────────────────

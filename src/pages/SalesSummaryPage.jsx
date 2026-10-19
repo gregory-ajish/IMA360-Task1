@@ -7,7 +7,7 @@
 //   and a dedicated, pixel-perfect summary footer bar pinned at the bottom.
 // ============================================================================
 
-import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Material-UI components
@@ -221,7 +221,7 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
   const [columnWidths, setColumnWidths] = useState(null);
 
   // Pre-generate raw dataset: 50 sales rows
-  const [dataset, setDataset] = useState(() => generateSalesDataset());
+  const [dataset] = useState(() => generateSalesDataset());
 
   // Aggregates state displayed in the dedicated footer
   const [aggregates, setAggregates] = useState(() =>

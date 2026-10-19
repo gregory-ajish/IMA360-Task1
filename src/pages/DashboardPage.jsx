@@ -20,7 +20,6 @@ import {
   Typography,
   Box,
   Container,
-  Grid,
   Chip,
   Snackbar,
   Alert,
@@ -56,7 +55,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
   // Fetch dashboard apps on initial mount (calls mock API via thunk)
   useEffect(() => {
     dispatch(fetchDashboardThunk());
-  }, []);
+  }, [dispatch]);
 
   // ─── State ──────────────────────────────────────────────────────────────
   // searchQuery: the live string typed in the search bar

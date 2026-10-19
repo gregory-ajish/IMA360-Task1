@@ -21,7 +21,6 @@ import {
   Box,
   Container,
   Paper,
-  Typography,
 } from '@mui/material';
 
 // Centralized App Icons
@@ -36,7 +35,7 @@ import 'handsontable/styles/handsontable.min.css';
 import 'handsontable/styles/ht-theme-main.min.css';
 
 // Theme tokens & Context
-import { blcColors, typographyTokens } from '../theme';
+import { blcColors } from '../theme';
 import { useAuth } from '../context/AuthContext';
 
 // Common Components

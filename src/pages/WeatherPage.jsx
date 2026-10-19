@@ -156,6 +156,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
           toast.info('API key is activating. Displaying demo data.', { toastId: 'demo-fallback' });
         }
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle Search submit

@@ -5,7 +5,7 @@
 //   powered by Handsontable & Web Worker at route `/revenue-tracker`.
 // ============================================================================
 
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Material-UI components
@@ -13,7 +13,6 @@ import {
   Box,
   Container,
   Paper,
-  Typography,
   IconButton,
   Tooltip,
 } from '@mui/material';
@@ -35,7 +34,7 @@ import { DataTable, deleteButtonRenderer } from '../components/dataTable';
 import { toast } from 'react-toastify';
 
 // Theme tokens & Context
-import { blcColors, typographyTokens } from '../theme';
+import { blcColors } from '../theme';
 import { useAuth } from '../context/AuthContext';
 
 // Common & Feature Components
@@ -48,7 +47,7 @@ import { SaveViewModal } from '../components/dataTable/viewManagement/SaveViewMo
 import { SavedViewsModal } from '../components/dataTable/viewManagement/SavedViewsModal';
 
 // Redux hooks and actions
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { saveView, setActiveView } from '../store/viewsReducer';
 
 // Shared localStorage key
@@ -67,7 +66,7 @@ export const TOTAL_AVAILABLE_ROWS = 1_000_000;
  * Procedurally generates the 1,000,000 dataset for Revenue Tracker.
  * Moved from Web Worker to Revenue Tracker page as domain-specific data provider.
  */
-export const generateRevenueDataset = (totalCount = TOTAL_AVAILABLE_ROWS) => {
+const generateRevenueDataset = (totalCount = TOTAL_AVAILABLE_ROWS) => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const dataset = new Array(totalCount);
 
@@ -96,7 +95,7 @@ export const generateRevenueDataset = (totalCount = TOTAL_AVAILABLE_ROWS) => {
 /**
  * Master column configuration metadata for the Revenue Tracker ledger.
  */
-export const DEFAULT_REVENUE_COLUMNS = [
+const DEFAULT_REVENUE_COLUMNS = [
   { id: 'month', label: 'Month', dataIndex: 0, type: 'text', width: 150 },
   { id: 'startingMrr', label: 'Starting MRR ($)', dataIndex: 1, type: 'numeric', width: 130, numericFormat: { pattern: '$0,0' } },
   { id: 'expansion', label: 'Expansion ($)', dataIndex: 2, type: 'numeric', width: 120, numericFormat: { pattern: '$0,0' } },
