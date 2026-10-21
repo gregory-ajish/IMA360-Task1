@@ -462,7 +462,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
       <ConfirmDialog
         open={deleteConfirmOpen}
         title="Confirm Row Deletion"
-        message="Are you sure you want to remove this ledger entry? This action will update the active grid view."
+        message="Are you sure you want to remove this row?"
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         confirmText="Delete"

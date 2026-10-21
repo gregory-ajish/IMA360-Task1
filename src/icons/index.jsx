@@ -178,6 +178,11 @@ export const FunctionsIcon = Functions;
 export const PointOfSaleIcon = PointOfSale;
 export const SearchIcon = Search;
 export const RefreshIcon = Refresh;
+export const AutoAwesomeIcon = AutoAwesome;
+export const CopilotIcon = AutoAwesome;
+export const DescriptionIcon = Description;
+export const ContractIcon = Description;
+export const ContractLedgerIcon = Description;
 
 // Auth & Security
 export const UserIcon = PersonOutlineOutlined;

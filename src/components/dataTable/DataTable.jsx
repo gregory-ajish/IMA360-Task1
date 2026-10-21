@@ -604,6 +604,7 @@ export const DataTable = forwardRef(function DataTable(
           autoRowSize={autoRowSize}
           autoColumnSize={autoColumnSize}
           className={isDark ? 'ht-theme-main-dark' : 'ht-theme-main'}
+          themeName={isDark ? 'ht-theme-main-dark' : 'ht-theme-main'}
           columnSorting={columnSorting}
           filters={filters}
           dropdownMenu={dropdownMenu}

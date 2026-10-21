@@ -92,7 +92,7 @@ export const PageHeader = ({
         </Tooltip>
 
         <Box>
-          <Breadcrumbs sx={{ mb: 0.5, fontSize: '0.85rem' }}>
+          <Breadcrumbs sx={{ mb: title ? 0.5 : 0, fontSize: '0.85rem' }}>
             <Link
               underline="hover"
               color="inherit"
@@ -106,34 +106,36 @@ export const PageHeader = ({
             </Typography>
           </Breadcrumbs>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            {icon && (
-              <Box
+          {title && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              {icon && (
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '8px',
+                    bgcolor: `${blcColors.navyAccent}15`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: blcColors.navyAccent,
+                  }}
+                >
+                  {React.cloneElement(icon, { fontSize: 'small' })}
+                </Box>
+              )}
+              <Typography
+                variant="h5"
                 sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '8px',
-                  bgcolor: `${blcColors.navyAccent}15`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: blcColors.navyAccent,
+                  fontFamily: typographyTokens.fontMono,
+                  fontWeight: typographyTokens.weightBold,
+                  color: isDark ? '#f1f5f9' : blcColors.navyAccent,
                 }}
               >
-                {React.cloneElement(icon, { fontSize: 'small' })}
-              </Box>
-            )}
-            <Typography
-              variant="h5"
-              sx={{
-                fontFamily: typographyTokens.fontMono,
-                fontWeight: typographyTokens.weightBold,
-                color: isDark ? '#f1f5f9' : blcColors.navyAccent,
-              }}
-            >
-              {title}
-            </Typography>
-          </Box>
+                {title}
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Box>
 

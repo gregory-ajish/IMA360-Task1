@@ -62,7 +62,7 @@ const DROPDOWN_MENU_OPTIONS = [
 
 // ─── Exactly 50 Rows with 5 Columns ──────────────────────────────────────────
 // Order: [Dropdown (Plan Tier), Text Editor (Company Name), Numeric (Annual ARR), Date Picker (Join Date), Multiselect (Channels)]
-const INITIAL_CUSTOMER_INSIGHTS = [
+export const INITIAL_CUSTOMER_INSIGHTS = [
   ['Enterprise', 'Acme Corporation', 128000, '2023-01-15', ['Email', 'In-App', 'Phone Support']],
   ['Growth', 'BlueFin Technologies', 48000, '2023-02-20', ['Email', 'In-App']],
   ['Enterprise', 'CloudScale Networks', 96000, '2023-03-11', ['In-App', 'Slack Community']],

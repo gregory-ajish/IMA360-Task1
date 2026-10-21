@@ -21,6 +21,9 @@ const RevenueTrackerPage = React.lazy(() => import('./pages/RevenueTrackerPage')
 const WeatherPage = React.lazy(() => import('./pages/WeatherPage').then((m) => ({ default: m.WeatherPage })));
 const SalesSummaryPage = React.lazy(() => import('./pages/SalesSummaryPage').then((m) => ({ default: m.SalesSummaryPage })));
 const CustomerInsightPage = React.lazy(() => import('./pages/CustomerInsightPage').then((m) => ({ default: m.CustomerInsightPage })));
+const ContractLedgerPage = React.lazy(() => import('./pages/ContractLedgerPage').then((m) => ({ default: m.ContractLedgerPage })));
+const ContractLedgerEditPage = React.lazy(() => import('./pages/ContractLedgerEditPage').then((m) => ({ default: m.ContractLedgerEditPage })));
+const ContractLedgerViewPage = React.lazy(() => import('./pages/ContractLedgerViewPage').then((m) => ({ default: m.ContractLedgerViewPage })));
 
 /**
  * Lightweight loading indicator while an on-demand route chunk loads.
@@ -169,6 +172,40 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+
+              {/* /contract-ledger — Handsontable Contract Ledger interactive table */}
+              <Route
+                path="/contract-ledger"
+                element={
+                  <ProtectedRoute>
+                    <ContractLedgerPage mode={mode} toggleMode={toggleMode} />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* /contract-ledger/edit/:rowId — Dedicated contract editing page with Header & Details cards */}
+              <Route
+                path="/contract-ledger/edit/:rowId"
+                element={
+                  <ProtectedRoute>
+                    <ContractLedgerEditPage mode={mode} toggleMode={toggleMode} />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* /contract-ledger/view/:rowId — Dedicated read-only contract viewing page */}
+              <Route
+                path="/contract-ledger/view/:rowId"
+                element={
+                  <ProtectedRoute>
+                    <ContractLedgerViewPage mode={mode} toggleMode={toggleMode} />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Legacy /ai-copilot route redirects for backward compatibility */}
+              <Route path="/ai-copilot" element={<Navigate to="/contract-ledger" replace />} />
+              <Route path="/ai-copilot/edit/:rowId" element={<Navigate to="/contract-ledger" replace />} />
 
               {/* Catch-all: redirect root "/" and any unknown URL to /home.
                   ProtectedRoute on /home will then redirect to /login if not authenticated. */}

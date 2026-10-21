@@ -90,6 +90,8 @@ export const DashboardPage = ({ mode, toggleMode }) => {
       navigate('/sales-summary');
     } else if (app.id === 6 || app.title === 'Customer Insights' || app.title === 'Customer Insight') {
       navigate('/customer-insights');
+    } else if (app.id === 15 || app.title === 'Contract Ledger' || app.title === 'AI Copilot') {
+      navigate('/contract-ledger');
     } else {
       setToast({ open: true, message: `Launching "${app.title}"...`, severity: 'success' });
     }
