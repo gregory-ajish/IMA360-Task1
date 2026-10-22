@@ -194,6 +194,7 @@ body {
 .handsontable:not(.htDropdownMenu):not(.htContextMenu) th:last-child,
 .handsontable:not(.htDropdownMenu):not(.htContextMenu) th:last-child .colHeader {
   text-align: center !important;
+  vertical-align: middle !important;
 }
 
 .handsontable:not(.htDropdownMenu):not(.htContextMenu) td.htCenter,
@@ -204,8 +205,23 @@ body {
 }
 
 .action-btn-group {
-  position: relative !important;
-  top: -12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  gap: 8px !important;
+  line-height: 1 !important;
+  position: static !important;
+  top: 0 !important;
+  margin: 0 auto !important;
+}
+
+.action-btn-group button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
 }
 
 /* ── Handsontable Filter Dropdown Menu Layout & Alignment Fixes ──────────────── */

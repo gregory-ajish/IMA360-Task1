@@ -36,7 +36,7 @@ import { AppDialog } from '../../common/AppDialog';
 import { AppButton } from '../../common/AppButton';
 
 // Default options for standard customer / ledger columns
-export const PLAN_TIERS = ['Enterprise', 'Growth', 'Scale', 'Starter'];
+export const PLAN_TIERS = ['Enterprise', 'Growth', 'Scale', 'Starter', 'Pro'];
 export const ENGAGEMENT_CHANNELS = [
   'Email',
   'In-App',

@@ -380,7 +380,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
       sx={{
         minHeight: '100vh',
         bgcolor: isDark ? blcColors.darkBg : blcColors.cream,
-        pb: 8,
+        pb: 4,
         transition: 'background-color 0.3s ease',
       }}
     >
@@ -393,14 +393,19 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
         onExternalLinkClick={() => {}}
       />
 
-      {/* ── Main Container ── */}
-      <Container maxWidth="xl" sx={{ mt: 3 }}>
+      {/* ── Main Container (Full Width) ── */}
+      <Container maxWidth={false} sx={{ mt: 3, px: { xs: 2, sm: 3, md: 4 } }}>
         {/* Top Breadcrumb Navigation */}
         <PageHeader
-          breadcrumb={`Edit #${rowIndex + 1}`}
+          breadcrumbItems={[
+            { label: 'Dashboard', to: '/home' },
+            { label: 'Customer Data', to: '/contract-ledger' },
+            { label: 'Edit' },
+          ]}
+          breadcrumb="Edit"
           backTo="/contract-ledger"
           backTooltip="Back to Contract Ledger"
-          parentLabel="Contract Ledger"
+          parentLabel="Customer Data"
           isDark={isDark}
         />
 
@@ -408,7 +413,8 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
         <Paper
           elevation={0}
           sx={{
-            p: 3,
+            py: headerOpen ? 2 : 1,
+            px: 3,
             mb: 3,
             borderRadius: '12px',
             bgcolor: isDark ? blcColors.darkCard : '#ffffff',
@@ -416,33 +422,107 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
             boxShadow: isDark
               ? '0 12px 48px rgba(0,0,0,0.5)'
               : '0 8px 32px rgba(30,58,138,0.08)',
+            transition: 'all 0.2s ease',
           }}
         >
           {/* Card Title & Collapse Icon */}
           <Box
+            onClick={() => setHeaderOpen(!headerOpen)}
             sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              mb: headerOpen ? 2 : 0,
+              cursor: 'pointer',
+              userSelect: 'none',
+              mb: headerOpen ? 1.5 : 0,
             }}
           >
-            <Typography
-              variant="h6"
+            <Box
               sx={{
-                fontFamily: typographyTokens.fontMono,
-                fontWeight: typographyTokens.weightBold,
-                color: isDark ? '#f1f5f9' : blcColors.navyAccent,
-                letterSpacing: '0.01em',
-                fontSize: '1.15rem',
+                display: 'flex',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: { xs: 1.5, sm: 3 },
               }}
             >
-              Header
-            </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontFamily: typographyTokens.fontMono,
+                  fontWeight: typographyTokens.weightBold,
+                  color: isDark ? '#f1f5f9' : blcColors.navyAccent,
+                  letterSpacing: '0.01em',
+                  fontSize: '1.15rem',
+                  lineHeight: 1.2,
+                }}
+              >
+                Header
+              </Typography>
+
+              {/* Collapsed summary inline list matching the mockup */}
+              {!headerOpen && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    columnGap: { xs: 2, sm: 3.5 },
+                    rowGap: 0.5,
+                  }}
+                >
+                  <Typography
+                    component="span"
+                    sx={{
+                      color: isDark ? '#94a3b8' : '#8892a4',
+                      fontSize: '0.92rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Name: <Box component="span" sx={{ color: isDark ? '#cbd5e1' : '#64748b', fontWeight: 500 }}>{companyName || '—'}</Box>
+                  </Typography>
+
+                  <Typography
+                    component="span"
+                    sx={{
+                      color: isDark ? '#94a3b8' : '#8892a4',
+                      fontSize: '0.92rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Revenue: <Box component="span" sx={{ color: isDark ? '#cbd5e1' : '#64748b', fontWeight: 500 }}>{annualArr !== undefined && annualArr !== '' ? annualArr : '—'}</Box>
+                  </Typography>
+
+                  <Typography
+                    component="span"
+                    sx={{
+                      color: isDark ? '#94a3b8' : '#8892a4',
+                      fontSize: '0.92rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Plan: <Box component="span" sx={{ color: isDark ? '#cbd5e1' : '#64748b', fontWeight: 500 }}>{planTier || '—'}</Box>
+                  </Typography>
+
+                  <Typography
+                    component="span"
+                    sx={{
+                      color: isDark ? '#94a3b8' : '#8892a4',
+                      fontSize: '0.92rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Renews: <Box component="span" sx={{ color: isDark ? '#cbd5e1' : '#64748b', fontWeight: 500 }}>{joinDate || '—'}</Box>
+                  </Typography>
+                </Box>
+              )}
+            </Box>
 
             <IconButton
               size="small"
-              onClick={() => setHeaderOpen(!headerOpen)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setHeaderOpen(!headerOpen);
+              }}
               sx={{
                 color: isDark ? '#94a3b8' : '#64748b',
                 transform: headerOpen ? 'rotate(180deg)' : 'none',
@@ -454,7 +534,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
           </Box>
 
           <Collapse in={headerOpen}>
-            <Divider sx={{ mb: 2.5, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
+            <Divider sx={{ mb: 2, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
 
             {/* Four inputs in ONE row stretching completely across horizontal space */}
             <Box
@@ -583,21 +663,26 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
         <Paper
           elevation={0}
           sx={{
-            p: 3,
+            p: detailsOpen ? 3 : 1.75,
+            px: 3,
             borderRadius: '12px',
             bgcolor: isDark ? blcColors.darkCard : '#ffffff',
             border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
             boxShadow: isDark
               ? '0 12px 48px rgba(0,0,0,0.5)'
               : '0 8px 32px rgba(30,58,138,0.08)',
+            transition: 'all 0.2s ease',
           }}
         >
           {/* Card Title & Collapse Icon */}
           <Box
+            onClick={() => setDetailsOpen(!detailsOpen)}
             sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              cursor: 'pointer',
+              userSelect: 'none',
               mb: detailsOpen ? 2 : 0,
             }}
           >
@@ -616,7 +701,10 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
 
             <IconButton
               size="small"
-              onClick={() => setDetailsOpen(!detailsOpen)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDetailsOpen(!detailsOpen);
+              }}
               sx={{
                 color: isDark ? '#94a3b8' : '#64748b',
                 transform: detailsOpen ? 'rotate(180deg)' : 'none',
@@ -655,14 +743,22 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
           </Collapse>
         </Paper>
 
-        {/* ── SAVE AND CANCEL BUTTONS (OUTSIDE THE CARDS AT BOTTOM RIGHT) ── */}
+        {/* ── STICKY SAVE AND CANCEL BUTTONS (FLOATING WITHOUT SEPARATE FOOTER BAR) ── */}
         <Box
           sx={{
+            position: 'sticky',
+            bottom: 24,
+            zIndex: 100,
             display: 'flex',
             justifyContent: 'flex-end',
             alignItems: 'center',
             gap: 1.5,
             mt: 3,
+            pb: 1,
+            pointerEvents: 'none',
+            '& > *': {
+              pointerEvents: 'auto',
+            },
           }}
         >
           <AppButton
@@ -671,9 +767,11 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
             startIcon={<SaveIcon />}
             sx={{
               px: 3.5,
-              py: 0.8,
+              py: 1,
               borderRadius: '8px',
               bgcolor: blcColors.navyAccent,
+              fontWeight: 600,
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
               '&:hover': { bgcolor: '#1d4ed8' },
             }}
           >
@@ -685,10 +783,15 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
             startIcon={<ResetIcon />}
             sx={{
               px: 3,
-              py: 0.8,
+              py: 1,
               borderRadius: '8px',
               border: `1px solid ${isDark ? blcColors.darkBorder : '#cbd5e1'}`,
               color: isDark ? '#e2e8f0' : '#475569',
+              bgcolor: isDark ? blcColors.darkCard : '#ffffff',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
+              '&:hover': {
+                bgcolor: isDark ? 'rgba(255,255,255,0.08)' : '#f8fafc',
+              },
             }}
           >
             Cancel

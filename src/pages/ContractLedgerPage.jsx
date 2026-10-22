@@ -81,14 +81,12 @@ const COLUMN_DEFS = [
     title: 'Plan Tier',
     type: 'dropdown',
     source: PLAN_TIERS,
-    width: 160,
     className: 'htCenter htMiddle',
   },
   {
     data: 1,
     title: 'Company Name',
     type: 'text',
-    width: 260,
     className: 'htCenter htMiddle',
   },
   {
@@ -96,7 +94,6 @@ const COLUMN_DEFS = [
     title: 'Annual ARR ($)',
     type: 'numeric',
     numericFormat: { pattern: '$0,0' },
-    width: 180,
     className: 'htCenter htMiddle',
   },
   {
@@ -105,7 +102,6 @@ const COLUMN_DEFS = [
     type: 'date',
     dateFormat: 'YYYY-MM-DD',
     correctFormat: true,
-    width: 160,
     className: 'htCenter htMiddle',
   },
   {
@@ -113,7 +109,6 @@ const COLUMN_DEFS = [
     renderer: actionButtonsRenderer,
     readOnly: true,
     className: 'htCenter htMiddle',
-    width: 140,
   },
 ];
 
@@ -243,8 +238,8 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
         onExternalLinkClick={() => {}}
       />
 
-      {/* ── Main Container ── */}
-      <Container maxWidth="xl" sx={{ mt: 3 }}>
+      {/* ── Main Container (Full Width) ── */}
+      <Container maxWidth={false} sx={{ mt: 3, px: { xs: 2, sm: 3, md: 4 } }}>
         {/* Top Header Card */}
         <PageHeader
           icon={<ContractLedgerIcon />}
@@ -273,9 +268,8 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
             totalRows={dataset.length}
             columns={COLUMN_DEFS}
             colHeaders={COL_HEADERS}
-            colWidths={[140, 220, 150, 140, 280, 140]}
-            rowHeights={46}
             rowHeaders={true}
+            rowHeights={30}
             height={580}
             width="100%"
             stretchH="all"
@@ -296,12 +290,18 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
             sx={{
               '& .handsontable td': {
                 verticalAlign: 'middle !important',
+                textAlign: 'center !important',
               },
               '& .handsontable th': {
                 verticalAlign: 'middle !important',
-              },
-              '& .handsontable td.htCenter, & .handsontable td.htNumeric.htCenter': {
                 textAlign: 'center !important',
+              },
+              '& .handsontable th .colHeader': {
+                textAlign: 'center !important',
+              },
+              '& .handsontable td.htCenter, & .handsontable td.htNumeric, & .handsontable td.htNumeric.htCenter, & .handsontable td.htAutocomplete, & .handsontable td.htDimmed': {
+                textAlign: 'center !important',
+                verticalAlign: 'middle !important',
               },
               '& .handsontable th:last-child': {
                 textAlign: 'center !important',
@@ -312,8 +312,12 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
                 padding: '0 !important',
               },
               '& .action-btn-group': {
-                position: 'relative !important',
-                top: '-12px !important',
+                display: 'inline-flex !important',
+                alignItems: 'center !important',
+                justifyContent: 'center !important',
+                verticalAlign: 'middle !important',
+                lineHeight: '1 !important',
+                margin: '0 auto !important',
               },
             }}
           />

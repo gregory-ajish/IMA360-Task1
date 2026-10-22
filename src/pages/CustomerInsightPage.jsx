@@ -214,8 +214,8 @@ export const CustomerInsightPage = ({ mode, toggleMode }) => {
         onExternalLinkClick={() => {}}
       />
 
-      {/* ── Main Container ── */}
-      <Container maxWidth="xl" sx={{ mt: 3 }}>
+      {/* ── Main Container (Full Width) ── */}
+      <Container maxWidth={false} sx={{ mt: 3, px: { xs: 2, sm: 3, md: 4 } }}>
         {/* Top Header Card — reusable PageHeader common component */}
         <PageHeader
           icon={<InsightsIcon />}

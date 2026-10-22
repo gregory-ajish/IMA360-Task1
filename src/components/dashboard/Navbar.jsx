@@ -69,8 +69,8 @@ export const Navbar = ({
         backdropFilter: isDark ? 'blur(8px)' : 'none', // Translucent blur in dark mode
       }}
     >
-      {/* Container ensures the navbar content aligns symmetrically with the dashboard grid */}
-      <Container maxWidth="xl">
+      {/* Container extends to full width with consistent horizontal padding */}
+      <Container maxWidth={false} sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
         {/* Toolbar: provides consistent horizontal alignment and vertical centering */}
         <Toolbar disableGutters sx={{ minHeight: 60 }}>
           

@@ -310,8 +310,8 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
         onExternalLinkClick={() => toast.info('Opening documentation...')}
       />
 
-      {/* ── Main Container ── */}
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
+      {/* ── Main Container (Full Width) ── */}
+      <Container maxWidth={false} sx={{ mt: 3, px: { xs: 2, sm: 3, md: 4 } }}>
         {/* Back navigation & Header bar */}
         <PageHeader
           icon={<TableChartIcon />}

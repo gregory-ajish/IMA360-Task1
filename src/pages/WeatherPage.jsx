@@ -215,8 +215,8 @@ export const WeatherPage = ({ mode, toggleMode }) => {
         }}
       />
 
-      {/* Main Container */}
-      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 1.5, maxWidth: 1400, mx: 'auto' }}>
+      {/* Main Container (Full Width) */}
+      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 1.5, width: '100%', boxSizing: 'border-box' }}>
         
         {/* Reusable PageHeader Component */}
         <PageHeader
