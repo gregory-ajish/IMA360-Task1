@@ -46,7 +46,7 @@ export const actionButtonsRenderer = (_instance, td) => {
       align-items:center;
       justify-content:center;
       vertical-align:middle;
-      gap:8px;
+      gap:6px;
       line-height:1;
       box-sizing:border-box;
       margin:0 auto;
@@ -62,21 +62,21 @@ export const actionButtonsRenderer = (_instance, td) => {
           cursor:pointer;
           padding:0;
           margin:0;
-          width:20px;
-          height:20px;
+          width:15px;
+          height:15px;
           display:inline-flex;
           align-items:center;
           justify-content:center;
           vertical-align:middle;
           line-height:1;
           color:#ef4444;
-          border-radius:4px;
+          border-radius:3px;
           transition:background 0.15s ease;
         "
         onmouseover="this.style.background='rgba(239,68,68,0.15)'"
         onmouseout="this.style.background='transparent'"
       >
-        <svg style="width:15px;height:15px;display:block;pointer-events:none;" viewBox="0 0 24 24" fill="currentColor">
+        <svg style="width:12px;height:12px;display:block;pointer-events:none;" viewBox="0 0 24 24" fill="currentColor">
           <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
         </svg>
       </button>
@@ -90,21 +90,21 @@ export const actionButtonsRenderer = (_instance, td) => {
           cursor:pointer;
           padding:0;
           margin:0;
-          width:20px;
-          height:20px;
+          width:15px;
+          height:15px;
           display:inline-flex;
           align-items:center;
           justify-content:center;
           vertical-align:middle;
           line-height:1;
           color:#0284c7;
-          border-radius:4px;
+          border-radius:3px;
           transition:background 0.15s ease;
         "
         onmouseover="this.style.background='rgba(2,132,199,0.15)'"
         onmouseout="this.style.background='transparent'"
       >
-        <svg style="width:15px;height:15px;display:block;pointer-events:none;" viewBox="0 0 24 24" fill="currentColor">
+        <svg style="width:12px;height:12px;display:block;pointer-events:none;" viewBox="0 0 24 24" fill="currentColor">
           <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
         </svg>
       </button>
@@ -118,21 +118,21 @@ export const actionButtonsRenderer = (_instance, td) => {
           cursor:pointer;
           padding:0;
           margin:0;
-          width:20px;
-          height:20px;
+          width:15px;
+          height:15px;
           display:inline-flex;
           align-items:center;
           justify-content:center;
           vertical-align:middle;
           line-height:1;
           color:#0d9488;
-          border-radius:4px;
+          border-radius:3px;
           transition:background 0.15s ease;
         "
         onmouseover="this.style.background='rgba(13,148,136,0.15)'"
         onmouseout="this.style.background='transparent'"
       >
-        <svg style="width:15px;height:15px;display:block;pointer-events:none;" viewBox="0 0 24 24" fill="currentColor">
+        <svg style="width:12px;height:12px;display:block;pointer-events:none;" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
         </svg>
       </button>
@@ -142,7 +142,7 @@ export const actionButtonsRenderer = (_instance, td) => {
   td.style.textAlign = 'center';
   td.style.verticalAlign = 'middle';
   td.style.padding = '0';
-  td.style.lineHeight = 'normal';
+  td.style.lineHeight = '1';
   return td;
 };
 

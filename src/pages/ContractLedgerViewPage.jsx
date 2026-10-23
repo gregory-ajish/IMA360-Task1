@@ -242,7 +242,8 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
         <Paper
           elevation={0}
           sx={{
-            py: headerOpen ? 2 : 1,
+            pt: headerOpen ? 1.25 : 1,
+            pb: headerOpen ? 2 : 1,
             px: 3,
             mb: 3,
             borderRadius: '12px',
@@ -263,7 +264,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               justifyContent: 'space-between',
               cursor: 'pointer',
               userSelect: 'none',
-              mb: headerOpen ? 1.5 : 0,
+              mb: headerOpen ? 1 : 0,
             }}
           >
             <Box
@@ -363,7 +364,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
           </Box>
 
           <Collapse in={headerOpen}>
-            <Divider sx={{ mb: 2, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
+            <Divider sx={{ mb: 1.25, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
 
             {/* Four Read-Only Inputs in ONE row stretching completely across horizontal space */}
             <Box
@@ -482,7 +483,8 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
         <Paper
           elevation={0}
           sx={{
-            p: detailsOpen ? 3 : 1.75,
+            pt: detailsOpen ? 1.25 : 1,
+            pb: detailsOpen ? 2.5 : 1.75,
             px: 3,
             borderRadius: '12px',
             bgcolor: isDark ? blcColors.darkCard : '#ffffff',
@@ -502,7 +504,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               justifyContent: 'space-between',
               cursor: 'pointer',
               userSelect: 'none',
-              mb: detailsOpen ? 2 : 0,
+              mb: detailsOpen ? 1 : 0,
             }}
           >
             <Typography
@@ -535,7 +537,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
           </Box>
 
           <Collapse in={detailsOpen}>
-            <Divider sx={{ mb: 2.5, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
+            <Divider sx={{ mb: 1.25, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
 
             {/* Read-Only Handsontable: Cells cannot be edited */}
             <DataTable

@@ -130,7 +130,8 @@ body {
 .htDropdownMenu,
 .htFiltersConditionsMenu,
 .htContextMenu,
-.htAutocomplete,
+.handsontable.autocompleteEditor,
+.handsontable.htAutocomplete:not(td),
 .pika-single {
   z-index: 99999 !important;
 }
