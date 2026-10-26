@@ -90,6 +90,8 @@ export const DashboardPage = ({ mode, toggleMode }) => {
       navigate('/sales-summary');
     } else if (app.id === 6 || app.title === 'Customer Insights' || app.title === 'Customer Insight') {
       navigate('/customer-insights');
+    } else if (app.id === 15 || app.title === 'Contract Ledger' || app.title === 'AI Copilot') {
+      navigate('/contract-ledger');
     } else {
       setToast({ open: true, message: `Launching "${app.title}"...`, severity: 'success' });
     }
@@ -147,8 +149,8 @@ export const DashboardPage = ({ mode, toggleMode }) => {
         onExternalLinkClick={() => setToast({ open: true, message: 'Opening documentation...', severity: 'info' })}
       />
 
-      {/* ── Main Page Content ── */}
-      <Container maxWidth="xl" sx={{ mt: 2.5 }}>
+      {/* ── Main Page Content (Full Width) ── */}
+      <Container maxWidth={false} sx={{ mt: 2.5, px: { xs: 2, sm: 3, md: 4 } }}>
 
         {/* ── Header Controls Row: Welcome Message (Left) + Centered Search Bar ── */}
         <Box
