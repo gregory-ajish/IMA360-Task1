@@ -29,14 +29,14 @@ import {
   ListItemText,
 } from '@mui/material';
 import { toast } from 'react-toastify';
-import { BulkUpdateIcon } from '../../icons';
+import { BulkUpdateIcon } from '../../../icons';
 
-import { blcColors } from '../../theme';
-import { AppDialog } from '../common/AppDialog';
-import { AppButton } from '../common/AppButton';
+import { blcColors } from '../../../theme';
+import { AppDialog } from '../../common/AppDialog';
+import { AppButton } from '../../common/AppButton';
 
 // Default options for standard customer / ledger columns
-export const PLAN_TIERS = ['Enterprise', 'Growth', 'Scale', 'Starter'];
+export const PLAN_TIERS = ['Enterprise', 'Growth', 'Scale', 'Starter', 'Pro'];
 export const ENGAGEMENT_CHANNELS = [
   'Email',
   'In-App',

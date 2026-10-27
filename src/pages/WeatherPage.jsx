@@ -16,8 +16,6 @@ import {
   Paper,
   Typography,
   IconButton,
-  Breadcrumbs,
-  Link,
   TextField,
   Grid,
   Select,
@@ -28,7 +26,6 @@ import {
 
 // Centralized App Icons
 import {
-  ArrowBackIcon,
   SearchIcon,
   RefreshIcon,
   ThermostatIcon,
@@ -36,6 +33,7 @@ import {
   WindIcon,
   RainIcon,
   CalendarIcon,
+  CloudIcon,
 } from '../icons';
 
 // Theme tokens & Context
@@ -45,6 +43,7 @@ import { useAuth } from '../context/AuthContext';
 // Common Components
 import { Navbar } from '../components/dashboard/Navbar';
 import { AppButton } from '../components/common/AppButton';
+import { PageHeader } from '../components/common/PageHeader';
 
 // Redux Actions & Thunks
 import { fetchWeatherThunk } from '../store/weatherActions';
@@ -156,6 +155,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
           toast.info('API key is activating. Displaying demo data.', { toastId: 'demo-fallback' });
         }
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle Search submit
@@ -215,101 +215,64 @@ export const WeatherPage = ({ mode, toggleMode }) => {
         }}
       />
 
-      {/* Main Container */}
-      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 1.5, maxWidth: 1400, mx: 'auto' }}>
+      {/* Main Container (Full Width) */}
+      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 1.5, width: '100%', boxSizing: 'border-box' }}>
         
-        {/* Compact Header Bar: Navigation & Units Toggle Dropdown */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: 1.5,
-          }}
-        >
-          {/* Breadcrumbs & Back Button */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton
-              onClick={() => navigate('/home')}
-              sx={{
-                bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
-                color: isDark ? '#e2e8f0' : '#374151',
-                p: 0.5,
-              }}
-              size="small"
-              aria-label="Back to dashboard"
-            >
-              <ArrowBackIcon fontSize="small" />
-            </IconButton>
-
-            <Breadcrumbs
-              separator="/"
-              sx={{
-                fontSize: '0.82rem',
-                fontFamily: '"Inter", sans-serif',
-                '& .MuiBreadcrumbs-separator': { color: isDark ? '#64748b' : '#9ca3af' },
-              }}
-            >
-              <Link
-                underline="hover"
-                color="inherit"
-                onClick={() => navigate('/home')}
-                sx={{ cursor: 'pointer', color: isDark ? '#94a3b8' : '#6b7280' }}
-              >
-                Dashboard
-              </Link>
-              <Typography
+        {/* Reusable PageHeader Component */}
+        <PageHeader
+          icon={<CloudIcon />}
+          title="Weather Forecast"
+          breadcrumb="Weather"
+          isDark={isDark}
+          backTo="/home"
+          backTooltip="Back to Dashboard"
+          actions={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconButton
+                onClick={() => dispatch(fetchWeatherThunk({ city, unit }))}
+                disabled={loading}
                 sx={{
-                  color: isDark ? '#e2e8f0' : '#111827',
-                  fontWeight: 600,
-                  fontSize: '0.82rem',
-                }}
-              >
-                Weather
-              </Typography>
-            </Breadcrumbs>
-          </Box>
-
-          {/* Refresh Button & Units Dropdown */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton
-              onClick={() => dispatch(fetchWeatherThunk({ city, unit }))}
-              disabled={loading}
-              sx={{
-                bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
-                color: isDark ? '#e2e8f0' : '#374151',
-                p: 0.5,
-              }}
-              size="small"
-            >
-              <RefreshIcon fontSize="small" sx={{ animation: loading ? 'spin 1s linear infinite' : 'none', fontSize: 16 }} />
-            </IconButton>
-
-            {/* Units Selector Dropdown */}
-            <FormControl size="small">
-              <Select
-                value={unit}
-                onChange={handleUnitChange}
-                sx={{
-                  height: 32,
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
                   bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
-                  color: isDark ? '#f8fafc' : '#1e293b',
-                  borderRadius: '8px',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#cbd5e1'}`,
-                  '& .MuiSelect-select': { py: 0.5, px: 1.5 },
-                  '& fieldset': { border: 'none' },
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
+                  color: isDark ? '#e2e8f0' : '#374151',
+                  p: 0.75,
                 }}
+                size="small"
+                aria-label="Refresh weather data"
               >
-                <MenuItem value="metric" sx={{ fontSize: '0.78rem' }}>Units: °C</MenuItem>
-                <MenuItem value="imperial" sx={{ fontSize: '0.78rem' }}>Units: °F</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-        </Box>
+                <RefreshIcon
+                  fontSize="small"
+                  sx={{
+                    animation: loading ? 'spin 1s linear infinite' : 'none',
+                    fontSize: 18,
+                  }}
+                />
+              </IconButton>
+
+              {/* Units Selector Dropdown */}
+              <FormControl size="small">
+                <Select
+                  value={unit}
+                  onChange={handleUnitChange}
+                  sx={{
+                    height: 36,
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                    color: isDark ? '#f8fafc' : '#1e293b',
+                    borderRadius: '8px',
+                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#cbd5e1'}`,
+                    '& .MuiSelect-select': { py: 0.5, px: 1.5 },
+                    '& fieldset': { border: 'none' },
+                  }}
+                >
+                  <MenuItem value="metric" sx={{ fontSize: '0.82rem' }}>Units: °C</MenuItem>
+                  <MenuItem value="imperial" sx={{ fontSize: '0.82rem' }}>Units: °F</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          }
+        />
 
         {/* Compact Search Section */}
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
