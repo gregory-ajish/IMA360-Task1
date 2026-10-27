@@ -12,7 +12,7 @@
 //     3. Action Bar   — "Back to Ledger" and "Edit Record" buttons placed outside cards.
 // ============================================================================
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 // Material-UI layout and UI components
@@ -22,10 +22,6 @@ import {
   Paper,
   Typography,
   TextField,
-  FormControl,
-  Select,
-  MenuItem,
-  Grid,
   Divider,
   IconButton,
   Collapse,
@@ -36,10 +32,6 @@ import {
   KeyboardArrowDownIcon,
 } from '../icons';
 
-// Handsontable registry and core styling
-import { registerAllModules } from 'handsontable/registry';
-import 'handsontable/styles/handsontable.min.css';
-import 'handsontable/styles/ht-theme-main.min.css';
 
 // Theme tokens & Context
 import { blcColors, typographyTokens } from '../theme';
@@ -56,8 +48,6 @@ import {
   INITIAL_CONTRACT_LEDGER_DATA,
 } from './ContractLedgerPage';
 
-// Register all Handsontable modules
-registerAllModules();
 
 // ─── Details Card Handsontable Column Definitions (All 7 Read-Only) ─────────
 const DETAILS_VIEW_COLUMNS = [
@@ -264,7 +254,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               justifyContent: 'space-between',
               cursor: 'pointer',
               userSelect: 'none',
-              mb: headerOpen ? 1 : 0,
+              mb: headerOpen ? 0.25 : 0,
             }}
           >
             <Box
@@ -354,6 +344,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                 setHeaderOpen(!headerOpen);
               }}
               sx={{
+                p: 0.25,
                 color: isDark ? '#94a3b8' : '#64748b',
                 transform: headerOpen ? 'rotate(180deg)' : 'none',
                 transition: 'transform 0.2s ease',
@@ -366,7 +357,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
           <Collapse in={headerOpen}>
             <Divider sx={{ mb: 1.25, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
 
-            {/* Four Read-Only Inputs in ONE row stretching completely across horizontal space */}
+            {/* Four Read-Only Inputs in ONE row with equal width across horizontal space */}
             <Box
               sx={{
                 display: 'flex',
@@ -377,7 +368,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               }}
             >
               {/* 1. Plan Tier (Read-Only) */}
-              <Box sx={{ width: { xs: '100%', md: '180px' }, flexShrink: 0 }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -393,7 +384,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                   size="small"
                   fullWidth
                   value={planTier}
-                  InputProps={{ readOnly: true }}
+                  slotProps={{ input: { readOnly: true } }}
                   sx={{
                     bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
                     '& .MuiOutlinedInput-root': { borderRadius: '8px' },
@@ -402,7 +393,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               </Box>
 
               {/* 2. Annual ARR ($) (Read-Only) */}
-              <Box sx={{ width: { xs: '100%', md: '210px' }, flexShrink: 0 }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -418,7 +409,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                   size="small"
                   fullWidth
                   value={annualArr}
-                  InputProps={{ readOnly: true }}
+                  slotProps={{ input: { readOnly: true } }}
                   sx={{
                     bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
                     '& .MuiOutlinedInput-root': { borderRadius: '8px' },
@@ -427,7 +418,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               </Box>
 
               {/* 3. Company Name (Read-Only) */}
-              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' } }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -443,7 +434,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                   size="small"
                   fullWidth
                   value={companyName}
-                  InputProps={{ readOnly: true }}
+                  slotProps={{ input: { readOnly: true } }}
                   sx={{
                     bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
                     '& .MuiOutlinedInput-root': { borderRadius: '8px' },
@@ -452,7 +443,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               </Box>
 
               {/* 4. Join Date (Read-Only) */}
-              <Box sx={{ width: { xs: '100%', md: '220px' }, flexShrink: 0 }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -468,7 +459,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                   size="small"
                   fullWidth
                   value={joinDate}
-                  InputProps={{ readOnly: true }}
+                  slotProps={{ input: { readOnly: true } }}
                   sx={{
                     bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
                     '& .MuiOutlinedInput-root': { borderRadius: '8px' },
@@ -504,7 +495,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               justifyContent: 'space-between',
               cursor: 'pointer',
               userSelect: 'none',
-              mb: detailsOpen ? 1 : 0,
+              mb: detailsOpen ? 0.25 : 0,
             }}
           >
             <Typography
@@ -527,6 +518,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                 setDetailsOpen(!detailsOpen);
               }}
               sx={{
+                p: 0.25,
                 color: isDark ? '#94a3b8' : '#64748b',
                 transform: detailsOpen ? 'rotate(180deg)' : 'none',
                 transition: 'transform 0.2s ease',
@@ -539,7 +531,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
           <Collapse in={detailsOpen}>
             <Divider sx={{ mb: 1.25, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
 
-            {/* Read-Only Handsontable: Cells cannot be edited */}
+            {/* Read-Only Handsontable */}
             <DataTable
               ref={detailsHotRef}
               dataset={detailsData}

@@ -20,6 +20,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
 
 // Centralized App Icons
 import {
@@ -27,6 +28,9 @@ import {
   ViewsIcon,
   SavedViewsIcon,
   ViewColumnIcon,
+  DeleteIcon,
+  VisibilityIcon,
+  EditNoteIcon,
 } from '../icons';
 
 // Redux views actions
@@ -35,19 +39,14 @@ import { saveView, setActiveView } from '../store/viewsReducer';
 // Toast notifications
 import { toast } from 'react-toastify';
 
-// Handsontable registry and core styling
-import { registerAllModules } from 'handsontable/registry';
-import 'handsontable/styles/handsontable.min.css';
-import 'handsontable/styles/ht-theme-main.min.css';
 
 // Theme tokens & Context
-import { blcColors } from '../theme';
+import { blcColors, typographyTokens } from '../theme';
 import { useAuth } from '../context/AuthContext';
 
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
-import { DataTable, actionButtonsRenderer } from '../components/dataTable';
 import { Delete } from '../components/dataTable/delete';
 
 // View Management Modals
@@ -63,8 +62,6 @@ import {
 } from '../components/dataTable/bulkUpdater/BulkUpdater';
 import { INITIAL_CUSTOMER_INSIGHTS } from './CustomerInsightPage';
 
-// Register all Handsontable modules
-registerAllModules();
 
 // Handsontable dropdown menu filter options
 const DROPDOWN_MENU_OPTIONS = [
@@ -186,37 +183,8 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
     return [];
   });
 
-  // Dynamically constructed columns with Action column at the end
-  const columns = useMemo(() => {
-    const baseCols = visibleColumns.map((col) => {
-      const colDef = {
-        data: col.dataIndex,
-        title: col.label,
-        type: col.type || 'text',
-        className: col.className || 'htCenter htMiddle',
-      };
-      if (col.source) colDef.source = col.source;
-      if (col.numericFormat) colDef.numericFormat = col.numericFormat;
-      if (col.dateFormat) colDef.dateFormat = col.dateFormat;
-      if (col.correctFormat !== undefined) colDef.correctFormat = col.correctFormat;
-      return colDef;
-    });
-
-    baseCols.push({
-      title: 'Action',
-      renderer: actionButtonsRenderer,
-      readOnly: true,
-      className: 'htCenter htMiddle',
-    });
-
-    return baseCols;
-  }, [visibleColumns]);
-
-  const colHeaders = useMemo(() => {
-    const headers = visibleColumns.map((col) => col.label);
-    headers.push('Action');
-    return headers;
-  }, [visibleColumns]);
+  // Columns configuration for BulkUpdater
+  const columns = visibleColumns;
 
   // View management handlers
   const handleColumnsChange = (newVisible, newHidden) => {
@@ -268,6 +236,8 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
 
     setDataset((prev) => {
       const next = prev.map((row) => {
+        const isBlank = !row || row.every((c) => c === null || c === undefined || String(c).trim() === '');
+        if (isBlank) return row;
         const newRow = [...row];
         updates.forEach(({ colIndex, val }) => {
           newRow[colIndex] = val;
@@ -323,6 +293,158 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
   const handleRequestView = (rowIndex) => {
     navigate(`/contract-ledger/view/${rowIndex + 1}`);
   };
+
+  // ─── Data Adapter: Convert 2D dataset to MUI DataGrid row objects ─────────
+  const rows = useMemo(() => {
+    if (!Array.isArray(dataset)) return [];
+    return dataset.map((row, index) => ({
+      id: index + 1,
+      rawIndex: index,
+      planTier: row[0] || 'Enterprise',
+      companyName: row[1] || '',
+      annualArr: row[2] !== undefined && row[2] !== null ? Number(row[2]) : 0,
+      joinDate: row[3] || '',
+    }));
+  }, [dataset]);
+
+  // ─── Non-Editable DataGrid Column Definitions ──────────────────────────────
+  const gridColumns = useMemo(() => {
+    const allDefs = [
+      {
+        field: 'planTier',
+        headerName: 'Plan Tier',
+        flex: 1,
+        minWidth: 130,
+        headerAlign: 'center',
+        align: 'center',
+        editable: false,
+        valueGetter: (value, row) => value || (row && row.planTier) || 'Enterprise',
+      },
+      {
+        field: 'companyName',
+        headerName: 'Company Name',
+        flex: 1.5,
+        minWidth: 200,
+        headerAlign: 'center',
+        align: 'center',
+        editable: false,
+      },
+      {
+        field: 'annualArr',
+        headerName: 'Annual ARR ($)',
+        flex: 1.2,
+        minWidth: 150,
+        headerAlign: 'center',
+        align: 'center',
+        editable: false,
+        valueFormatter: (value) => {
+          const v = value && typeof value === 'object' && 'value' in value ? value.value : value;
+          if (v === undefined || v === null || v === '') return '$0';
+          return `$${Number(v).toLocaleString()}`;
+        },
+      },
+      {
+        field: 'joinDate',
+        headerName: 'Join Date',
+        flex: 1.2,
+        minWidth: 140,
+        headerAlign: 'center',
+        align: 'center',
+        editable: false,
+      },
+    ];
+
+    // Filter to only columns that are in visibleColumns (controlled by View Management)
+    const visibleFieldMap = new Set(visibleColumns.map((c) => c.id));
+    const activeCols = allDefs.filter((col) => visibleFieldMap.has(col.field));
+
+    // Append non-editable Action Column containing Delete, Edit, and View buttons
+    activeCols.push({
+      field: 'actions',
+      headerName: 'Action',
+      width: 140,
+      headerAlign: 'center',
+      align: 'center',
+      sortable: false,
+      filterable: false,
+      editable: false,
+      renderCell: (params) => {
+        const rowIndex = params.row.rawIndex;
+        return (
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 0.75,
+            }}
+          >
+            {/* 1. Delete Button */}
+            <Tooltip title="Delete row" arrow placement="top">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRequestDelete(rowIndex, dataset[rowIndex]);
+                }}
+                sx={{
+                  color: '#ef4444',
+                  p: 0.5,
+                  borderRadius: '6px',
+                  transition: 'background-color 0.15s ease',
+                  '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.15)' },
+                }}
+              >
+                <DeleteIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+
+            {/* 2. Edit Button (Navigates to /contract-ledger/edit/:rowId) */}
+            <Tooltip title="Edit record" arrow placement="top">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRequestEdit(rowIndex);
+                }}
+                sx={{
+                  color: '#3b82f6',
+                  p: 0.5,
+                  borderRadius: '6px',
+                  transition: 'background-color 0.15s ease',
+                  '&:hover': { bgcolor: 'rgba(59, 130, 246, 0.15)' },
+                }}
+              >
+                <EditNoteIcon sx={{ fontSize: 19 }} />
+              </IconButton>
+            </Tooltip>
+
+            {/* 3. View Button (Navigates to /contract-ledger/view/:rowId) */}
+            <Tooltip title="View record" arrow placement="top">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRequestView(rowIndex);
+                }}
+                sx={{
+                  color: '#10b981',
+                  p: 0.5,
+                  borderRadius: '6px',
+                  transition: 'background-color 0.15s ease',
+                  '&:hover': { bgcolor: 'rgba(16, 185, 129, 0.15)' },
+                }}
+              >
+                <VisibilityIcon sx={{ fontSize: 17 }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        );
+      },
+    });
+
+    return activeCols;
+  }, [visibleColumns, isDark, dataset]);
 
   // Logout handler
   const handleLogout = () => {
@@ -486,76 +608,55 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
             </Tooltip>
           </Box>
 
-          {/* Reusable Global DataTable Component backed by Web Worker */}
-          <DataTable
-            ref={hotRef}
-            dataset={dataset}
-            totalRows={dataset.length}
-            columns={columns}
-            colHeaders={colHeaders}
-            visibleColumnsList={visibleColumns}
-            rowHeaders={true}
-            rowHeights={20}
-            height={580}
-            width="100%"
-            stretchH="all"
-            batchSize={50}
-            renderAllRows={true}
-            useWorker={true}
-            columnSorting={true}
-            filters={true}
-            dropdownMenu={DROPDOWN_MENU_OPTIONS}
-            manualColumnResize={true}
-            manualRowResize={true}
-            autoWrapRow={true}
-            autoWrapCol={true}
-            outsideClickDeselects={false}
-            selectionMode="multiple"
-            afterSelectionEnd={handleAfterSelectionEnd}
-            isDark={isDark}
-            isAdmin={isAdmin}
-            licenseKey="non-commercial-and-evaluation"
-            onCellClick={handleCellClick}
+          {/* Non-Editable MUI X Data Grid Component */}
+          <Box
             sx={{
-              '& .handsontable td.area, & .handsontable td.current': {
-                backgroundColor: isDark
-                  ? 'rgba(59, 130, 246, 0.18) !important'
-                  : 'rgba(30, 58, 138, 0.10) !important',
+              height: 580,
+              width: '100%',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              bgcolor: isDark ? blcColors.darkCard : '#ffffff',
+              border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
+              boxShadow: isDark
+                ? '0 12px 40px rgba(0,0,0,0.5)'
+                : '0 8px 24px rgba(30,58,138,0.06)',
+              '& .MuiDataGrid-root': {
+                border: 'none',
+                fontFamily: typographyTokens.fontSans,
+                fontSize: '0.875rem',
+                color: isDark ? '#f1f5f9' : blcColors.textDark,
               },
-              '& .handsontable td': {
-                verticalAlign: 'middle !important',
-                textAlign: 'center !important',
-                zIndex: 'auto !important',
+              '& .MuiDataGrid-columnHeaders': {
+                bgcolor: isDark ? '#1e293b' : '#f8fafc',
+                borderBottom: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
+                color: isDark ? '#94a3b8' : '#475569',
+                fontWeight: typographyTokens.weightBold,
               },
-              '& .handsontable th': {
-                verticalAlign: 'middle !important',
-                textAlign: 'center !important',
+              '& .MuiDataGrid-columnHeaderTitle': {
+                fontWeight: typographyTokens.weightBold,
+                fontSize: '0.85rem',
               },
-              '& .handsontable th .colHeader': {
-                textAlign: 'center !important',
+              '& .MuiDataGrid-cell': {
+                borderBottom: `1px solid ${isDark ? 'rgba(51, 65, 85, 0.35)' : '#f1f5f9'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                outline: 'none !important',
               },
-              '& .handsontable td.htCenter, & .handsontable td.htNumeric, & .handsontable td.htNumeric.htCenter, & .handsontable td.htAutocomplete, & .handsontable td.htDimmed': {
-                textAlign: 'center !important',
-                verticalAlign: 'middle !important',
-              },
-              '& .handsontable th:last-child': {
-                textAlign: 'center !important',
-              },
-              '& .handsontable td:last-child': {
-                textAlign: 'center !important',
-                verticalAlign: 'middle !important',
-                padding: '0 !important',
-              },
-              '& .action-btn-group': {
-                display: 'inline-flex !important',
-                alignItems: 'center !important',
-                justifyContent: 'center !important',
-                verticalAlign: 'middle !important',
-                lineHeight: '1 !important',
-                margin: '0 auto !important',
+              '& .MuiDataGrid-row:hover': {
+                bgcolor: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
               },
             }}
-          />
+          >
+            <DataGrid
+              rows={rows}
+              columns={gridColumns}
+              isCellEditable={() => false}
+              disableRowSelectionOnClick
+              rowHeight={46}
+              hideFooter
+            />
+          </Box>
         </Paper>
       </Container>
 

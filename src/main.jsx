@@ -16,6 +16,14 @@ import { createRoot } from 'react-dom/client'
 // Must be imported here so it applies to the entire app from the very start.
 import './index.css'
 
+// Handsontable global styles and module registry
+import 'handsontable/styles/handsontable.min.css'
+import 'handsontable/styles/ht-theme-main.min.css'
+import { registerAllModules } from 'handsontable/registry'
+
+// Register all Handsontable modules once globally at app startup
+registerAllModules()
+
 // react-toastify: CSS must be imported once at the root so toast styles load globally
 import 'react-toastify/dist/ReactToastify.css'
 import { ToastContainer } from 'react-toastify'

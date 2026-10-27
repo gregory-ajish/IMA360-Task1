@@ -46,7 +46,6 @@ import {
   UserIcon,
   LockIcon,
   MailIcon,
-  CloseIcon,
 } from '../icons';
 
 import { useAuth } from '../context/AuthContext'; // login() function from auth context
@@ -145,7 +144,6 @@ export const LoginPage = ({ mode, toggleMode }) => {
   const {
     control,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema), // Run Yup validation on submit

@@ -3,7 +3,7 @@
 // Any component in the app can call useAuth() to get the logged-in user,
 // check if authenticated, or call login/logout — without passing props manually.
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 // Import local user data (no backend — credentials are stored in a JSON file)
 import usersData from '../data/users.json';
@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
   });
 
   // loading is false immediately because session is restored synchronously
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   // ─── Login Handler ────────────────────────────────────────────────────────
   // Called from the Login page with the user's input.
