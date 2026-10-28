@@ -91,6 +91,10 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('auth_user');
     localStorage.removeItem('remember_me');
     sessionStorage.removeItem('auth_user');
+
+    // Clear ledger dataset cache on logout so fresh login always restores initial seed data
+    localStorage.removeItem('contract_ledger_dataset');
+    localStorage.removeItem('ai_copilot_dataset');
   };
 
   // ─── Context Value ────────────────────────────────────────────────────────

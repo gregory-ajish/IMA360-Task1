@@ -97,6 +97,7 @@ export const Delete = forwardRef(function Delete(
   {
     hotRef,
     dataset = [],
+    selectedRowIndices = [],
     onDelete,
     itemLabel = 'row',
     title,
@@ -171,25 +172,31 @@ export const Delete = forwardRef(function Delete(
 
   // Trigger for selected rows in table (from toolbar button or programmatic)
   const requestDeleteSelected = useCallback(() => {
-    const hot = hotRef?.current?.hotInstance;
-    let sortedRows = extractSelectedRowIndices(hot, rowCount, lastSelectedRowsRef.current);
+    let sortedRows = [];
 
-    if (sortedRows.length === 0 && hot?.getSelected) {
-      const sel = hot.getSelected();
-      if (sel) {
-        sortedRows = extractSelectedRowIndices(hot, rowCount);
+    if (Array.isArray(selectedRowIndices) && selectedRowIndices.length > 0) {
+      sortedRows = [...selectedRowIndices].sort((a, b) => a - b);
+    } else {
+      const hot = hotRef?.current?.hotInstance;
+      sortedRows = extractSelectedRowIndices(hot, rowCount, lastSelectedRowsRef.current);
+
+      if (sortedRows.length === 0 && hot?.getSelected) {
+        const sel = hot.getSelected();
+        if (sel) {
+          sortedRows = extractSelectedRowIndices(hot, rowCount);
+        }
       }
     }
 
     if (sortedRows.length === 0) {
-      toast.info('Please select rows or cells in the table to delete.');
+      toast.info(`Please select ${itemLabel.endsWith('s') ? itemLabel : `${itemLabel}s`} in the table to delete.`);
       return;
     }
 
     setRowToDelete(null);
     setRowsToDelete(sortedRows);
     setOpen(true);
-  }, [hotRef, rowCount]);
+  }, [hotRef, rowCount, selectedRowIndices, itemLabel]);
 
   const cancelDelete = useCallback(() => {
     setOpen(false);
@@ -246,6 +253,9 @@ export const Delete = forwardRef(function Delete(
       confirmDelete,
       handleAfterSelectionEnd,
       getSelectedRowIndices: () => {
+        if (Array.isArray(selectedRowIndices) && selectedRowIndices.length > 0) {
+          return [...selectedRowIndices].sort((a, b) => a - b);
+        }
         const hot = hotRef?.current?.hotInstance;
         return extractSelectedRowIndices(hot, rowCount, lastSelectedRowsRef.current);
       },
@@ -258,6 +268,7 @@ export const Delete = forwardRef(function Delete(
       handleAfterSelectionEnd,
       hotRef,
       rowCount,
+      selectedRowIndices,
     ]
   );
 
@@ -339,6 +350,7 @@ export const Delete = forwardRef(function Delete(
 Delete.propTypes = {
   hotRef: PropTypes.shape({ current: PropTypes.any }),
   dataset: PropTypes.array,
+  selectedRowIndices: PropTypes.arrayOf(PropTypes.number),
   onDelete: PropTypes.func.isRequired,
   itemLabel: PropTypes.string,
   title: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),

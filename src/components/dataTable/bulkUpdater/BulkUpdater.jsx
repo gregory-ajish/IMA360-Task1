@@ -63,6 +63,7 @@ export const normalizeColumns = (rawCols = []) => {
   return rawCols.map((col, idx) => {
     const key =
       col.key ??
+      col.id ??
       (typeof col.data === 'number' ? `col_${col.data}` : col.data) ??
       `col_${idx}`;
     const label = col.label ?? col.title ?? col.header ?? `Column ${idx + 1}`;
@@ -72,6 +73,8 @@ export const normalizeColumns = (rawCols = []) => {
     const index =
       typeof col.index === 'number'
         ? col.index
+        : typeof col.dataIndex === 'number'
+        ? col.dataIndex
         : typeof col.data === 'number'
         ? col.data
         : idx;
