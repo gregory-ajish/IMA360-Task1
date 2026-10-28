@@ -5,3 +5,4 @@ export { deleteButtonRenderer, actionButtonsRenderer } from './renderers';
 export { Delete, DeleteMechanism } from './delete';
 export { BulkUpdater } from './bulkUpdater/BulkUpdater';
 export { SaveViewModal, SavedViewsModal, ViewManagementModal } from './viewManagement';
+export { AppDataGrid, CommonDataGrid } from './AppDataGrid';

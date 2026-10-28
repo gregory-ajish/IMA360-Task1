@@ -26,7 +26,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
+import { AppDataGrid } from '../components/dataTable';
 
 // Centralized App Icons
 import {
@@ -694,72 +694,16 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
             </Tooltip>
           </Box>
 
-          {/* Non-Editable MUI X Data Grid Component */}
-          <Box
-            sx={{
-              height: 580,
-              width: '100%',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              bgcolor: isDark ? blcColors.darkCard : '#ffffff',
-              border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-              boxShadow: isDark
-                ? '0 12px 40px rgba(0,0,0,0.5)'
-                : '0 8px 24px rgba(30,58,138,0.06)',
-              '& .MuiDataGrid-root': {
-                border: 'none',
-                fontFamily: typographyTokens.fontSans,
-                fontSize: '0.875rem',
-                color: isDark ? '#f1f5f9' : blcColors.textDark,
-              },
-              '& .MuiDataGrid-columnHeaders': {
-                bgcolor: isDark ? '#1e293b' : '#f8fafc',
-                borderBottom: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-                color: isDark ? '#94a3b8' : '#475569',
-                fontWeight: typographyTokens.weightBold,
-              },
-              '& .MuiDataGrid-columnHeaderTitle': {
-                fontWeight: typographyTokens.weightBold,
-                fontSize: '0.85rem',
-              },
-              '& .MuiDataGrid-cell': {
-                borderBottom: `1px solid ${isDark ? 'rgba(51, 65, 85, 0.35)' : '#f1f5f9'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                outline: 'none !important',
-              },
-              '& .MuiDataGrid-row': {
-                cursor: 'pointer',
-                transition: 'background-color 0.15s ease',
-              },
-              '& .MuiDataGrid-row:hover': {
-                bgcolor: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
-              },
-              '& .MuiDataGrid-row.Mui-selected': {
-                bgcolor: isDark
-                  ? 'rgba(59, 130, 246, 0.22) !important'
-                  : 'rgba(30, 58, 138, 0.12) !important',
-                '&:hover': {
-                  bgcolor: isDark
-                    ? 'rgba(59, 130, 246, 0.30) !important'
-                    : 'rgba(30, 58, 138, 0.18) !important',
-                },
-              },
-            }}
-          >
-            <DataGrid
-              rows={rows}
-              columns={gridColumns}
-              onRowClick={handleRowClick}
-              getRowClassName={(params) =>
-                selectedRowIndices.includes(params.row.rawIndex) ? 'Mui-selected' : ''
-              }
-              isCellEditable={() => false}
-              rowHeight={46}
-              hideFooter
-            />
-          </Box>
+          {/* Reusable Common DataGrid Component */}
+          <AppDataGrid
+            rows={rows}
+            columns={gridColumns}
+            selectedRowIndices={selectedRowIndices}
+            onRowClick={handleRowClick}
+            isDark={isDark}
+            height={580}
+            rowHeight={46}
+          />
         </Paper>
       </Container>
 

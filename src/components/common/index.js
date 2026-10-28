@@ -12,3 +12,4 @@ export { ConfirmDialog } from './ConfirmDialog';
 export { PageHeader } from './PageHeader';
 export { ThemeToggle } from './ThemeToggle';
 export { AppBreadcrumbs } from './AppBreadcrumbs';
+export { AppDataGrid, CommonDataGrid } from '../dataTable/AppDataGrid';
