@@ -47,9 +47,9 @@ export const AppDialog = ({
       onClose={onClose}
       maxWidth={maxWidth}
       fullWidth={fullWidth}
-      TransitionProps={TransitionProps}
       sx={zIndex ? { zIndex } : undefined}
       slotProps={{
+        ...(TransitionProps ? { transition: TransitionProps } : {}),
         paper: {
           sx: {
             borderRadius: '16px',

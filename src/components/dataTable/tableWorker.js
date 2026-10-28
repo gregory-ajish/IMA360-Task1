@@ -308,9 +308,7 @@ self.onmessage = function (e) {
     dataset = rows;
     totalRowsCount = totalCount || rows.length;
 
-    if (activeIndices.length < totalRowsCount) {
-      activeIndices = new Uint32Array(totalRowsCount);
-    }
+    activeIndices = new Uint32Array(totalRowsCount);
 
     for (let i = 0; i < totalRowsCount; i++) {
       activeIndices[i] = i;

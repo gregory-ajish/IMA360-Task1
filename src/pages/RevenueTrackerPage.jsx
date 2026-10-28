@@ -5,7 +5,7 @@
 //   powered by Handsontable & Web Worker at route `/revenue-tracker`.
 // ============================================================================
 
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Material-UI components
@@ -28,7 +28,7 @@ import {
 } from '../icons';
 
 // Global Shared DataTable Component & Action Renderer
-import { DataTable, deleteButtonRenderer } from '../components/dataTable';
+import { DataTable, deleteButtonRenderer, BulkUpdater, Delete } from '../components/dataTable';
 
 // Toast notifications
 import { toast } from 'react-toastify';
@@ -220,6 +220,59 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
     setRowToDelete(null);
   };
 
+  // Reusable Delete mechanism ref & selection sync
+  const deleteRef = useRef(null);
+
+  const handleAfterSelectionEnd = useCallback(() => {
+    deleteRef.current?.handleAfterSelectionEnd?.();
+  }, []);
+
+  const handleDeleteRows = (indicesToDelete) => {
+    if (!isAdmin) {
+      toast.warn('Only administrators can delete rows.');
+      return;
+    }
+    const hot = hotRef.current?.hotInstance;
+    if (hot && Array.isArray(indicesToDelete) && indicesToDelete.length > 0) {
+      const sorted = [...indicesToDelete].sort((a, b) => b - a);
+      sorted.forEach((idx) => {
+        const visualRow = hot.toVisualRow ? hot.toVisualRow(idx) : idx;
+        if (visualRow >= 0) {
+          hot.alter('remove_row', visualRow, 1);
+        }
+      });
+    }
+  };
+
+  const handleApplyBulkUpdate = (updates) => {
+    if (!isAdmin) {
+      toast.warn('Only administrators can perform bulk updates.');
+      return;
+    }
+    const hot = hotRef.current?.hotInstance;
+    if (hot && updates && updates.length > 0) {
+      const totalCount = hot.countRows();
+      const changes = [];
+      const rowLimit = Math.min(totalCount, 500);
+      for (let r = 0; r < rowLimit; r++) {
+        if (typeof hot.isEmptyRow === 'function' && hot.isEmptyRow(r)) continue;
+        const rowData = hot.getDataAtRow(r);
+        if (!rowData || rowData.every((c) => c === null || c === undefined || String(c).trim() === '')) {
+          continue;
+        }
+        updates.forEach(({ colIndex, val }) => {
+          changes.push([r, colIndex, val]);
+        });
+      }
+      if (changes.length > 0) {
+        hot.setDataAtCell(changes);
+      }
+      toast.success(
+        `Bulk updated ${updates.map((u) => u.label).join(' & ')} across rows!`
+      );
+    }
+  };
+
   const handleSave = () => {
     if (!isAdmin) return;
     try {
@@ -366,10 +419,28 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
               mb: 1.5,
             }}
           >
-            {/* Views Icon */}
-            <Tooltip title="Views" placement="top" arrow>
+            {/* 1. Bulk Updater Icon */}
+            <BulkUpdater
+              columns={columns}
+              hotRef={hotRef}
+              onApply={handleApplyBulkUpdate}
+              isDark={isDark}
+            />
+
+            {/* 2. Delete (Toolbar Button & Confirmation Modal) */}
+            <Delete
+              ref={deleteRef}
+              hotRef={hotRef}
+              dataset={dataset}
+              onDelete={handleDeleteRows}
+              itemLabel="revenue row"
+              isDark={isDark}
+            />
+
+            {/* 3. Views Icon */}
+            <Tooltip title="Save Current View" placement="top" arrow>
               <IconButton
-                aria-label="Views"
+                aria-label="Save Current View"
                 onClick={() => setSaveViewModalOpen(true)}
                 sx={{
                   bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
@@ -389,7 +460,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
               </IconButton>
             </Tooltip>
 
-            {/* Saved Views Icon */}
+            {/* 4. Saved Views Icon */}
             <Tooltip title="Saved Views" placement="top" arrow>
               <IconButton
                 aria-label="Saved Views"
@@ -412,7 +483,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
               </IconButton>
             </Tooltip>
 
-            {/* View Management Icon */}
+            {/* 5. View Management Icon */}
             <Tooltip title="View Management" placement="top" arrow>
               <IconButton
                 aria-label="View Management"
@@ -452,6 +523,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
             isDark={isDark}
             isAdmin={isAdmin}
             onDeleteRow={handleRequestDelete}
+            afterSelectionEnd={handleAfterSelectionEnd}
             dropdownMenu={DROPDOWN_MENU_OPTIONS}
             contextMenu={isAdmin ? true : false}
           />
