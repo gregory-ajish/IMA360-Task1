@@ -1,4 +1,4 @@
-// DataTable.jsx
+// HandsontableSheet.jsx
 // ============================================================================
 // PURPOSE:
 //   A global, reusable enterprise data grid component wrapping Handsontable
@@ -30,10 +30,10 @@ registerAllModules();
 const SAFE_FILTERING_STATES_STUB = Object.freeze({
   getEntries: () => [],
   getValueAtIndex: () => undefined,
-  setValueAtIndex: () => {},
-  clearValue: () => {},
-  clear: () => {},
-  init: () => {},
+  setValueAtIndex: () => { },
+  clearValue: () => { },
+  clear: () => { },
+  init: () => { },
   getLength: () => 0,
 });
 
@@ -82,7 +82,7 @@ if (Filters && Filters.prototype && !Filters.prototype.__patchedForNullEntries) 
 // Re-export custom renderers for convenience
 export { deleteButtonRenderer } from './renderers';
 
-export const DataTable = forwardRef(function DataTable(
+export const HandsontableSheet = forwardRef(function HandsontableSheet(
   {
     dataset = [],
     totalRows = 0,
@@ -638,4 +638,6 @@ export const DataTable = forwardRef(function DataTable(
   );
 });
 
-export default DataTable;
+// Aliases for backward compatibility & convenience
+export const DataTable = HandsontableSheet;
+export default HandsontableSheet;

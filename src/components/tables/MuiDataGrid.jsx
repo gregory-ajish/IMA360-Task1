@@ -1,4 +1,4 @@
-// src/components/dataTable/AppDataGrid.jsx
+// src/components/tables/MuiDataGrid.jsx
 // ============================================================================
 // PURPOSE:
 //   A reusable, theme-aware Common DataGrid component powered by MUI X DataGrid.
@@ -15,11 +15,12 @@ import PropTypes from 'prop-types';
 import { Box, Typography } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { blcColors, typographyTokens } from '../../theme';
+import { DataGridAggregationFooter } from './DataGridAggregationFooter';
 
 /**
- * AppDataGrid / CommonDataGrid Component
+ * MuiDataGrid / AppDataGrid Component
  */
-export const AppDataGrid = forwardRef(function AppDataGrid(
+export const MuiDataGrid = forwardRef(function MuiDataGrid(
   {
     rows = [],
     columns = [],
@@ -37,7 +38,16 @@ export const AppDataGrid = forwardRef(function AppDataGrid(
     getRowId = (row) => row?.id ?? row?.rawIndex,
     getRowClassName: externalGetRowClassName,
     emptyMessage = 'No records found.',
+    enableAggregation = false,
+    aggregationColumn = 'annualArr',
+    aggregationColumns,
+    aggregationLabel = 'Annual ARR',
+    aggregationType,
+    onAggregationTypeChange,
+    customAggregator,
+    currency = true,
     sx = {},
+    slots = {},
     ...restProps
   },
   ref
@@ -160,6 +170,11 @@ export const AppDataGrid = forwardRef(function AppDataGrid(
         '& .MuiDataGrid-overlay': {
           bgcolor: isDark ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)',
         },
+        '& .MuiDataGrid-footerContainer': {
+          borderTop: 'none',
+          minHeight: 'auto',
+          p: 0,
+        },
         ...sx,
       }}
     >
@@ -172,7 +187,7 @@ export const AppDataGrid = forwardRef(function AppDataGrid(
         getRowClassName={resolveRowClassName}
         isCellEditable={isCellEditable}
         rowHeight={rowHeight}
-        hideFooter={hideFooter}
+        hideFooter={enableAggregation ? false : hideFooter}
         loading={loading}
         slots={{
           noRowsOverlay: () => (
@@ -190,6 +205,26 @@ export const AppDataGrid = forwardRef(function AppDataGrid(
               <Typography variant="body2">{emptyMessage}</Typography>
             </Box>
           ),
+          ...(enableAggregation
+            ? {
+                footer: () => (
+                  <DataGridAggregationFooter
+                    rows={rows}
+                    columns={columns}
+                    selectedRowIndices={selectedRowIndices}
+                    numericField={aggregationColumn}
+                    numericColumns={aggregationColumns}
+                    fieldLabel={aggregationLabel}
+                    isDark={isDark}
+                    activeType={aggregationType}
+                    onTypeChange={onAggregationTypeChange}
+                    customAggregator={customAggregator}
+                    currency={currency}
+                  />
+                ),
+              }
+            : {}),
+          ...slots,
         }}
         {...restProps}
       />
@@ -197,7 +232,7 @@ export const AppDataGrid = forwardRef(function AppDataGrid(
   );
 });
 
-AppDataGrid.propTypes = {
+MuiDataGrid.propTypes = {
   rows: PropTypes.arrayOf(PropTypes.object).isRequired,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
   selectedRowIndices: PropTypes.arrayOf(PropTypes.number),
@@ -214,9 +249,20 @@ AppDataGrid.propTypes = {
   getRowId: PropTypes.func,
   getRowClassName: PropTypes.func,
   emptyMessage: PropTypes.node,
+  enableAggregation: PropTypes.bool,
+  aggregationColumn: PropTypes.string,
+  aggregationColumns: PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.string, PropTypes.object])
+  ),
+  aggregationLabel: PropTypes.string,
+  aggregationType: PropTypes.string,
+  onAggregationTypeChange: PropTypes.func,
+  customAggregator: PropTypes.func,
+  currency: PropTypes.bool,
   sx: PropTypes.object,
 };
 
-// Aliases for convenience
-export const CommonDataGrid = AppDataGrid;
-export default AppDataGrid;
+// Aliases for backward compatibility & convenience
+export const AppDataGrid = MuiDataGrid;
+export const CommonDataGrid = MuiDataGrid;
+export default MuiDataGrid;

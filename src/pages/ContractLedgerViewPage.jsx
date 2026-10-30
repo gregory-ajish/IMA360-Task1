@@ -40,7 +40,7 @@ import { useAuth } from '../context/AuthContext';
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
-import { DataTable } from '../components/dataTable';
+import { HandsontableSheet } from '../components/tables';
 
 // Data tokens & shared storage key
 import {
@@ -170,7 +170,12 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
   const planTier = currentRow[0] || 'Enterprise';
   const annualArr = currentRow[2] !== undefined ? `$${Number(currentRow[2]).toLocaleString()}` : '$0';
   const companyName = currentRow[1] || 'N/A';
-  const joinDate = currentRow[3] || '2024-01-01';
+  const joinDate =
+    typeof currentRow[4] === 'string' && currentRow[4].includes('-')
+      ? currentRow[4]
+      : typeof currentRow[3] === 'string' && currentRow[3].includes('-')
+      ? currentRow[3]
+      : currentRow[4] || currentRow[3] || '2024-01-01';
 
   // Details card Handsontable dataset (loaded from localStorage or defaults)
   const [detailsData] = useState(() => {
@@ -532,7 +537,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
             <Divider sx={{ mb: 1.25, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
 
             {/* Read-Only Handsontable */}
-            <DataTable
+            <HandsontableSheet
               ref={detailsHotRef}
               dataset={detailsData}
               totalRows={detailsData.length}

@@ -47,7 +47,7 @@ import { useAuth } from '../context/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
 import { AppButton } from '../components/common/AppButton';
-import { DataTable, DataTableToolbar } from '../components/dataTable';
+import { HandsontableSheet, DataTableToolbar } from '../components/tables';
 
 // Data tokens & shared storage key
 import {
@@ -191,7 +191,22 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
   // Current master row data
   const currentRow = dataset[rowIndex] || INITIAL_CONTRACT_LEDGER_DATA[0] || [];
 
-  // ── Header Card 4 Inputs (bound to the 4 ledger columns) ───────────────────
+  // Helper to extract join date regardless of whether row has 4 or 5 columns
+  const resolveJoinDate = (row) => {
+    if (!row) return '2024-01-01';
+    if (typeof row[4] === 'string' && row[4].includes('-')) return row[4];
+    if (typeof row[3] === 'string' && row[3].includes('-')) return row[3];
+    return row[4] || row[3] || '2024-01-01';
+  };
+
+  const resolveSeats = (row) => {
+    if (!row) return 50;
+    if (typeof row[3] === 'number') return row[3];
+    if (typeof row[4] === 'number') return row[4];
+    return Math.max(10, Math.round((Number(row[2]) || 50000) / 1200));
+  };
+
+  // ── Header Card 4 Inputs (bound to the ledger columns) ───────────────────
   // 1. Plan Tier (Dropdown)
   const [planTier, setPlanTier] = useState(currentRow[0] || 'Enterprise');
   // 2. Annual ARR ($) (Number)
@@ -199,7 +214,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
   // 3. Company Name (Text)
   const [companyName, setCompanyName] = useState(currentRow[1] || '');
   // 4. Join Date (Datepicker)
-  const [joinDate, setJoinDate] = useState(currentRow[3] || '2024-01-01');
+  const [joinDate, setJoinDate] = useState(resolveJoinDate(currentRow));
 
   // Ref to prevent recursive change loops during compaction
   const isCompactingRef = useRef(false);
@@ -429,7 +444,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
       setPlanTier(currentRow[0] || 'Enterprise');
       setCompanyName(currentRow[1] || '');
       setAnnualArr(currentRow[2] ?? 0);
-      setJoinDate(currentRow[3] || '2024-01-01');
+      setJoinDate(resolveJoinDate(currentRow));
     }
   }, [currentRow]);
 
@@ -439,6 +454,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
       planTier,
       companyName.trim() || 'Untitled',
       Number(annualArr) || 0,
+      resolveSeats(currentRow),
       joinDate,
     ];
 
@@ -842,7 +858,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
             />
 
             {/* Details Handsontable with mockup columns, spare row & upward compaction */}
-            <DataTable
+            <HandsontableSheet
               ref={detailsHotRef}
               dataset={detailsData}
               totalRows={detailsData.length}

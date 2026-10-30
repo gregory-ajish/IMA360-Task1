@@ -2,15 +2,16 @@
 // ============================================================================
 // PURPOSE:
 //   Customer Insights spreadsheet page with Handsontable and Web Worker.
-//   Strictly configured with exactly 5 columns and 50 rows.
+//   Configured with 6 columns and 50 rows.
 //   Includes modular Bulk Update powered by all-in-one BulkUpdater.
 //
-// 5 COLUMNS & DATA TYPES:
+// 6 COLUMNS & DATA TYPES:
 //   1. Dropdown    — Plan Tier
 //   2. Text Editor — Company Name
 //   3. Numeric     — Annual ARR ($)
-//   4. Date Picker — Join Date (YYYY-MM-DD)
-//   5. Multiselect — Engagement Channels
+//   4. Numeric     — User Seats
+//   5. Date Picker — Join Date (YYYY-MM-DD)
+//   6. Multiselect — Engagement Channels
 // ============================================================================
 
 import React, { useRef, useState, useMemo, useCallback } from 'react';
@@ -37,13 +38,13 @@ import { useAuth } from '../context/AuthContext';
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
-import { DataTable, DataTableToolbar } from '../components/dataTable';
+import { HandsontableSheet, DataTableToolbar } from '../components/tables';
 
 // Feature Components — All-In-One Bulk Updater
 import {
   PLAN_TIERS,
   ENGAGEMENT_CHANNELS,
-} from '../components/dataTable/bulkUpdater/BulkUpdater';
+} from '../components/tables/bulkUpdater/BulkUpdater';
 
 
 // Handsontable dropdown menu filter options
@@ -53,62 +54,62 @@ const DROPDOWN_MENU_OPTIONS = [
   'filter_action_bar',
 ];
 
-// ─── Exactly 50 Rows with 5 Columns ──────────────────────────────────────────
-// Order: [Dropdown (Plan Tier), Text Editor (Company Name), Numeric (Annual ARR), Date Picker (Join Date), Multiselect (Channels)]
+// ─── Exactly 50 Rows with 6 Columns ──────────────────────────────────────────
+// Order: [Dropdown (Plan Tier), Text Editor (Company Name), Numeric (Annual ARR), Numeric (User Seats), Date Picker (Join Date), Multiselect (Channels)]
 export const INITIAL_CUSTOMER_INSIGHTS = [
-  ['Enterprise', 'Acme Corporation', 128000, '2023-01-15', ['Email', 'In-App', 'Phone Support']],
-  ['Growth', 'BlueFin Technologies', 48000, '2023-02-20', ['Email', 'In-App']],
-  ['Enterprise', 'CloudScale Networks', 96000, '2023-03-11', ['In-App', 'Slack Community']],
-  ['Scale', 'DataForge Systems', 72000, '2023-04-05', ['Email', 'SMS', 'Phone Support']],
-  ['Starter', 'EchoWave Media', 14500, '2023-05-18', ['Email']],
-  ['Enterprise', 'Frontier AI Labs', 142000, '2023-06-22', ['Email', 'In-App', 'Slack Community']],
-  ['Enterprise', 'Global Logistics Hub', 88000, '2023-07-09', ['Email', 'Phone Support']],
-  ['Scale', 'Hyperion Security', 64000, '2023-08-14', ['In-App', 'Push Notifications']],
-  ['Enterprise', 'Ironclad Financial', 155000, '2023-09-03', ['Email', 'Phone Support', 'SMS']],
-  ['Growth', 'Jupiter Analytics', 52000, '2023-10-19', ['Email', 'In-App']],
-  ['Scale', 'Kinetic Robotics', 78000, '2023-11-27', ['Email', 'Slack Community']],
-  ['Enterprise', 'Luminary Health', 165000, '2023-12-08', ['Email', 'In-App', 'Phone Support']],
-  ['Growth', 'Meridian Retail Group', 42000, '2024-01-12', ['Email', 'SMS']],
-  ['Enterprise', 'Nexus Energy Corp', 110000, '2024-01-28', ['Phone Support', 'In-App']],
-  ['Scale', 'OmniChannel Retail', 61000, '2024-02-04', ['Email', 'Push Notifications']],
-  ['Growth', 'Pulse Healthcare', 49000, '2024-02-17', ['Email', 'In-App']],
-  ['Enterprise', 'Quantum Dynamics', 134000, '2024-03-01', ['Email', 'Slack Community', 'Phone Support']],
-  ['Starter', 'RedShift Streaming', 18000, '2024-03-15', ['Email', 'Push Notifications']],
-  ['Enterprise', 'Stellar Aerospace', 148000, '2024-03-29', ['Email', 'Phone Support']],
-  ['Enterprise', 'Titan Manufacturing', 115000, '2024-04-10', ['Email', 'In-App', 'SMS']],
-  ['Scale', 'Unified Cloud Tech', 69000, '2024-04-22', ['Email', 'Slack Community']],
-  ['Growth', 'Vantage Solutions', 46000, '2024-05-06', ['Email', 'In-App']],
-  ['Starter', 'Waveform Audio', 16000, '2024-05-19', ['Email']],
-  ['Enterprise', 'Xenon Telecom', 122000, '2024-06-02', ['Email', 'Phone Support', 'SMS']],
-  ['Growth', 'YieldTech Agri', 53000, '2024-06-15', ['Email', 'In-App']],
-  ['Enterprise', 'Zenith Fintech', 159000, '2024-06-29', ['Email', 'Slack Community']],
-  ['Scale', 'Aurora BioLabs', 74000, '2024-07-08', ['Email', 'In-App', 'Phone Support']],
-  ['Growth', 'Beacon Sensor Tech', 39000, '2024-07-21', ['Email', 'SMS']],
-  ['Enterprise', 'Catalyst Legal AI', 137000, '2024-08-03', ['Email', 'Slack Community', 'In-App']],
-  ['Starter', 'Driftwood Creative', 12500, '2024-08-16', ['Email']],
-  ['Scale', 'Element Logistics', 67000, '2024-08-30', ['In-App', 'Push Notifications']],
-  ['Enterprise', 'Flux Microelectronics', 144000, '2024-09-11', ['Email', 'Phone Support']],
-  ['Growth', 'Gradient Design Labs', 45000, '2024-09-24', ['Email', 'In-App']],
-  ['Enterprise', 'Horizon Shipping', 98000, '2024-10-02', ['Email', 'SMS', 'Phone Support']],
-  ['Scale', 'InfiniCore Hosting', 76000, '2024-10-15', ['Email', 'Slack Community']],
-  ['Growth', 'JetStream Freight', 51000, '2024-10-28', ['Email', 'In-App']],
-  ['Starter', 'Kaleido Brand Studio', 17500, '2024-11-09', ['Email']],
-  ['Enterprise', 'LogicGate Cybersecurity', 162000, '2024-11-22', ['Email', 'In-App', 'Phone Support']],
-  ['Growth', 'Momentum Sports Tech', 47000, '2024-12-04', ['In-App', 'Push Notifications']],
-  ['Enterprise', 'Nebula Data Platforms', 131000, '2024-12-18', ['Email', 'Slack Community']],
-  ['Scale', 'Opal Smart Devices', 63000, '2025-01-05', ['Email', 'In-App']],
-  ['Enterprise', 'Pinnacle Asset Mgmt', 152000, '2025-01-19', ['Email', 'Phone Support']],
-  ['Enterprise', 'Quark Quantum Labs', 126000, '2025-02-02', ['Email', 'Slack Community']],
-  ['Growth', 'Radiant Clean Energy', 44000, '2025-02-15', ['Email', 'SMS']],
-  ['Scale', 'Synthetix Commerce', 71000, '2025-03-01', ['In-App', 'Push Notifications']],
-  ['Enterprise', 'TerraFlora Biotech', 139000, '2025-03-14', ['Email', 'Phone Support']],
-  ['Growth', 'UltraNet Fiber', 43000, '2025-03-27', ['Email', 'In-App']],
-  ['Enterprise', 'Vertex AI Solutions', 168000, '2025-04-10', ['Email', 'In-App', 'Slack Community']],
-  ['Growth', 'Willow Clean Energy', 54000, '2025-04-23', ['Email', 'Phone Support']],
-  ['Starter', 'Xylo Automation Labs', 15000, '2025-05-06', ['Email']],
+  ['Enterprise', 'Acme Corporation', 128000, 120, '2023-01-15', ['Email', 'In-App', 'Phone Support']],
+  ['Growth', 'BlueFin Technologies', 48000, 35, '2023-02-20', ['Email', 'In-App']],
+  ['Enterprise', 'CloudScale Networks', 96000, 85, '2023-03-11', ['In-App', 'Slack Community']],
+  ['Scale', 'DataForge Systems', 72000, 60, '2023-04-05', ['Email', 'SMS', 'Phone Support']],
+  ['Starter', 'EchoWave Media', 14500, 12, '2023-05-18', ['Email']],
+  ['Enterprise', 'Frontier AI Labs', 142000, 150, '2023-06-22', ['Email', 'In-App', 'Slack Community']],
+  ['Enterprise', 'Global Logistics Hub', 88000, 75, '2023-07-09', ['Email', 'Phone Support']],
+  ['Scale', 'Hyperion Security', 64000, 50, '2023-08-14', ['In-App', 'Push Notifications']],
+  ['Enterprise', 'Ironclad Financial', 155000, 180, '2023-09-03', ['Email', 'Phone Support', 'SMS']],
+  ['Growth', 'Jupiter Analytics', 52000, 42, '2023-10-19', ['Email', 'In-App']],
+  ['Scale', 'Kinetic Robotics', 78000, 68, '2023-11-27', ['Email', 'Slack Community']],
+  ['Enterprise', 'Luminary Health', 165000, 210, '2023-12-08', ['Email', 'In-App', 'Phone Support']],
+  ['Growth', 'Meridian Retail Group', 42000, 30, '2024-01-12', ['Email', 'SMS']],
+  ['Enterprise', 'Nexus Energy Corp', 110000, 95, '2024-01-28', ['Phone Support', 'In-App']],
+  ['Scale', 'OmniChannel Retail', 61000, 48, '2024-02-04', ['Email', 'Push Notifications']],
+  ['Growth', 'Pulse Healthcare', 49000, 38, '2024-02-17', ['Email', 'In-App']],
+  ['Enterprise', 'Quantum Dynamics', 134000, 140, '2024-03-01', ['Email', 'Slack Community', 'Phone Support']],
+  ['Starter', 'RedShift Streaming', 18000, 15, '2024-03-15', ['Email', 'Push Notifications']],
+  ['Enterprise', 'Stellar Aerospace', 148000, 165, '2024-03-29', ['Email', 'Phone Support']],
+  ['Enterprise', 'Titan Manufacturing', 115000, 105, '2024-04-10', ['Email', 'In-App', 'SMS']],
+  ['Scale', 'Unified Cloud Tech', 69000, 58, '2024-04-22', ['Email', 'Slack Community']],
+  ['Growth', 'Vantage Solutions', 46000, 32, '2024-05-06', ['Email', 'In-App']],
+  ['Starter', 'Waveform Audio', 16000, 10, '2024-05-19', ['Email']],
+  ['Enterprise', 'Xenon Telecom', 122000, 115, '2024-06-02', ['Email', 'Phone Support', 'SMS']],
+  ['Growth', 'YieldTech Agri', 53000, 44, '2024-06-15', ['Email', 'In-App']],
+  ['Enterprise', 'Zenith Fintech', 159000, 195, '2024-06-29', ['Email', 'Slack Community']],
+  ['Scale', 'Aurora BioLabs', 74000, 62, '2024-07-08', ['Email', 'In-App', 'Phone Support']],
+  ['Growth', 'Beacon Sensor Tech', 39000, 28, '2024-07-21', ['Email', 'SMS']],
+  ['Enterprise', 'Catalyst Legal AI', 137000, 145, '2024-08-03', ['Email', 'Slack Community', 'In-App']],
+  ['Starter', 'Driftwood Creative', 12500, 8, '2024-08-16', ['Email']],
+  ['Scale', 'Element Logistics', 67000, 54, '2024-08-30', ['In-App', 'Push Notifications']],
+  ['Enterprise', 'Flux Microelectronics', 144000, 155, '2024-09-11', ['Email', 'Phone Support']],
+  ['Growth', 'Gradient Design Labs', 45000, 34, '2024-09-24', ['Email', 'In-App']],
+  ['Enterprise', 'Horizon Shipping', 98000, 88, '2024-10-02', ['Email', 'SMS', 'Phone Support']],
+  ['Scale', 'InfiniCore Hosting', 76000, 66, '2024-10-15', ['Email', 'Slack Community']],
+  ['Growth', 'JetStream Freight', 51000, 40, '2024-10-28', ['Email', 'In-App']],
+  ['Starter', 'Kaleido Brand Studio', 17500, 14, '2024-11-09', ['Email']],
+  ['Enterprise', 'LogicGate Cybersecurity', 162000, 205, '2024-11-22', ['Email', 'In-App', 'Phone Support']],
+  ['Growth', 'Momentum Sports Tech', 47000, 36, '2024-12-04', ['In-App', 'Push Notifications']],
+  ['Enterprise', 'Nebula Data Platforms', 131000, 135, '2024-12-18', ['Email', 'Slack Community']],
+  ['Scale', 'Opal Smart Devices', 63000, 52, '2025-01-05', ['Email', 'In-App']],
+  ['Enterprise', 'Pinnacle Asset Mgmt', 152000, 175, '2025-01-19', ['Email', 'Phone Support']],
+  ['Enterprise', 'Quark Quantum Labs', 126000, 125, '2025-02-02', ['Email', 'Slack Community']],
+  ['Growth', 'Radiant Clean Energy', 44000, 30, '2025-02-15', ['Email', 'SMS']],
+  ['Scale', 'Synthetix Commerce', 71000, 59, '2025-03-01', ['In-App', 'Push Notifications']],
+  ['Enterprise', 'TerraFlora Biotech', 139000, 150, '2025-03-14', ['Email', 'Phone Support']],
+  ['Growth', 'UltraNet Fiber', 43000, 31, '2025-03-27', ['Email', 'In-App']],
+  ['Enterprise', 'Vertex AI Solutions', 168000, 220, '2025-04-10', ['Email', 'In-App', 'Slack Community']],
+  ['Growth', 'Willow Clean Energy', 54000, 45, '2025-04-23', ['Email', 'Phone Support']],
+  ['Starter', 'Xylo Automation Labs', 15000, 11, '2025-05-06', ['Email']],
 ];
 
-// ─── Default 5 Column Definitions & Datatypes ────────────────────────────────
+// ─── Default 6 Column Definitions & Datatypes ────────────────────────────────
 export const DEFAULT_CUSTOMER_INSIGHT_COLUMNS = [
   {
     id: 'planTier',
@@ -131,9 +132,16 @@ export const DEFAULT_CUSTOMER_INSIGHT_COLUMNS = [
     numericFormat: { pattern: '$0,0' },
   },
   {
+    id: 'seats',
+    label: 'User Seats',
+    dataIndex: 3,
+    type: 'numeric',
+    numericFormat: { pattern: '0,0' },
+  },
+  {
     id: 'joinDate',
     label: 'Join Date',
-    dataIndex: 3,
+    dataIndex: 4,
     type: 'date',
     dateFormat: 'YYYY-MM-DD',
     correctFormat: true,
@@ -141,7 +149,7 @@ export const DEFAULT_CUSTOMER_INSIGHT_COLUMNS = [
   {
     id: 'channels',
     label: 'Channels',
-    dataIndex: 4,
+    dataIndex: 5,
     type: 'multiselect',
     source: ENGAGEMENT_CHANNELS,
   },
@@ -152,6 +160,7 @@ export const COL_HEADERS = [
   'Plan Tier',
   'Company Name',
   'Annual ARR ($)',
+  'User Seats',
   'Join Date',
   'Channels',
 ];
@@ -176,7 +185,7 @@ export const CustomerInsightPage = ({ mode, toggleMode }) => {
       const saved = localStorage.getItem('customer_insight_visible_columns');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.some((c) => c.id === 'seats')) return parsed;
       }
     } catch (e) {
       console.error('Error reading saved visible columns:', e);
@@ -334,8 +343,8 @@ export const CustomerInsightPage = ({ mode, toggleMode }) => {
             isDark={isDark}
           />
 
-          {/* Reusable Global DataTable Component backed by Web Worker */}
-          <DataTable
+          {/* Reusable Global Handsontable Sheet Component backed by Web Worker */}
+          <HandsontableSheet
             ref={hotRef}
             dataset={dataset}
             totalRows={dataset.length}

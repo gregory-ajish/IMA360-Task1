@@ -28,7 +28,7 @@ import {
 } from '../icons';
 
 // Global Shared DataTable Component & Action Renderer
-import { DataTable, deleteButtonRenderer, BulkUpdater, Delete } from '../components/dataTable';
+import { HandsontableSheet, deleteButtonRenderer, BulkUpdater, Delete } from '../components/tables';
 
 // Toast notifications
 import { toast } from 'react-toastify';
@@ -42,9 +42,9 @@ import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
 import { AppButton } from '../components/common/AppButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
-import { ViewManagementModal } from '../components/dataTable/viewManagement/ViewManagementModal';
-import { SaveViewModal } from '../components/dataTable/viewManagement/SaveViewModal';
-import { SavedViewsModal } from '../components/dataTable/viewManagement/SavedViewsModal';
+import { ViewManagementModal } from '../components/tables/viewManagement/ViewManagementModal';
+import { SaveViewModal } from '../components/tables/viewManagement/SaveViewModal';
+import { SavedViewsModal } from '../components/tables/viewManagement/SavedViewsModal';
 
 // Redux hooks and actions
 import { useDispatch } from 'react-redux';
@@ -507,8 +507,8 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
             </Tooltip>
           </Box>
 
-          {/* Reusable Global DataTable Component */}
-          <DataTable
+          {/* Reusable Handsontable Sheet Component */}
+          <HandsontableSheet
             ref={hotRef}
             dataset={dataset}
             totalRows={TOTAL_AVAILABLE_ROWS}

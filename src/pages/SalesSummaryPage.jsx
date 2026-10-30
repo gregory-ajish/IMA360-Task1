@@ -32,7 +32,7 @@ import { useAuth } from '../context/AuthContext';
 
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
-import { DataTable, DataTableToolbar } from '../components/dataTable';
+import { HandsontableSheet, DataTableToolbar } from '../components/tables';
 import { AppButton } from '../components/common/AppButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { Navbar } from '../components/dashboard/Navbar';
@@ -682,7 +682,7 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
             }}
           >
             {/* Handsontable Data Grid backed by tableWorker */}
-            <DataTable
+            <HandsontableSheet
               ref={hotRef}
               useWorker={true}
               renderAllRows={true}
