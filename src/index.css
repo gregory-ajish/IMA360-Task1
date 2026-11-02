@@ -130,7 +130,8 @@ body {
 .htDropdownMenu,
 .htFiltersConditionsMenu,
 .htContextMenu,
-.htAutocomplete,
+.handsontable.autocompleteEditor,
+.handsontable.htAutocomplete:not(td),
 .pika-single {
   z-index: 99999 !important;
 }
@@ -185,10 +186,137 @@ body {
   color: #ffffff;
 }
 
-/* Hide dropdown menu arrow and sorter on the Action header column */
-.handsontable th:last-child .changeType {
+/* Hide dropdown menu arrow and sorter on the Action header column in main table */
+.handsontable:not(.htDropdownMenu):not(.htContextMenu) th:last-child .changeType {
   display: none !important;
 }
+
+/* Center-align Action column header and cells in the main data grid only */
+.handsontable:not(.htDropdownMenu):not(.htContextMenu) th:last-child,
+.handsontable:not(.htDropdownMenu):not(.htContextMenu) th:last-child .colHeader {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.handsontable:not(.htDropdownMenu):not(.htContextMenu) td.htCenter,
+.handsontable:not(.htDropdownMenu):not(.htContextMenu) td:last-child {
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 0 !important;
+}
+
+.action-btn-group {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  gap: 8px !important;
+  line-height: 1 !important;
+  position: static !important;
+  top: 0 !important;
+  margin: 0 auto !important;
+}
+
+.action-btn-group button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+}
+
+/* ── Handsontable Filter Dropdown Menu Layout & Alignment Fixes ──────────────── */
+.handsontable.htDropdownMenu {
+  text-align: left !important;
+  min-width: 250px !important;
+}
+
+.handsontable.htDropdownMenu table.htCore {
+  width: 100% !important;
+}
+
+.handsontable.htDropdownMenu table.htCore td {
+  text-align: left !important;
+  padding: 4px 12px !important;
+  vertical-align: middle;
+}
+
+.handsontable.htDropdownMenu table.htCore td.htCustomMenuRenderer {
+  text-align: left !important;
+  padding: 6px 14px !important;
+}
+
+.handsontable.htDropdownMenu .htItemWrapper {
+  margin-inline: 0 !important;
+  text-align: left !important;
+}
+
+.handsontable.htDropdownMenu .htItemWrapper::before {
+  display: none !important;
+  margin: 0 !important;
+}
+
+.handsontable.htDropdownMenu .htFiltersMenuLabel {
+  text-align: left !important;
+  font-size: 11px !important;
+  color: #64748b;
+  margin-bottom: 4px !important;
+}
+
+.handsontable.htDropdownMenu .htUISelect,
+.handsontable.htDropdownMenu .htUIInput {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.handsontable.htDropdownMenu .htUIInput input {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 6px 8px !important;
+  border-radius: 6px !important;
+  text-align: left !important;
+}
+
+.handsontable.htDropdownMenu .htUISelectCaption {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 6px 8px !important;
+  border-radius: 6px !important;
+  text-align: left !important;
+}
+
+.handsontable.htDropdownMenu .htUIMultipleSelectHot {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.handsontable.htDropdownMenu .htUISelectionControls {
+  text-align: left !important;
+  padding: 4px 0 !important;
+  margin: 0 !important;
+}
+
+.handsontable.htDropdownMenu .htFiltersMenuActionBar {
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding: 10px 14px 12px 14px !important;
+}
+
+.handsontable.htDropdownMenu .htFiltersMenuActionBar .htUIButton {
+  flex: 1 !important;
+  width: auto !important;
+  margin: 0 !important;
+}
+
+.handsontable.htDropdownMenu .htFiltersMenuActionBar .htUIButton input {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+}
+
 
 
 

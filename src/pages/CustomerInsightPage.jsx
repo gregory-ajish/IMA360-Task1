@@ -21,7 +21,6 @@ import {
   Box,
   Container,
   Paper,
-  Typography,
 } from '@mui/material';
 
 // Centralized App Icons
@@ -36,7 +35,7 @@ import 'handsontable/styles/handsontable.min.css';
 import 'handsontable/styles/ht-theme-main.min.css';
 
 // Theme tokens & Context
-import { blcColors, typographyTokens } from '../theme';
+import { blcColors } from '../theme';
 import { useAuth } from '../context/AuthContext';
 
 // Common Components
@@ -49,7 +48,7 @@ import {
   BulkUpdater,
   PLAN_TIERS,
   ENGAGEMENT_CHANNELS,
-} from '../components/bulkUpdater/BulkUpdater';
+} from '../components/dataTable/bulkUpdater/BulkUpdater';
 
 // Register all Handsontable modules
 registerAllModules();
@@ -63,7 +62,7 @@ const DROPDOWN_MENU_OPTIONS = [
 
 // ─── Exactly 50 Rows with 5 Columns ──────────────────────────────────────────
 // Order: [Dropdown (Plan Tier), Text Editor (Company Name), Numeric (Annual ARR), Date Picker (Join Date), Multiselect (Channels)]
-const INITIAL_CUSTOMER_INSIGHTS = [
+export const INITIAL_CUSTOMER_INSIGHTS = [
   ['Enterprise', 'Acme Corporation', 128000, '2023-01-15', ['Email', 'In-App', 'Phone Support']],
   ['Growth', 'BlueFin Technologies', 48000, '2023-02-20', ['Email', 'In-App']],
   ['Enterprise', 'CloudScale Networks', 96000, '2023-03-11', ['In-App', 'Slack Community']],
@@ -215,8 +214,8 @@ export const CustomerInsightPage = ({ mode, toggleMode }) => {
         onExternalLinkClick={() => {}}
       />
 
-      {/* ── Main Container ── */}
-      <Container maxWidth="xl" sx={{ mt: 3 }}>
+      {/* ── Main Container (Full Width) ── */}
+      <Container maxWidth={false} sx={{ mt: 3, px: { xs: 2, sm: 3, md: 4 } }}>
         {/* Top Header Card — reusable PageHeader common component */}
         <PageHeader
           icon={<InsightsIcon />}

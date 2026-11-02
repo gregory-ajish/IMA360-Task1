@@ -21,13 +21,12 @@ import {
   Paper,
   Typography,
   IconButton,
-  Breadcrumbs,
-  Link,
   Tooltip,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ArrowBackIcon } from '../../icons';
 import { blcColors, typographyTokens } from '../../theme';
+import { AppBreadcrumbs } from './AppBreadcrumbs';
 
 /**
  * PageHeader Component
@@ -36,7 +35,8 @@ import { blcColors, typographyTokens } from '../../theme';
  * @param {Object} props - Component properties.
  * @param {React.ReactNode} props.icon - Icon element displayed in the title badge (e.g. <InsightsIcon />).
  * @param {string} props.title - Page title displayed next to the icon badge.
- * @param {string} props.breadcrumb - Current page name shown in the breadcrumb trail.
+ * @param {string} [props.breadcrumb] - Current page name shown in the breadcrumb trail.
+ * @param {Array<{label: string, to?: string, onClick?: Function}>} [props.breadcrumbItems] - Optional full breadcrumbs trail.
  * @param {boolean} [props.isDark=false] - Whether dark mode is active.
  * @param {React.ReactNode} [props.actions] - Optional right-side action buttons (e.g. Save, Reset).
  * @param {string} [props.backTo='/home'] - Navigation target for the back button.
@@ -48,6 +48,7 @@ export const PageHeader = ({
   icon,
   title,
   breadcrumb,
+  breadcrumbItems,
   isDark = false,
   actions,
   backTo = '/home',
@@ -92,48 +93,44 @@ export const PageHeader = ({
         </Tooltip>
 
         <Box>
-          <Breadcrumbs sx={{ mb: 0.5, fontSize: '0.85rem' }}>
-            <Link
-              underline="hover"
-              color="inherit"
-              sx={{ cursor: 'pointer' }}
-              onClick={() => navigate(backTo)}
-            >
-              {parentLabel}
-            </Link>
-            <Typography color="text.primary" sx={{ fontSize: '0.85rem' }}>
-              {breadcrumb}
-            </Typography>
-          </Breadcrumbs>
+          <AppBreadcrumbs
+            items={breadcrumbItems}
+            parentLabel={parentLabel}
+            backTo={backTo}
+            current={breadcrumb}
+            sx={{ mb: title ? 0.5 : 0 }}
+          />
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            {icon && (
-              <Box
+          {title && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              {icon && (
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '8px',
+                    bgcolor: `${blcColors.navyAccent}15`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: blcColors.navyAccent,
+                  }}
+                >
+                  {React.cloneElement(icon, { fontSize: 'small' })}
+                </Box>
+              )}
+              <Typography
+                variant="h5"
                 sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '8px',
-                  bgcolor: `${blcColors.navyAccent}15`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: blcColors.navyAccent,
+                  fontFamily: typographyTokens.fontMono,
+                  fontWeight: typographyTokens.weightBold,
+                  color: isDark ? '#f1f5f9' : blcColors.navyAccent,
                 }}
               >
-                {React.cloneElement(icon, { fontSize: 'small' })}
-              </Box>
-            )}
-            <Typography
-              variant="h5"
-              sx={{
-                fontFamily: typographyTokens.fontMono,
-                fontWeight: typographyTokens.weightBold,
-                color: isDark ? '#f1f5f9' : blcColors.navyAccent,
-              }}
-            >
-              {title}
-            </Typography>
-          </Box>
+                {title}
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Box>
 

@@ -26,7 +26,7 @@ import {
   ResetIcon,
   ArrowForwardIcon,
   ArrowBackIcon,
-} from '../../icons';
+} from '../../../icons';
 
 // @dnd-kit core and sortable imports
 import {
@@ -48,9 +48,9 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import { blcColors, typographyTokens } from '../../theme';
-import { AppButton } from '../common/AppButton';
-import { AppDialog } from '../common/AppDialog';
+import { blcColors, typographyTokens } from '../../../theme';
+import { AppButton } from '../../common/AppButton';
+import { AppDialog } from '../../common/AppDialog';
 
 // ─── Droppable Container Box Component ───────────────────────────────────────
 function DroppableContainer({ id, children, isDark, title, count, icon, emptyText, emptySubtext }) {

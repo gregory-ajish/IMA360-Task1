@@ -7,11 +7,11 @@
 
 import React, { useState } from 'react';
 import { Box, Typography, TextField } from '@mui/material';
-import { SaveIcon } from '../../icons';
+import { SaveIcon } from '../../../icons';
 
-import { blcColors, typographyTokens } from '../../theme';
-import { AppButton } from '../common/AppButton';
-import { AppDialog } from '../common/AppDialog';
+import { blcColors, typographyTokens } from '../../../theme';
+import { AppButton } from '../../common/AppButton';
+import { AppDialog } from '../../common/AppDialog';
 
 export const SaveViewModal = ({
   open,

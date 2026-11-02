@@ -35,15 +35,8 @@ import {
   IconButton,
   InputAdornment,
   Stack,
-  Chip,
-  Paper,
   Container,
-  Tooltip,
   Link,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from '@mui/material';
 
 // Centralized App Icons
@@ -61,6 +54,7 @@ import { blcColors } from '../theme';             // Brand color palette
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { AppLogo } from '../components/common/AppLogo';
 import { AppButton } from '../components/common/AppButton';
+import { AppDialog } from '../components/common/AppDialog';
 
 // react-toastify: toast.error() fires a styled error notification.
 // The <ToastContainer> that renders them is mounted globally in main.jsx.
@@ -189,14 +183,6 @@ export const LoginPage = ({ mode, toggleMode }) => {
     } finally {
       setIsSubmitting(false); // Always re-enable the button
     }
-  };
-
-  // ─── Demo Auto-Fill Handler ──────────────────────────────────────────────
-  // Fills the form fields with demo credentials when a chip is clicked.
-  // shouldValidate: true runs validation immediately so errors clear on fill.
-  const handleFillDemo = (username, password) => {
-    setValue('identifier', username, { shouldValidate: true });
-    setValue('password', password, { shouldValidate: true });
   };
 
   // ─── JSX / UI ────────────────────────────────────────────────────────────
@@ -442,101 +428,15 @@ export const LoginPage = ({ mode, toggleMode }) => {
         </Card>
       </Container>
 
-      {/* ── Forgot Password Dialog Modal ── */}
-      <Dialog
+      {/* ── Forgot Password Dialog Modal (using common AppDialog) ── */}
+      <AppDialog
         open={forgotPasswordOpen}
         onClose={handleCloseForgot}
+        title="Reset Password"
+        isDark={isDark}
         maxWidth="xs"
-        fullWidth
-        aria-labelledby="forgot-password-dialog-title"
-        PaperProps={{
-          sx: {
-            borderRadius: '12px',
-            bgcolor: isDark ? blcColors.darkCard : '#ffffff',
-            color: isDark ? '#e2e8f0' : blcColors.textDark,
-            border: `1px solid ${isDark ? blcColors.darkBorder : '#d1d9f0'}`,
-            boxShadow: isDark
-              ? '0 12px 48px rgba(0,0,0,0.7)'
-              : '0 8px 32px rgba(30,58,138,0.15)',
-            p: 1,
-          },
-        }}
-      >
-        <DialogTitle
-          id="forgot-password-dialog-title"
-          sx={{
-            m: 0,
-            p: 2,
-            pb: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Typography
-            sx={{
-              fontFamily: '"JetBrains Mono", monospace',
-              fontWeight: 700,
-              fontSize: '1rem',
-              color: isDark ? '#e2e8f0' : blcColors.navyAccent,
-            }}
-          >
-            Reset Password
-          </Typography>
-          <IconButton
-            size="small"
-            onClick={handleCloseForgot}
-            sx={{ color: isDark ? '#94a3b8' : '#64748b' }}
-            aria-label="close reset dialog"
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </DialogTitle>
-
-        <form onSubmit={handleSendReset}>
-          <DialogContent sx={{ px: 2, py: 1.5 }}>
-            <Typography
-              sx={{
-                fontFamily: '"Inter", sans-serif',
-                fontSize: '0.82rem',
-                color: isDark ? '#94a3b8' : blcColors.textMid,
-                mb: 2,
-                lineHeight: 1.5,
-              }}
-            >
-              Enter the corporate email associated with your account. We'll send you instructions to reset your password.
-            </Typography>
-
-            <TextField
-              id="reset-email-input"
-              autoFocus
-              fullWidth
-              size="small"
-              type="email"
-              placeholder="e.g. alex.morgan@example.com"
-              value={resetEmail}
-              onChange={(e) => setResetEmail(e.target.value)}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <MailIcon sx={{ fontSize: 18, color: isDark ? '#64748b' : '#94a3b8' }} />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                  fontFamily: '"Inter", sans-serif',
-                  fontSize: '0.875rem',
-                  bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
-                },
-              }}
-            />
-          </DialogContent>
-
-          <DialogActions sx={{ px: 2, pb: 2, pt: 1, gap: 1 }}>
+        actions={
+          <>
             <AppButton
               variant="ghost"
               size="small"
@@ -545,19 +445,61 @@ export const LoginPage = ({ mode, toggleMode }) => {
             >
               Cancel
             </AppButton>
-            {/* Secondary variant AppButton as requested */}
             <AppButton
               id="reset-password-submit-btn"
               type="submit"
+              form="forgot-password-form"
               variant="secondary"
               size="small"
               loading={isResetting}
             >
               Send Reset Link
             </AppButton>
-          </DialogActions>
+          </>
+        }
+      >
+        <form id="forgot-password-form" onSubmit={handleSendReset}>
+          <Typography
+            sx={{
+              fontFamily: '"Inter", sans-serif',
+              fontSize: '0.82rem',
+              color: isDark ? '#94a3b8' : blcColors.textMid,
+              mb: 2,
+              lineHeight: 1.5,
+            }}
+          >
+            Enter the corporate email associated with your account. We'll send you instructions to reset your password.
+          </Typography>
+
+          <TextField
+            id="reset-email-input"
+            autoFocus
+            fullWidth
+            size="small"
+            type="email"
+            placeholder="e.g. alex.morgan@example.com"
+            value={resetEmail}
+            onChange={(e) => setResetEmail(e.target.value)}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <MailIcon sx={{ fontSize: 18, color: isDark ? '#64748b' : '#94a3b8' }} />
+                  </InputAdornment>
+                ),
+              },
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '8px',
+                fontFamily: '"Inter", sans-serif',
+                fontSize: '0.875rem',
+                bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+              },
+            }}
+          />
         </form>
-      </Dialog>
+      </AppDialog>
     </Box>
   );
 };

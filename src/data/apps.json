@@ -82,9 +82,9 @@
         },
         {
           "id": 15,
-          "title": "AI Copilot",
-          "description": "Intelligent search assistant and automated summaries",
-          "icon": "AutoAwesome"
+          "title": "Contract Ledger",
+          "description": "Enterprise contract portfolio, subscription ARR, and itemized records",
+          "icon": "Description"
         },
         {
           "id": 21,

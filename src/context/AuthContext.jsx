@@ -15,39 +15,21 @@ const AuthContext = createContext(null);
 // can access authentication state via useAuth()
 export const AuthProvider = ({ children }) => {
   // currentUser holds the logged-in user's info (name, username, role, loginTime)
-  // null means no one is logged in
-  const [currentUser, setCurrentUser] = useState(null);
-
-  // loading is true while we check storage on app startup.
-  // This prevents a brief "not logged in" flash before the session is restored.
-  const [loading, setLoading] = useState(true);
-
-  // ─── Session Restore on Page Load ────────────────────────────────────────
-  // Runs once when the app first mounts.
-  // Checks if a user was previously logged in and restores their session.
-  useEffect(() => {
+  // Restored synchronously from localStorage / sessionStorage to prevent any render flashes
+  const [currentUser, setCurrentUser] = useState(() => {
     try {
-      // localStorage persists even after the browser is closed (Remember Me)
       const localUser = localStorage.getItem('auth_user');
-
-      // sessionStorage is cleared when the browser tab is closed (no Remember Me)
+      if (localUser) return JSON.parse(localUser);
       const sessionUser = sessionStorage.getItem('auth_user');
-
-      if (localUser) {
-        // User had "Remember Me" checked — restore from localStorage
-        setCurrentUser(JSON.parse(localUser));
-      } else if (sessionUser) {
-        // User was logged in this session — restore from sessionStorage
-        setCurrentUser(JSON.parse(sessionUser));
-      }
+      if (sessionUser) return JSON.parse(sessionUser);
     } catch (err) {
-      // If stored data is corrupted/invalid JSON, log it and continue as logged out
       console.error('Error loading session from storage:', err);
-    } finally {
-      // Always mark loading as done so the app can render (no infinite spinner)
-      setLoading(false);
     }
-  }, []); // Empty dependency array = runs only once on mount
+    return null;
+  });
+
+  // loading is false immediately because session is restored synchronously
+  const [loading, setLoading] = useState(false);
 
   // ─── Login Handler ────────────────────────────────────────────────────────
   // Called from the Login page with the user's input.
