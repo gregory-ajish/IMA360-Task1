@@ -1,4 +1,4 @@
-// src/components/dataTable/renderers.js
+// src/components/tables/renderers.js
 // PURPOSE: Dedicated Handsontable custom cell renderers.
 
 /**

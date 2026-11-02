@@ -15,7 +15,6 @@ import PropTypes from 'prop-types';
 import { Box, Typography } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { blcColors, typographyTokens } from '../../theme';
-import { DataGridAggregationFooter } from './DataGridAggregationFooter';
 
 /**
  * MuiDataGrid / AppDataGrid Component
@@ -38,14 +37,6 @@ export const MuiDataGrid = forwardRef(function MuiDataGrid(
     getRowId = (row) => row?.id ?? row?.rawIndex,
     getRowClassName: externalGetRowClassName,
     emptyMessage = 'No records found.',
-    enableAggregation = false,
-    aggregationColumn = 'annualArr',
-    aggregationColumns,
-    aggregationLabel = 'Annual ARR',
-    aggregationType,
-    onAggregationTypeChange,
-    customAggregator,
-    currency = true,
     sx = {},
     slots = {},
     ...restProps
@@ -187,7 +178,7 @@ export const MuiDataGrid = forwardRef(function MuiDataGrid(
         getRowClassName={resolveRowClassName}
         isCellEditable={isCellEditable}
         rowHeight={rowHeight}
-        hideFooter={enableAggregation ? false : hideFooter}
+        hideFooter={hideFooter}
         loading={loading}
         slots={{
           noRowsOverlay: () => (
@@ -205,25 +196,6 @@ export const MuiDataGrid = forwardRef(function MuiDataGrid(
               <Typography variant="body2">{emptyMessage}</Typography>
             </Box>
           ),
-          ...(enableAggregation
-            ? {
-                footer: () => (
-                  <DataGridAggregationFooter
-                    rows={rows}
-                    columns={columns}
-                    selectedRowIndices={selectedRowIndices}
-                    numericField={aggregationColumn}
-                    numericColumns={aggregationColumns}
-                    fieldLabel={aggregationLabel}
-                    isDark={isDark}
-                    activeType={aggregationType}
-                    onTypeChange={onAggregationTypeChange}
-                    customAggregator={customAggregator}
-                    currency={currency}
-                  />
-                ),
-              }
-            : {}),
           ...slots,
         }}
         {...restProps}
@@ -249,16 +221,6 @@ MuiDataGrid.propTypes = {
   getRowId: PropTypes.func,
   getRowClassName: PropTypes.func,
   emptyMessage: PropTypes.node,
-  enableAggregation: PropTypes.bool,
-  aggregationColumn: PropTypes.string,
-  aggregationColumns: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.string, PropTypes.object])
-  ),
-  aggregationLabel: PropTypes.string,
-  aggregationType: PropTypes.string,
-  onAggregationTypeChange: PropTypes.func,
-  customAggregator: PropTypes.func,
-  currency: PropTypes.bool,
   sx: PropTypes.object,
 };
 

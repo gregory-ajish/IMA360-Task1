@@ -305,7 +305,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
                   disableUnderline: true,
                   sx: {
                     fontSize: '0.84rem',
-                    color: isDark ? '#f8fafc' : '#0f172a',
+                    color: isDark ? blcColors.white : blcColors.textDark,
                   },
                 },
               }}
@@ -460,7 +460,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
                           {label}
                         </Typography>
                       </Box>
-                      <Typography sx={{ fontSize: '1.15rem', fontWeight: 700, color: isDark ? '#f8fafc' : '#0f172a' }}>
+                      <Typography sx={{ fontSize: '1.15rem', fontWeight: 700, color: isDark ? '#f8fafc' : blcColors.textDark }}>
                         {value}
                       </Typography>
                     </Paper>
@@ -489,7 +489,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
                 {/* Panel Header */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                   <CalendarIcon sx={{ fontSize: 18, color: '#4f46e5' }} />
-                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: isDark ? '#f8fafc' : '#0f172a' }}>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: isDark ? '#f8fafc' : blcColors.textDark }}>
                     Weekly forecast
                   </Typography>
                 </Box>
@@ -536,7 +536,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
                     >
                       {/* Day Name & Date */}
                       <Box>
-                        <Typography sx={{ fontSize: '0.76rem', fontWeight: 700, color: isDark ? '#f8fafc' : '#0f172a' }}>
+                        <Typography sx={{ fontSize: '0.76rem', fontWeight: 700, color: isDark ? '#f8fafc' : blcColors.textDark }}>
                           {day.dayName}
                         </Typography>
                         <Typography sx={{ fontSize: '0.66rem', color: isDark ? '#94a3b8' : '#64748b', mt: 0.2 }}>
@@ -574,7 +574,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
 
                       {/* Max / Min Temperatures */}
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
-                        <Typography sx={{ fontSize: '0.84rem', fontWeight: 700, color: isDark ? '#f8fafc' : '#0f172a' }}>
+                        <Typography sx={{ fontSize: '0.84rem', fontWeight: 700, color: isDark ? '#f8fafc' : blcColors.textDark }}>
                           {Math.round(day.tempMax)}°
                         </Typography>
                         <Typography sx={{ fontSize: '0.74rem', color: isDark ? '#64748b' : '#9ca3af' }}>

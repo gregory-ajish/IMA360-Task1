@@ -30,6 +30,7 @@ import {
 // Centralized App Icons
 import {
   KeyboardArrowDownIcon,
+  EditNoteIcon,
 } from '../icons';
 
 
@@ -40,6 +41,7 @@ import { useAuth } from '../context/AuthContext';
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
+import { AppButton } from '../components/common/AppButton';
 import { HandsontableSheet } from '../components/tables';
 
 // Data tokens & shared storage key
@@ -558,6 +560,53 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
             />
           </Collapse>
         </Paper>
+
+        {/* ── ACTION BAR (OUTSIDE CARDS) ── */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: 1.5,
+            mt: 3,
+            pb: 2,
+          }}
+        >
+          <AppButton
+            variant="ghost"
+            onClick={() => navigate('/contract-ledger')}
+            sx={{
+              px: 3,
+              py: 1,
+              borderRadius: '8px',
+              border: `1px solid ${isDark ? blcColors.darkBorder : '#cbd5e1'}`,
+              color: isDark ? '#e2e8f0' : '#475569',
+              bgcolor: isDark ? blcColors.darkCard : '#ffffff',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
+              '&:hover': {
+                bgcolor: isDark ? 'rgba(255,255,255,0.08)' : '#f8fafc',
+              },
+            }}
+          >
+            Back to Ledger
+          </AppButton>
+          <AppButton
+            variant="primary"
+            onClick={() => navigate(`/contract-ledger/edit/${rowId}`)}
+            startIcon={<EditNoteIcon />}
+            sx={{
+              px: 3.5,
+              py: 1,
+              borderRadius: '8px',
+              bgcolor: blcColors.navyAccent,
+              fontWeight: 600,
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
+              '&:hover': { bgcolor: '#1d4ed8' },
+            }}
+          >
+            Edit Record
+          </AppButton>
+        </Box>
       </Container>
     </Box>
   );

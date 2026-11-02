@@ -1,4 +1,4 @@
-// src/components/dataTable/DataTableToolbar.jsx
+// src/components/tables/DataTableToolbar.jsx
 // ============================================================================
 // PURPOSE:
 //   Standardized toolbar controls for every Handsontable / DataTable instance.
@@ -49,6 +49,7 @@ export const DataTableToolbar = ({
   showSavedViews = true,
   showViewManagement = true,
   sx = {},
+  children = null,
 }) => {
   const dispatch = useDispatch();
   const reduxViews = useSelector((state) => state.views?.views || []);
@@ -180,6 +181,8 @@ export const DataTableToolbar = ({
             </IconButton>
           </Tooltip>
         )}
+
+        {children}
       </Box>
 
       {/* ── View Modals ── */}

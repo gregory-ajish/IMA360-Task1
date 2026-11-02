@@ -13,7 +13,6 @@
 
 import React, { useRef, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
 
 // Material-UI layout and UI components
 import {
@@ -25,21 +24,15 @@ import {
   Menu,
   MenuItem,
 } from '@mui/material';
-import { MuiDataGrid } from '../components/tables';
+import { MuiDataGrid, DataTableToolbar } from '../components/tables';
 
 // Centralized App Icons
 import {
   ContractLedgerIcon,
-  ViewsIcon,
-  SavedViewsIcon,
-  ViewColumnIcon,
   VisibilityIcon,
   EditNoteIcon,
   DownloadIcon,
 } from '../icons';
-
-// Redux views actions
-import { saveView, setActiveView } from '../store/viewsReducer';
 
 // Toast notifications
 import { toast } from 'react-toastify';
@@ -51,11 +44,6 @@ import { useAuth } from '../context/AuthContext';
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
-
-// View Management Modals
-import { ViewManagementModal } from '../components/tables/viewManagement/ViewManagementModal';
-import { SaveViewModal } from '../components/tables/viewManagement/SaveViewModal';
-import { SavedViewsModal } from '../components/tables/viewManagement/SavedViewsModal';
 
 // Shared options
 import {
@@ -130,7 +118,6 @@ export const COL_HEADERS = ['Plan Tier', 'Company Name', 'Annual ARR ($)', 'User
 export const ContractLedgerPage = ({ mode, toggleMode }) => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const isDark = mode === 'dark';
 
   // Selected row indices via row click (no checkboxes)
@@ -193,10 +180,7 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
     return INITIAL_CONTRACT_LEDGER_DATA;
   });
 
-  // ── View Management Modals State ───────────────────────────────────────────
-  const [saveViewModalOpen, setSaveViewModalOpen] = useState(false);
-  const [savedViewsModalOpen, setSavedViewsModalOpen] = useState(false);
-  const [viewManagementOpen, setViewManagementOpen] = useState(false);
+  // ── Download Export Menu State ───────────────────────────────────────────────
   const [downloadAnchorEl, setDownloadAnchorEl] = useState(null);
 
   // ── Visible & Hidden Columns State synced with localStorage ─────────────────
@@ -250,35 +234,6 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
       console.error('Error resetting columns:', e);
     }
     toast.info('Columns reset to default view.');
-  };
-
-  const handleSaveView = (name) => {
-    const newView = {
-      id: `view_${Date.now()}`,
-      name,
-      pageKey: 'contract_ledger',
-      visibleColumns: [...visibleColumns],
-      hiddenColumns: [...hiddenColumns],
-      createdAt: new Date().toISOString(),
-    };
-    dispatch(saveView(newView));
-    toast.success(`View "${name}" saved!`);
-  };
-
-  const handleApplyView = (view) => {
-    if (!view) return;
-    const newVisible = view.visibleColumns || DEFAULT_CONTRACT_LEDGER_COLUMNS;
-    const newHidden = view.hiddenColumns || [];
-    setVisibleColumns(newVisible);
-    setHiddenColumns(newHidden);
-    try {
-      localStorage.setItem('contract_ledger_visible_columns', JSON.stringify(newVisible));
-      localStorage.setItem('contract_ledger_hidden_columns', JSON.stringify(newHidden));
-    } catch (e) {
-      console.error('Error saving applied view to localStorage:', e);
-    }
-    dispatch(setActiveView(view.id));
-    toast.info(`Applied view: ${view.name}`);
   };
 
   // ─── Data Adapter: Convert dataset to MUI DataGrid row objects ───────────
@@ -465,18 +420,6 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
   const handleRequestView = useCallback((rowIndex) => {
     navigate(`/contract-ledger/view/${rowIndex + 1}`);
   }, [navigate]);
-
-  // ── Custom Aggregation Formula: Median across numeric fields ──────────────
-  const customArrAggregator = useCallback((values, rowList, field) => {
-    if (!values || values.length === 0) return { value: 0, label: 'Median' };
-    const sorted = [...values].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-    return {
-      value: median,
-      label: field === 'annualArr' ? 'Median ARR' : 'Median Seats',
-    };
-  }, []);
 
   // ─── Non-Editable DataGrid Column Definitions ──────────────────────────────
   const gridColumns = useMemo(() => {
@@ -667,86 +610,21 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
               : '0 8px 32px rgba(30,58,138,0.08)',
           }}
         >
-          {/* Table Header Controls (Save View, Saved Views, View Management) */}
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              gap: 1,
-              mb: 1.5,
-            }}
+          {/* Standardized Table Header Controls (Save View, Saved Views, View Management, Download) */}
+          <DataTableToolbar
+            showBulkUpdater={false}
+            showDelete={false}
+            showSaveView={true}
+            showSavedViews={true}
+            showViewManagement={true}
+            visibleColumns={visibleColumns}
+            hiddenColumns={hiddenColumns}
+            onColumnsChange={handleColumnsChange}
+            onResetColumns={handleResetColumns}
+            pageKey="contract_ledger"
+            isDark={isDark}
           >
-            {/* 1. Save Current View Icon */}
-            <Tooltip title="Save Current View" placement="top" arrow>
-              <IconButton
-                aria-label="Save Current View"
-                onClick={() => setSaveViewModalOpen(true)}
-                sx={{
-                  bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
-                  color: isDark ? '#94a3b8' : '#475569',
-                  border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-                  borderRadius: '8px',
-                  p: 0.85,
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
-                    color: isDark ? '#ffffff' : blcColors.navyAccent,
-                    borderColor: blcColors.navyAccent,
-                  },
-                }}
-              >
-                <ViewsIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-
-            {/* 2. Saved Views Icon */}
-            <Tooltip title="Saved Views" placement="top" arrow>
-              <IconButton
-                aria-label="Saved Views"
-                onClick={() => setSavedViewsModalOpen(true)}
-                sx={{
-                  bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
-                  color: isDark ? '#94a3b8' : '#475569',
-                  border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-                  borderRadius: '8px',
-                  p: 0.85,
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
-                    color: isDark ? '#ffffff' : blcColors.navyAccent,
-                    borderColor: blcColors.navyAccent,
-                  },
-                }}
-              >
-                <SavedViewsIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-
-            {/* 3. View Management Icon */}
-            <Tooltip title="View Management" placement="top" arrow>
-              <IconButton
-                aria-label="View Management"
-                onClick={() => setViewManagementOpen(true)}
-                sx={{
-                  bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
-                  color: isDark ? '#94a3b8' : '#475569',
-                  border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-                  borderRadius: '8px',
-                  p: 0.85,
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
-                    color: isDark ? '#ffffff' : blcColors.navyAccent,
-                    borderColor: blcColors.navyAccent,
-                  },
-                }}
-              >
-                <ViewColumnIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-
-            {/* 4. Download / Export Data Icon */}
+            {/* Download / Export Data Icon */}
             <Tooltip title="Download Data" placement="top" arrow>
               <IconButton
                 aria-label="Download Data"
@@ -768,9 +646,9 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
                 <DownloadIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-          </Box>
+          </DataTableToolbar>
 
-          {/* Reusable MUI DataGrid Component with Multi-Column Aggregation */}
+          {/* Reusable MUI DataGrid Component */}
           <MuiDataGrid
             rows={rows}
             columns={gridColumns}
@@ -779,41 +657,9 @@ export const ContractLedgerPage = ({ mode, toggleMode }) => {
             isDark={isDark}
             height={580}
             rowHeight={46}
-            enableAggregation={true}
-            aggregationColumns={[
-              { field: 'annualArr', label: 'Annual ARR', currency: true },
-              { field: 'seats', label: 'User Seats', currency: false },
-            ]}
-            customAggregator={customArrAggregator}
           />
         </Paper>
       </Container>
-
-      {/* ── View Management Modals ── */}
-      <SaveViewModal
-        open={saveViewModalOpen}
-        onClose={() => setSaveViewModalOpen(false)}
-        onSave={handleSaveView}
-        isDark={isDark}
-      />
-
-      <SavedViewsModal
-        open={savedViewsModalOpen}
-        onClose={() => setSavedViewsModalOpen(false)}
-        onApplyView={handleApplyView}
-        pageKey="contract_ledger"
-        isDark={isDark}
-      />
-
-      <ViewManagementModal
-        open={viewManagementOpen}
-        onClose={() => setViewManagementOpen(false)}
-        visibleColumns={visibleColumns}
-        hiddenColumns={hiddenColumns}
-        onColumnsChange={handleColumnsChange}
-        onReset={handleResetColumns}
-        isDark={isDark}
-      />
 
       {/* ── Download Format Menu ── */}
       <Menu

@@ -124,7 +124,7 @@ export const DEFAULT_DETAILS_COLUMNS = [
 
 export const DETAILS_COLUMNS = DEFAULT_DETAILS_COLUMNS;
 
-const DETAILS_COL_HEADERS = [
+export const DETAILS_COL_HEADERS = [
   'ID',
   'Name',
   'Category',

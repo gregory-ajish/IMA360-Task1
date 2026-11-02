@@ -6,4 +6,3 @@ export { Delete, DeleteMechanism } from './delete';
 export { BulkUpdater } from './bulkUpdater/BulkUpdater';
 export { SaveViewModal, SavedViewsModal, ViewManagementModal } from './viewManagement';
 export { MuiDataGrid, MuiDataGrid as AppDataGrid, MuiDataGrid as CommonDataGrid } from './MuiDataGrid';
-export { DataGridAggregationFooter, AGGREGATE_FUNCTIONS } from './DataGridAggregationFooter';
