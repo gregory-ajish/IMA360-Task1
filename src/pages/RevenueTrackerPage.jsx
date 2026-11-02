@@ -5,7 +5,7 @@
 //   powered by Handsontable & Web Worker at route `/revenue-tracker`.
 // ============================================================================
 
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Material-UI components
@@ -13,8 +13,6 @@ import {
   Box,
   Container,
   Paper,
-  IconButton,
-  Tooltip,
 } from '@mui/material';
 
 // Centralized App Icons
@@ -22,13 +20,10 @@ import {
   SaveIcon,
   ResetIcon,
   TableChartIcon,
-  ViewColumnIcon,
-  ViewsIcon,
-  SavedViewsIcon,
 } from '../icons';
 
 // Global Shared DataTable Component & Action Renderer
-import { DataTable, deleteButtonRenderer } from '../components/dataTable';
+import { HandsontableSheet, deleteButtonRenderer, DataTableToolbar } from '../components/tables';
 
 // Toast notifications
 import { toast } from 'react-toastify';
@@ -42,13 +37,6 @@ import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
 import { AppButton } from '../components/common/AppButton';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
-import { ViewManagementModal } from '../components/dataTable/viewManagement/ViewManagementModal';
-import { SaveViewModal } from '../components/dataTable/viewManagement/SaveViewModal';
-import { SavedViewsModal } from '../components/dataTable/viewManagement/SavedViewsModal';
-
-// Redux hooks and actions
-import { useDispatch } from 'react-redux';
-import { saveView, setActiveView } from '../store/viewsReducer';
 
 // Shared localStorage key
 const SHARED_STORAGE_KEY = 'revenue_ledger_shared';
@@ -122,14 +110,6 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [rowToDelete, setRowToDelete] = useState(null);
 
-  // Redux views state & Save View modal state
-  const dispatch = useDispatch();
-  const [saveViewModalOpen, setSaveViewModalOpen] = useState(false);
-  const [savedViewsModalOpen, setSavedViewsModalOpen] = useState(false);
-
-  // View Management modal & column reordering state
-  const [viewManagementOpen, setViewManagementOpen] = useState(false);
-
   const [visibleColumns, setVisibleColumns] = useState(() => {
     try {
       const saved = localStorage.getItem('revenue_visible_columns');
@@ -179,26 +159,6 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
     toast.info('Columns reset to default view.');
   };
 
-  const handleSaveView = (name) => {
-    const newView = {
-      id: `view_${Date.now()}`,
-      name,
-      visibleColumns: [...visibleColumns],
-      hiddenColumns: [...hiddenColumns],
-      createdAt: new Date().toISOString(),
-    };
-    dispatch(saveView(newView));
-    toast.success(`View "${name}" saved!`);
-  };
-
-  const handleApplyView = (view) => {
-    if (!view) return;
-    setVisibleColumns(view.visibleColumns || DEFAULT_REVENUE_COLUMNS);
-    setHiddenColumns(view.hiddenColumns || []);
-    dispatch(setActiveView(view.id));
-    toast.info(`Applied view: ${view.name}`);
-  };
-
   const handleRequestDelete = (rowVisualIndex) => {
     if (!isAdmin) return;
     setRowToDelete(rowVisualIndex);
@@ -218,6 +178,59 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
   const handleCancelDelete = () => {
     setDeleteConfirmOpen(false);
     setRowToDelete(null);
+  };
+
+  // Reusable Delete mechanism ref & selection sync
+  const deleteRef = useRef(null);
+
+  const handleAfterSelectionEnd = useCallback(() => {
+    deleteRef.current?.handleAfterSelectionEnd?.();
+  }, []);
+
+  const handleDeleteRows = (indicesToDelete) => {
+    if (!isAdmin) {
+      toast.warn('Only administrators can delete rows.');
+      return;
+    }
+    const hot = hotRef.current?.hotInstance;
+    if (hot && Array.isArray(indicesToDelete) && indicesToDelete.length > 0) {
+      const sorted = [...indicesToDelete].sort((a, b) => b - a);
+      sorted.forEach((idx) => {
+        const visualRow = hot.toVisualRow ? hot.toVisualRow(idx) : idx;
+        if (visualRow >= 0) {
+          hot.alter('remove_row', visualRow, 1);
+        }
+      });
+    }
+  };
+
+  const handleApplyBulkUpdate = (updates) => {
+    if (!isAdmin) {
+      toast.warn('Only administrators can perform bulk updates.');
+      return;
+    }
+    const hot = hotRef.current?.hotInstance;
+    if (hot && updates && updates.length > 0) {
+      const totalCount = hot.countRows();
+      const changes = [];
+      const rowLimit = Math.min(totalCount, 500);
+      for (let r = 0; r < rowLimit; r++) {
+        if (typeof hot.isEmptyRow === 'function' && hot.isEmptyRow(r)) continue;
+        const rowData = hot.getDataAtRow(r);
+        if (!rowData || rowData.every((c) => c === null || c === undefined || String(c).trim() === '')) {
+          continue;
+        }
+        updates.forEach(({ colIndex, val }) => {
+          changes.push([r, colIndex, val]);
+        });
+      }
+      if (changes.length > 0) {
+        hot.setDataAtCell(changes);
+      }
+      toast.success(
+        `Bulk updated ${updates.map((u) => u.label).join(' & ')} across rows!`
+      );
+    }
   };
 
   const handleSave = () => {
@@ -356,88 +369,25 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
               : '0 8px 32px rgba(30,58,138,0.08)',
           }}
         >
-          {/* Table Header Controls */}
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              gap: 1,
-              mb: 1.5,
-            }}
-          >
-            {/* Views Icon */}
-            <Tooltip title="Views" placement="top" arrow>
-              <IconButton
-                aria-label="Views"
-                onClick={() => setSaveViewModalOpen(true)}
-                sx={{
-                  bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
-                  color: isDark ? '#94a3b8' : '#475569',
-                  border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-                  borderRadius: '8px',
-                  p: 0.85,
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
-                    color: isDark ? '#ffffff' : blcColors.navyAccent,
-                    borderColor: blcColors.navyAccent,
-                  },
-                }}
-              >
-                <ViewsIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+          {/* Standardized Table Header Controls */}
+          <DataTableToolbar
+            hotRef={hotRef}
+            deleteRef={deleteRef}
+            dataset={dataset}
+            onDelete={handleDeleteRows}
+            itemLabel="revenue row"
+            columns={columns}
+            onApplyBulkUpdate={handleApplyBulkUpdate}
+            visibleColumns={visibleColumns}
+            hiddenColumns={hiddenColumns}
+            onColumnsChange={handleColumnsChange}
+            onResetColumns={handleResetColumns}
+            pageKey="revenue_tracker"
+            isDark={isDark}
+          />
 
-            {/* Saved Views Icon */}
-            <Tooltip title="Saved Views" placement="top" arrow>
-              <IconButton
-                aria-label="Saved Views"
-                onClick={() => setSavedViewsModalOpen(true)}
-                sx={{
-                  bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
-                  color: isDark ? '#94a3b8' : '#475569',
-                  border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-                  borderRadius: '8px',
-                  p: 0.85,
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
-                    color: isDark ? '#ffffff' : blcColors.navyAccent,
-                    borderColor: blcColors.navyAccent,
-                  },
-                }}
-              >
-                <SavedViewsIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-
-            {/* View Management Icon */}
-            <Tooltip title="View Management" placement="top" arrow>
-              <IconButton
-                aria-label="View Management"
-                onClick={() => setViewManagementOpen(true)}
-                sx={{
-                  bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
-                  color: isDark ? '#94a3b8' : '#475569',
-                  border: `1px solid ${isDark ? blcColors.darkBorder : '#e2e8f0'}`,
-                  borderRadius: '8px',
-                  p: 0.85,
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    bgcolor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
-                    color: isDark ? '#ffffff' : blcColors.navyAccent,
-                    borderColor: blcColors.navyAccent,
-                  },
-                }}
-              >
-                <ViewColumnIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-
-          {/* Reusable Global DataTable Component */}
-          <DataTable
+          {/* Reusable Handsontable Sheet Component */}
+          <HandsontableSheet
             ref={hotRef}
             dataset={dataset}
             totalRows={TOTAL_AVAILABLE_ROWS}
@@ -452,6 +402,7 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
             isDark={isDark}
             isAdmin={isAdmin}
             onDeleteRow={handleRequestDelete}
+            afterSelectionEnd={handleAfterSelectionEnd}
             dropdownMenu={DROPDOWN_MENU_OPTIONS}
             contextMenu={isAdmin ? true : false}
           />
@@ -467,30 +418,6 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
         onCancel={handleCancelDelete}
         confirmText="Delete"
         cancelText="Cancel"
-        isDark={isDark}
-      />
-
-      <SaveViewModal
-        open={saveViewModalOpen}
-        onClose={() => setSaveViewModalOpen(false)}
-        onSave={handleSaveView}
-        isDark={isDark}
-      />
-
-      <SavedViewsModal
-        open={savedViewsModalOpen}
-        onClose={() => setSavedViewsModalOpen(false)}
-        onApplyView={handleApplyView}
-        isDark={isDark}
-      />
-
-      <ViewManagementModal
-        open={viewManagementOpen}
-        onClose={() => setViewManagementOpen(false)}
-        visibleColumns={visibleColumns}
-        hiddenColumns={hiddenColumns}
-        onColumnsChange={handleColumnsChange}
-        onReset={handleResetColumns}
         isDark={isDark}
       />
     </Box>

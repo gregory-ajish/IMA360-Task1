@@ -18,6 +18,7 @@ import React, {
   useState,
   useRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   forwardRef,
 } from 'react';
@@ -32,30 +33,52 @@ import { ConfirmDialog } from '../../common/ConfirmDialog';
 /**
  * Extracts a sorted list of unique 0-indexed row indices from Handsontable's selected ranges.
  * Handles single cells, ranges, column header selections (startRow === -1), and Ctrl multi-selections.
+ * Automatically translates visual row coordinates to physical dataset indices.
  *
  * @param {object} hotInstance - Handsontable instance
  * @param {number} totalRows - Total row count in dataset
  * @param {number[]} fallbackIndices - Fallback array of row indices if selection is empty
- * @returns {number[]} Sorted unique row indices
+ * @returns {number[]} Sorted unique physical row indices
  */
 export const extractSelectedRowIndices = (hotInstance, totalRows = 0, fallbackIndices = []) => {
   const rowIndices = new Set();
-  const ranges = hotInstance?.getSelected ? hotInstance.getSelected() : null;
 
-  if (Array.isArray(ranges) && ranges.length > 0) {
-    ranges.forEach(([startRow, , endRow]) => {
-      const isEntireColumn = startRow === -1 || endRow === -1;
-      const min = isEntireColumn ? 0 : Math.max(0, Math.min(startRow, endRow));
-      const max = isEntireColumn
-        ? Math.max(0, totalRows - 1)
-        : Math.min(Math.max(0, totalRows - 1), Math.max(startRow, endRow));
+  if (hotInstance) {
+    const ranges = hotInstance.getSelected ? hotInstance.getSelected() : null;
+    if (Array.isArray(ranges) && ranges.length > 0) {
+      ranges.forEach(([startRow, , endRow]) => {
+        const isEntireColumn = startRow === -1 || endRow === -1;
+        const minVisual = isEntireColumn ? 0 : Math.max(0, Math.min(startRow, endRow));
+        const maxVisual = isEntireColumn
+          ? Math.max(0, totalRows > 0 ? totalRows - 1 : (hotInstance.countRows ? hotInstance.countRows() - 1 : 0))
+          : Math.max(startRow, endRow);
 
-      for (let r = min; r <= max; r++) {
-        if (totalRows === 0 || (r >= 0 && r < totalRows)) {
-          rowIndices.add(r);
+        for (let vr = minVisual; vr <= maxVisual; vr++) {
+          const pr = hotInstance.toPhysicalRow ? hotInstance.toPhysicalRow(vr) : vr;
+          if (pr !== null && pr !== undefined && pr >= 0 && (totalRows === 0 || pr < totalRows)) {
+            rowIndices.add(pr);
+          }
         }
+      });
+    }
+
+    if (rowIndices.size === 0 && hotInstance.getSelectedRange) {
+      const cellRanges = hotInstance.getSelectedRange();
+      if (Array.isArray(cellRanges) && cellRanges.length > 0) {
+        cellRanges.forEach((range) => {
+          const fromRow = range.from?.row ?? -1;
+          const toRow = range.to?.row ?? -1;
+          const minVisual = Math.max(0, Math.min(fromRow, toRow));
+          const maxVisual = Math.max(fromRow, toRow);
+          for (let vr = minVisual; vr <= maxVisual; vr++) {
+            const pr = hotInstance.toPhysicalRow ? hotInstance.toPhysicalRow(vr) : vr;
+            if (pr !== null && pr !== undefined && pr >= 0 && (totalRows === 0 || pr < totalRows)) {
+              rowIndices.add(pr);
+            }
+          }
+        });
       }
-    });
+    }
   }
 
   // Fallback if Handsontable lost focus or selection was recorded prior to click
@@ -74,6 +97,7 @@ export const Delete = forwardRef(function Delete(
   {
     hotRef,
     dataset = [],
+    selectedRowIndices = [],
     onDelete,
     itemLabel = 'row',
     title,
@@ -103,31 +127,76 @@ export const Delete = forwardRef(function Delete(
     }
   }, [hotRef, rowCount]);
 
+  // Automatically listen to Handsontable's selection events
+  useEffect(() => {
+    const hot = hotRef?.current?.hotInstance;
+    if (!hot) return;
+
+    const onSelection = () => {
+      const indices = extractSelectedRowIndices(hot, rowCount);
+      if (indices.length > 0) {
+        lastSelectedRowsRef.current = indices;
+      }
+    };
+
+    if (hot.addHook) {
+      hot.addHook('afterSelectionEnd', onSelection);
+      hot.addHook('afterSelection', onSelection);
+    }
+
+    return () => {
+      try {
+        if (hot.removeHook) {
+          hot.removeHook('afterSelectionEnd', onSelection);
+          hot.removeHook('afterSelection', onSelection);
+        }
+      } catch {
+        // Ignore unmount hook removal
+      }
+    };
+  }, [hotRef, rowCount]);
+
   // Programmatic trigger for single row (e.g. from table cell action button)
   const requestDelete = useCallback(
     (rowIndex, rowData) => {
-      const row = rowData || (dataset && dataset[rowIndex]);
-      setRowToDelete({ index: rowIndex, data: row });
-      setRowsToDelete([rowIndex]);
+      const hot = hotRef?.current?.hotInstance;
+      const physicalIdx =
+        hot?.toPhysicalRow && rowIndex >= 0 ? hot.toPhysicalRow(rowIndex) : rowIndex;
+      const row = rowData || (dataset && dataset[physicalIdx]);
+      setRowToDelete({ index: physicalIdx, data: row });
+      setRowsToDelete([physicalIdx]);
       setOpen(true);
     },
-    [dataset]
+    [hotRef, dataset]
   );
 
   // Trigger for selected rows in table (from toolbar button or programmatic)
   const requestDeleteSelected = useCallback(() => {
-    const hot = hotRef?.current?.hotInstance;
-    const sortedRows = extractSelectedRowIndices(hot, rowCount, lastSelectedRowsRef.current);
+    let sortedRows = [];
+
+    if (Array.isArray(selectedRowIndices) && selectedRowIndices.length > 0) {
+      sortedRows = [...selectedRowIndices].sort((a, b) => a - b);
+    } else {
+      const hot = hotRef?.current?.hotInstance;
+      sortedRows = extractSelectedRowIndices(hot, rowCount, lastSelectedRowsRef.current);
+
+      if (sortedRows.length === 0 && hot?.getSelected) {
+        const sel = hot.getSelected();
+        if (sel) {
+          sortedRows = extractSelectedRowIndices(hot, rowCount);
+        }
+      }
+    }
 
     if (sortedRows.length === 0) {
-      toast.info('Please select rows or cells in the table to delete.');
+      toast.info(`Please select ${itemLabel.endsWith('s') ? itemLabel : `${itemLabel}s`} in the table to delete.`);
       return;
     }
 
     setRowToDelete(null);
     setRowsToDelete(sortedRows);
     setOpen(true);
-  }, [hotRef, rowCount]);
+  }, [hotRef, rowCount, selectedRowIndices, itemLabel]);
 
   const cancelDelete = useCallback(() => {
     setOpen(false);
@@ -184,6 +253,9 @@ export const Delete = forwardRef(function Delete(
       confirmDelete,
       handleAfterSelectionEnd,
       getSelectedRowIndices: () => {
+        if (Array.isArray(selectedRowIndices) && selectedRowIndices.length > 0) {
+          return [...selectedRowIndices].sort((a, b) => a - b);
+        }
         const hot = hotRef?.current?.hotInstance;
         return extractSelectedRowIndices(hot, rowCount, lastSelectedRowsRef.current);
       },
@@ -196,6 +268,7 @@ export const Delete = forwardRef(function Delete(
       handleAfterSelectionEnd,
       hotRef,
       rowCount,
+      selectedRowIndices,
     ]
   );
 
@@ -230,8 +303,13 @@ export const Delete = forwardRef(function Delete(
               onMouseDown={(e) => {
                 // Prevent Handsontable from clearing active cell/range selection on mouse click
                 e.preventDefault();
+                e.stopPropagation();
               }}
-              onClick={requestDeleteSelected}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                requestDeleteSelected();
+              }}
               sx={{
                 bgcolor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
                 color: isDark ? '#94a3b8' : '#475569',
@@ -272,6 +350,7 @@ export const Delete = forwardRef(function Delete(
 Delete.propTypes = {
   hotRef: PropTypes.shape({ current: PropTypes.any }),
   dataset: PropTypes.array,
+  selectedRowIndices: PropTypes.arrayOf(PropTypes.number),
   onDelete: PropTypes.func.isRequired,
   itemLabel: PropTypes.string,
   title: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),

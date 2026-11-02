@@ -289,7 +289,7 @@ export const DashboardPage = ({ mode, toggleMode }) => {
               boxShadow: isDark ? '0 2px 12px rgba(0,0,0,0.4)' : 'none',
             }}
           >
-            <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.85rem', color: isDark ? '#475569' : '#9ca3af', mb: 1 }}>
+            <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.85rem', color: isDark ? '#475569' : blcColors.textLight, mb: 1 }}>
               No applications found for "{searchQuery}"
             </Typography>
             <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.875rem', color: isDark ? '#64748b' : blcColors.textMid }}>

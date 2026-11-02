@@ -12,7 +12,7 @@
 //     3. Action Bar   — "Back to Ledger" and "Edit Record" buttons placed outside cards.
 // ============================================================================
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 // Material-UI layout and UI components
@@ -22,10 +22,6 @@ import {
   Paper,
   Typography,
   TextField,
-  FormControl,
-  Select,
-  MenuItem,
-  Grid,
   Divider,
   IconButton,
   Collapse,
@@ -34,12 +30,9 @@ import {
 // Centralized App Icons
 import {
   KeyboardArrowDownIcon,
+  EditNoteIcon,
 } from '../icons';
 
-// Handsontable registry and core styling
-import { registerAllModules } from 'handsontable/registry';
-import 'handsontable/styles/handsontable.min.css';
-import 'handsontable/styles/ht-theme-main.min.css';
 
 // Theme tokens & Context
 import { blcColors, typographyTokens } from '../theme';
@@ -48,7 +41,8 @@ import { useAuth } from '../context/AuthContext';
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
-import { DataTable } from '../components/dataTable';
+import { AppButton } from '../components/common/AppButton';
+import { HandsontableSheet } from '../components/tables';
 
 // Data tokens & shared storage key
 import {
@@ -56,8 +50,6 @@ import {
   INITIAL_CONTRACT_LEDGER_DATA,
 } from './ContractLedgerPage';
 
-// Register all Handsontable modules
-registerAllModules();
 
 // ─── Details Card Handsontable Column Definitions (All 7 Read-Only) ─────────
 const DETAILS_VIEW_COLUMNS = [
@@ -180,7 +172,12 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
   const planTier = currentRow[0] || 'Enterprise';
   const annualArr = currentRow[2] !== undefined ? `$${Number(currentRow[2]).toLocaleString()}` : '$0';
   const companyName = currentRow[1] || 'N/A';
-  const joinDate = currentRow[3] || '2024-01-01';
+  const joinDate =
+    typeof currentRow[4] === 'string' && currentRow[4].includes('-')
+      ? currentRow[4]
+      : typeof currentRow[3] === 'string' && currentRow[3].includes('-')
+      ? currentRow[3]
+      : currentRow[4] || currentRow[3] || '2024-01-01';
 
   // Details card Handsontable dataset (loaded from localStorage or defaults)
   const [detailsData] = useState(() => {
@@ -264,7 +261,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               justifyContent: 'space-between',
               cursor: 'pointer',
               userSelect: 'none',
-              mb: headerOpen ? 1 : 0,
+              mb: headerOpen ? 0.25 : 0,
             }}
           >
             <Box
@@ -354,6 +351,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                 setHeaderOpen(!headerOpen);
               }}
               sx={{
+                p: 0.25,
                 color: isDark ? '#94a3b8' : '#64748b',
                 transform: headerOpen ? 'rotate(180deg)' : 'none',
                 transition: 'transform 0.2s ease',
@@ -366,7 +364,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
           <Collapse in={headerOpen}>
             <Divider sx={{ mb: 1.25, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
 
-            {/* Four Read-Only Inputs in ONE row stretching completely across horizontal space */}
+            {/* Four Read-Only Inputs in ONE row with equal width across horizontal space */}
             <Box
               sx={{
                 display: 'flex',
@@ -377,7 +375,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               }}
             >
               {/* 1. Plan Tier (Read-Only) */}
-              <Box sx={{ width: { xs: '100%', md: '180px' }, flexShrink: 0 }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -393,7 +391,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                   size="small"
                   fullWidth
                   value={planTier}
-                  InputProps={{ readOnly: true }}
+                  slotProps={{ input: { readOnly: true } }}
                   sx={{
                     bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
                     '& .MuiOutlinedInput-root': { borderRadius: '8px' },
@@ -402,7 +400,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               </Box>
 
               {/* 2. Annual ARR ($) (Read-Only) */}
-              <Box sx={{ width: { xs: '100%', md: '210px' }, flexShrink: 0 }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -418,7 +416,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                   size="small"
                   fullWidth
                   value={annualArr}
-                  InputProps={{ readOnly: true }}
+                  slotProps={{ input: { readOnly: true } }}
                   sx={{
                     bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
                     '& .MuiOutlinedInput-root': { borderRadius: '8px' },
@@ -427,7 +425,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               </Box>
 
               {/* 3. Company Name (Read-Only) */}
-              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' } }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -443,7 +441,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                   size="small"
                   fullWidth
                   value={companyName}
-                  InputProps={{ readOnly: true }}
+                  slotProps={{ input: { readOnly: true } }}
                   sx={{
                     bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
                     '& .MuiOutlinedInput-root': { borderRadius: '8px' },
@@ -452,7 +450,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               </Box>
 
               {/* 4. Join Date (Read-Only) */}
-              <Box sx={{ width: { xs: '100%', md: '220px' }, flexShrink: 0 }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -468,7 +466,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                   size="small"
                   fullWidth
                   value={joinDate}
-                  InputProps={{ readOnly: true }}
+                  slotProps={{ input: { readOnly: true } }}
                   sx={{
                     bgcolor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
                     '& .MuiOutlinedInput-root': { borderRadius: '8px' },
@@ -504,7 +502,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
               justifyContent: 'space-between',
               cursor: 'pointer',
               userSelect: 'none',
-              mb: detailsOpen ? 1 : 0,
+              mb: detailsOpen ? 0.25 : 0,
             }}
           >
             <Typography
@@ -527,6 +525,7 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
                 setDetailsOpen(!detailsOpen);
               }}
               sx={{
+                p: 0.25,
                 color: isDark ? '#94a3b8' : '#64748b',
                 transform: detailsOpen ? 'rotate(180deg)' : 'none',
                 transition: 'transform 0.2s ease',
@@ -539,8 +538,8 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
           <Collapse in={detailsOpen}>
             <Divider sx={{ mb: 1.25, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
 
-            {/* Read-Only Handsontable: Cells cannot be edited */}
-            <DataTable
+            {/* Read-Only Handsontable */}
+            <HandsontableSheet
               ref={detailsHotRef}
               dataset={detailsData}
               totalRows={detailsData.length}
@@ -561,6 +560,53 @@ export const ContractLedgerViewPage = ({ mode, toggleMode }) => {
             />
           </Collapse>
         </Paper>
+
+        {/* ── ACTION BAR (OUTSIDE CARDS) ── */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: 1.5,
+            mt: 3,
+            pb: 2,
+          }}
+        >
+          <AppButton
+            variant="ghost"
+            onClick={() => navigate('/contract-ledger')}
+            sx={{
+              px: 3,
+              py: 1,
+              borderRadius: '8px',
+              border: `1px solid ${isDark ? blcColors.darkBorder : '#cbd5e1'}`,
+              color: isDark ? '#e2e8f0' : '#475569',
+              bgcolor: isDark ? blcColors.darkCard : '#ffffff',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
+              '&:hover': {
+                bgcolor: isDark ? 'rgba(255,255,255,0.08)' : '#f8fafc',
+              },
+            }}
+          >
+            Back to Ledger
+          </AppButton>
+          <AppButton
+            variant="primary"
+            onClick={() => navigate(`/contract-ledger/edit/${rowId}`)}
+            startIcon={<EditNoteIcon />}
+            sx={{
+              px: 3.5,
+              py: 1,
+              borderRadius: '8px',
+              bgcolor: blcColors.navyAccent,
+              fontWeight: 600,
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
+              '&:hover': { bgcolor: '#1d4ed8' },
+            }}
+          >
+            Edit Record
+          </AppButton>
+        </Box>
       </Container>
     </Box>
   );

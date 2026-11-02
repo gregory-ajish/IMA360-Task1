@@ -78,17 +78,18 @@ export const ConfirmDialog = ({
       maxWidth="xs" // Keeps dialog compact and narrow (~444px max width)
       fullWidth // Stretches smoothly up to the maxWidth limit
       sx={{ zIndex }} // Sits above parent modals
-      PaperProps={{
-        // PaperProps styles the white/dark floating modal card
-        sx: {
-          borderRadius: '12px', // Rounded modern corners
-          bgcolor: isDark ? blcColors.darkCard : '#ffffff', // Theme-responsive card background
-          color: isDark ? '#e2e8f0' : blcColors.textDark, // Primary text color
-          border: `1px solid ${isDark ? blcColors.darkBorder : '#d1d9f0'}`, // Subtle outline
-          boxShadow: isDark
-            ? '0 16px 48px rgba(0,0,0,0.85)' // Heavy shadow in dark mode for depth
-            : '0 12px 40px rgba(15,23,42,0.22)', // Soft ambient shadow in light mode
-          p: 1, // Internal container padding
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: '12px', // Rounded modern corners
+            bgcolor: isDark ? blcColors.darkCard : '#ffffff', // Theme-responsive card background
+            color: isDark ? '#e2e8f0' : blcColors.textDark, // Primary text color
+            border: `1px solid ${isDark ? blcColors.darkBorder : '#d1d9f0'}`, // Subtle outline
+            boxShadow: isDark
+              ? '0 16px 48px rgba(0,0,0,0.85)' // Heavy shadow in dark mode for depth
+              : '0 12px 40px rgba(15,23,42,0.22)', // Soft ambient shadow in light mode
+            p: 1, // Internal container padding
+          },
         },
       }}
     >

@@ -27,6 +27,7 @@ import {
   BookmarkBorder,
   RestartAlt,
   Save,
+  FileDownload,
   // Actions & Management
   EditNote,
   AddCircleOutlineOutlined as AddCircleOutline,
@@ -158,6 +159,8 @@ export const BookmarkIcon = BookmarkBorder;
 export const ResetIcon = RestartAlt;
 export const RestartAltIcon = RestartAlt;
 export const SaveIcon = Save;
+export const DownloadIcon = FileDownload;
+export const FileDownloadIcon = FileDownload;
 export const BulkUpdateIcon = EditNote;
 export const EditNoteIcon = EditNote;
 export const AddRowIcon = AddCircleOutline;
@@ -260,6 +263,8 @@ export const iconMap = {
   savedViews: BookmarkBorder,
   reset: RestartAlt,
   save: Save,
+  download: FileDownload,
+  fileDownload: FileDownload,
   bulkUpdate: EditNote,
 
   // Auth & Roles

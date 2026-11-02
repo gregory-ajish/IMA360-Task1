@@ -37,6 +37,7 @@ import {
   Stack,
   Container,
   Link,
+  Divider,
 } from '@mui/material';
 
 // Centralized App Icons
@@ -46,7 +47,7 @@ import {
   UserIcon,
   LockIcon,
   MailIcon,
-  CloseIcon,
+
 } from '../icons';
 
 import { useAuth } from '../context/AuthContext'; // login() function from auth context
@@ -59,6 +60,7 @@ import { AppDialog } from '../components/common/AppDialog';
 // react-toastify: toast.error() fires a styled error notification.
 // The <ToastContainer> that renders them is mounted globally in main.jsx.
 import { toast } from 'react-toastify';
+import { GoogleLogin } from '@react-oauth/google';
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
 // Yup schema defines rules for each form field.
@@ -125,7 +127,7 @@ export const LoginPage = ({ mode, toggleMode }) => {
     handleCloseForgot();
   };
 
-  const { login } = useAuth();       // Auth function from global context
+  const { login, loginWithGoogle } = useAuth(); // Auth functions from global context
   const navigate = useNavigate();    // For redirecting after successful login
   const location = useLocation();    // To read state passed by ProtectedRoute
 
@@ -145,7 +147,6 @@ export const LoginPage = ({ mode, toggleMode }) => {
   const {
     control,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema), // Run Yup validation on submit
@@ -183,6 +184,29 @@ export const LoginPage = ({ mode, toggleMode }) => {
     } finally {
       setIsSubmitting(false); // Always re-enable the button
     }
+  };
+
+  // ─── Google OAuth Handlers ───────────────────────────────────────────────
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsSubmitting(true);
+    try {
+      const result = await loginWithGoogle(credentialResponse.credential, true);
+      if (result.success) {
+        toast.success(`Welcome, ${result.user.name}!`);
+        navigate(from, { replace: true });
+      } else {
+        toast.error(result.error || 'Google sign-in failed.');
+      }
+    } catch (err) {
+      console.error('Google sign-in error:', err);
+      toast.error('Google authentication failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast.error('Google Sign-In was cancelled or failed.');
   };
 
   // ─── JSX / UI ────────────────────────────────────────────────────────────
@@ -228,6 +252,38 @@ export const LoginPage = ({ mode, toggleMode }) => {
                 title="Test App Portal"
                 subtitle="Sign in to access the portal"
               />
+            </Box>
+
+            {/* ── Google OAuth Sign-In Button ── */}
+            <Box sx={{ mb: 2.5, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                theme={isDark ? 'filled_black' : 'outline'}
+                size="large"
+                shape="rectangular"
+                text="continue_with"
+                width="100%"
+              />
+            </Box>
+
+            {/* ── Divider between Google OAuth and Corporate Login ── */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2.5 }}>
+              <Divider sx={{ flex: 1, borderColor: isDark ? blcColors.darkBorder : '#e2e8f0' }} />
+              <Typography
+                sx={{
+                  px: 1.5,
+                  fontSize: '0.75rem',
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontWeight: 600,
+                  color: isDark ? '#94a3b8' : '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                or
+              </Typography>
+              <Divider sx={{ flex: 1, borderColor: isDark ? blcColors.darkBorder : '#e2e8f0' }} />
             </Box>
 
             {/* Server errors are now shown as a Snackbar toast (see below the return). */}
@@ -280,6 +336,8 @@ export const LoginPage = ({ mode, toggleMode }) => {
                     )}
                   />
                 </Box>
+
+
 
                 {/* ── Password Field ──
                     type switches between 'password' (hidden) and 'text' (visible)
@@ -341,6 +399,8 @@ export const LoginPage = ({ mode, toggleMode }) => {
                     )}
                   />
                 </Box>
+
+
 
                 {/* ── Remember Me & Forgot Password Row ── */}
                 <Box
@@ -406,6 +466,8 @@ export const LoginPage = ({ mode, toggleMode }) => {
                     Forgot password?
                   </Link>
                 </Box>
+
+
 
                 {/* ── Sign In Button (Common AppButton component) ──
                     Handles loading spinner and disabled state automatically */}
