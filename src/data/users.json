@@ -1,5 +1,10 @@
 [
   {
+    "username": "gregoryajish100@gmail.com",
+    "name": "Gregory Ajish",
+    "role": "Admin"
+  },
+  {
     "username": "admin",
     "password": "Admin@123",
     "name": "Administrator",

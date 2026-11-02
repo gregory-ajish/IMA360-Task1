@@ -4,6 +4,7 @@
 // check if authenticated, or call login/logout — without passing props manually.
 
 import React, { createContext, useContext, useState } from 'react';
+import { jwtDecode } from 'jwt-decode';
 
 // Import local user data (no backend — credentials are stored in a JSON file)
 import usersData from '../data/users.json';
@@ -82,6 +83,58 @@ export const AuthProvider = ({ children }) => {
     };
   };
 
+  // ─── Google OAuth Login Handler ───────────────────────────────────────────
+  // Called when Google Identity Services returns a credential token.
+  // Decodes the Google JWT ID token and maps profile data to our auth user session.
+  const loginWithGoogle = async (credential, rememberMe = true) => {
+    try {
+      if (!credential) {
+        return { success: false, error: 'No Google credential received.' };
+      }
+
+      // Decode the JWT ID Token from Google
+      const decoded = jwtDecode(credential);
+
+      // Check if email matches any pre-configured user or has admin privileges
+      const emailLower = (decoded.email || '').toLowerCase();
+      const matchedUser = usersData.find(
+        (u) => u.username?.toLowerCase() === emailLower
+      );
+
+      const role =
+        matchedUser?.role ||
+        (emailLower.includes('admin') ? 'Admin' : 'User');
+
+      const authUser = {
+        name: decoded.name || decoded.email,
+        username: decoded.email,
+        email: decoded.email,
+        avatar: decoded.picture || null,
+        role,
+        provider: 'google',
+        googleId: decoded.sub,
+        loginTime: new Date().toISOString(),
+      };
+
+      setCurrentUser(authUser);
+
+      if (rememberMe) {
+        localStorage.setItem('auth_user', JSON.stringify(authUser));
+        localStorage.setItem('remember_me', 'true');
+        sessionStorage.removeItem('auth_user');
+      } else {
+        sessionStorage.setItem('auth_user', JSON.stringify(authUser));
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('remember_me');
+      }
+
+      return { success: true, user: authUser };
+    } catch (err) {
+      console.error('Error decoding Google OAuth credential:', err);
+      return { success: false, error: 'Failed to process Google sign-in.' };
+    }
+  };
+
   // ─── Logout Handler ───────────────────────────────────────────────────────
   // Clears all auth state and storage so the user is fully signed out.
   const logout = () => {
@@ -105,6 +158,7 @@ export const AuthProvider = ({ children }) => {
     isAdmin: currentUser?.role === 'Admin', // True only for the Admin user
     loading,                        // True while restoring session on first load
     login,                          // Function to log in
+    loginWithGoogle,                // Function to log in with Google OAuth
     logout,                         // Function to log out
   };
 

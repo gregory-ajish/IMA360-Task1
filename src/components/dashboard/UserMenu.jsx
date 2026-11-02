@@ -124,6 +124,8 @@ export const UserMenu = ({ currentUser, onLogout, isDark, onProfileClick, onSett
           aria-label="open user account menu"
         >
           <Avatar
+            src={currentUser?.avatar || undefined}
+            alt={currentUser?.name || 'User'}
             sx={{
               width: 34,
               height: 34,
