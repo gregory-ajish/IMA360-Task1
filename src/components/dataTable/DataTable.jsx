@@ -126,6 +126,8 @@ export const DataTable = forwardRef(function DataTable(
     beforeFilter: customBeforeFilter,
     afterChange: customAfterChange,
     actionColumnIndex,
+    outsideClickDeselects = false,
+    selectionMode = 'multiple',
     useWorker = true,
     onFilterComplete,
     onSortComplete,
@@ -139,8 +141,8 @@ export const DataTable = forwardRef(function DataTable(
   useImperativeHandle(ref, () => innerHotRef.current);
 
   const workerRef = useRef(null);
-  const [data, setData] = useState([]);
-  const [isLoading, setIsLoading] = useState(externalIsLoading ?? true);
+  const [data, setData] = useState(() => (useWorker ? [] : dataset));
+  const [isLoading, setIsLoading] = useState(() => (externalIsLoading !== undefined ? externalIsLoading : (useWorker ? true : false)));
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [_hasMore, setHasMore] = useState(true);
@@ -560,6 +562,14 @@ export const DataTable = forwardRef(function DataTable(
           fontWeight: typographyTokens.weightBold,
           fontFamily: typographyTokens.fontMono,
         },
+        '& .handsontable td.area, & .handsontable td.current': {
+          backgroundColor: isDark
+            ? 'rgba(59, 130, 246, 0.22) !important'
+            : 'rgba(30, 58, 138, 0.12) !important',
+        },
+        '& .handsontable th.ht__highlight': {
+          backgroundColor: isDark ? '#334155 !important' : '#e2e8f0 !important',
+        },
         ...sx,
       }}
     >
@@ -614,6 +624,8 @@ export const DataTable = forwardRef(function DataTable(
           autoWrapRow={autoWrapRow}
           autoWrapCol={autoWrapCol}
           licenseKey={licenseKey}
+          outsideClickDeselects={outsideClickDeselects}
+          selectionMode={selectionMode}
           beforeColumnSort={handleBeforeColumnSort}
           beforeFilter={handleBeforeFilter}
           afterChange={handleAfterChange}

@@ -146,17 +146,19 @@ export const UserMenu = ({ currentUser, onLogout, isDark, onProfileClick, onSett
         onClose={handleMenuClose}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        PaperProps={{
-          elevation: isDark ? 0 : 3,
-          sx: {
-            minWidth: 190,
-            maxWidth: 210,
-            borderRadius: '10px',
-            mt: 0.75,
-            p: 0.75,
-            bgcolor: isDark ? blcColors.darkCard : '#ffffff',
-            border: `1px solid ${isDark ? blcColors.darkBorder : '#e5e7eb'}`,
-            boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 16px rgba(0,0,0,0.12)',
+        slotProps={{
+          paper: {
+            elevation: isDark ? 0 : 3,
+            sx: {
+              minWidth: 190,
+              maxWidth: 210,
+              borderRadius: '10px',
+              mt: 0.75,
+              p: 0.75,
+              bgcolor: isDark ? blcColors.darkCard : '#ffffff',
+              border: `1px solid ${isDark ? blcColors.darkBorder : '#e5e7eb'}`,
+              boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 16px rgba(0,0,0,0.12)',
+            },
           },
         }}
       >

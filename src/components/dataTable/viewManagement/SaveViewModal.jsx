@@ -5,8 +5,9 @@
 //   table view to Redux. Built on top of the shared `Popup` common component.
 // ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography, TextField } from '@mui/material';
+import { useSelector } from 'react-redux';
 import { SaveIcon } from '../../../icons';
 
 import { blcColors, typographyTokens } from '../../../theme';
@@ -17,11 +18,20 @@ export const SaveViewModal = ({
   open,
   onClose,
   onSave,
-  existingViews = [],
+  existingViews: propExistingViews,
   isDark = false,
 }) => {
+  const reduxViews = useSelector((state) => state.views?.views || []);
+  const existingViews = propExistingViews ?? reduxViews;
   const [viewName, setViewName] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setViewName('');
+      setError('');
+    }
+  }, [open]);
 
   const handleClose = () => {
     setViewName('');
@@ -71,12 +81,6 @@ export const SaveViewModal = ({
       title="Save Current View"
       maxWidth="xs"
       isDark={isDark}
-      TransitionProps={{
-        onEnter: () => {
-          setViewName('');
-          setError('');
-        },
-      }}
       actions={
         <>
           <AppButton variant="ghost" size="small" onClick={handleClose}>

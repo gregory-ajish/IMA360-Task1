@@ -10,7 +10,7 @@
 //     3. Action Bar   — Save and Cancel buttons placed OUTSIDE the cards at bottom-right.
 // ============================================================================
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 // Material-UI layout and UI components
@@ -23,7 +23,6 @@ import {
   FormControl,
   Select,
   MenuItem,
-  Grid,
   Divider,
   IconButton,
   Collapse,
@@ -39,10 +38,6 @@ import {
 // Toast notifications
 import { toast } from 'react-toastify';
 
-// Handsontable registry and core styling
-import { registerAllModules } from 'handsontable/registry';
-import 'handsontable/styles/handsontable.min.css';
-import 'handsontable/styles/ht-theme-main.min.css';
 
 // Theme tokens & Context
 import { blcColors, typographyTokens } from '../theme';
@@ -52,7 +47,7 @@ import { useAuth } from '../context/AuthContext';
 import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
 import { AppButton } from '../components/common/AppButton';
-import { DataTable } from '../components/dataTable';
+import { DataTable, DataTableToolbar } from '../components/dataTable';
 
 // Data tokens & shared storage key
 import {
@@ -61,44 +56,47 @@ import {
   PLAN_TIERS,
 } from './ContractLedgerPage';
 
-// Register all Handsontable modules
-registerAllModules();
 
 // ─── Details Card Handsontable Column Definitions (7 Columns from Mockup) ───
-const DETAILS_COLUMNS = [
+export const DEFAULT_DETAILS_COLUMNS = [
   {
-    data: 0,
-    title: 'ID',
+    id: 'id',
+    label: 'ID',
+    dataIndex: 0,
     type: 'numeric',
     width: 80,
     className: 'htCenter htMiddle',
   },
   {
-    data: 1,
-    title: 'Name',
+    id: 'name',
+    label: 'Name',
+    dataIndex: 1,
     type: 'text',
     width: 200,
     className: 'htMiddle',
   },
   {
-    data: 2,
-    title: 'Category',
+    id: 'category',
+    label: 'Category',
+    dataIndex: 2,
     type: 'dropdown',
     source: ['Category A', 'Category B', 'Category C', 'Zens A', 'Zens B', 'Zens C'],
     width: 140,
     className: 'htCenter htMiddle',
   },
   {
-    data: 3,
-    title: 'Status',
+    id: 'status',
+    label: 'Status',
+    dataIndex: 3,
     type: 'dropdown',
     source: ['Active', 'Economic', 'Recided', 'Pending'],
     width: 130,
     className: 'htCenter htMiddle',
   },
   {
-    data: 4,
-    title: 'Date Modified',
+    id: 'dateModified',
+    label: 'Date Modified',
+    dataIndex: 4,
     type: 'date',
     dateFormat: 'YYYY-MM-DD',
     correctFormat: true,
@@ -106,21 +104,25 @@ const DETAILS_COLUMNS = [
     className: 'htCenter htMiddle',
   },
   {
-    data: 5,
-    title: 'Assigned To',
+    id: 'assignedTo',
+    label: 'Assigned To',
+    dataIndex: 5,
     type: 'text',
     width: 160,
     className: 'htCenter htMiddle',
   },
   {
-    data: 6,
-    title: 'Priority',
+    id: 'priority',
+    label: 'Priority',
+    dataIndex: 6,
     type: 'dropdown',
     source: ['High', 'Medium', 'Low'],
     width: 120,
     className: 'htCenter htMiddle',
   },
 ];
+
+export const DETAILS_COLUMNS = DEFAULT_DETAILS_COLUMNS;
 
 const DETAILS_COL_HEADERS = [
   'ID',
@@ -321,6 +323,106 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
     return INITIAL_DETAILS_ROWS;
   });
 
+  // Reusable Delete ref for Details table
+  const detailsDeleteRef = useRef(null);
+
+  // Visible & hidden columns state for details table
+  const [visibleDetailsColumns, setVisibleDetailsColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('contract_edit_details_visible_columns');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Error reading saved visible details columns:', e);
+    }
+    return DEFAULT_DETAILS_COLUMNS;
+  });
+
+  const [hiddenDetailsColumns, setHiddenDetailsColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('contract_edit_details_hidden_columns');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error('Error reading saved hidden details columns:', e);
+    }
+    return [];
+  });
+
+  const detailsColumns = useMemo(() => {
+    return visibleDetailsColumns.map((col) => {
+      const colDef = {
+        data: col.dataIndex,
+        title: col.label,
+        type: col.type || 'text',
+        width: col.width,
+        className: col.className || 'htCenter htMiddle',
+      };
+      if (col.source) colDef.source = col.source;
+      if (col.dateFormat) colDef.dateFormat = col.dateFormat;
+      if (col.correctFormat !== undefined) colDef.correctFormat = col.correctFormat;
+      return colDef;
+    });
+  }, [visibleDetailsColumns]);
+
+  const detailsColHeaders = useMemo(() => {
+    return visibleDetailsColumns.map((col) => col.label);
+  }, [visibleDetailsColumns]);
+
+  const handleDetailsColumnsChange = (newVisible, newHidden) => {
+    setVisibleDetailsColumns(newVisible);
+    setHiddenDetailsColumns(newHidden);
+    try {
+      localStorage.setItem('contract_edit_details_visible_columns', JSON.stringify(newVisible));
+      localStorage.setItem('contract_edit_details_hidden_columns', JSON.stringify(newHidden));
+    } catch (e) {
+      console.error('Error saving details columns to localStorage:', e);
+    }
+  };
+
+  const handleDetailsResetColumns = () => {
+    setVisibleDetailsColumns(DEFAULT_DETAILS_COLUMNS);
+    setHiddenDetailsColumns([]);
+    try {
+      localStorage.removeItem('contract_edit_details_visible_columns');
+      localStorage.removeItem('contract_edit_details_hidden_columns');
+    } catch (e) {
+      console.error('Error resetting details columns:', e);
+    }
+    toast.info('Details columns reset to default view.');
+  };
+
+  const handleDetailsAfterSelectionEnd = useCallback(() => {
+    detailsDeleteRef.current?.handleAfterSelectionEnd?.();
+  }, []);
+
+  const handleDetailsDeleteRows = (indicesToDelete) => {
+    const indicesSet = new Set(indicesToDelete);
+    setDetailsData((prev) => prev.filter((_, i) => !indicesSet.has(i)));
+  };
+
+  const handleDetailsApplyBulkUpdate = (updates) => {
+    if (!updates || updates.length === 0) return;
+    setDetailsData((prev) =>
+      prev.map((row) => {
+        const isBlank = !row || row.every((c) => c === null || c === undefined || String(c).trim() === '');
+        if (isBlank) return row;
+        const newRow = [...row];
+        updates.forEach(({ colIndex, val }) => {
+          newRow[colIndex] = val;
+        });
+        return newRow;
+      })
+    );
+    toast.success(
+      `Bulk updated ${updates.map((u) => u.label).join(' & ')} across details records!`
+    );
+  };
+
   // Synchronize master inputs if row data changes
   useEffect(() => {
     if (currentRow && currentRow.length >= 4) {
@@ -329,7 +431,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
       setAnnualArr(currentRow[2] ?? 0);
       setJoinDate(currentRow[3] || '2024-01-01');
     }
-  }, [rowIndex, dataset]);
+  }, [currentRow]);
 
   // Save handler — updates master row and details table in dataset and localStorage
   const handleSave = () => {
@@ -435,7 +537,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
               justifyContent: 'space-between',
               cursor: 'pointer',
               userSelect: 'none',
-              mb: headerOpen ? 1 : 0,
+              mb: headerOpen ? 0.25 : 0,
             }}
           >
             <Box
@@ -525,6 +627,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
                 setHeaderOpen(!headerOpen);
               }}
               sx={{
+                p: 0.25,
                 color: isDark ? '#94a3b8' : '#64748b',
                 transform: headerOpen ? 'rotate(180deg)' : 'none',
                 transition: 'transform 0.2s ease',
@@ -537,7 +640,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
           <Collapse in={headerOpen}>
             <Divider sx={{ mb: 1.25, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
 
-            {/* Four inputs in ONE row stretching completely across horizontal space */}
+            {/* Four inputs in ONE row with equal width across horizontal space */}
             <Box
               sx={{
                 display: 'flex',
@@ -548,7 +651,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
               }}
             >
               {/* 1. Plan Tier (Dropdown) */}
-              <Box sx={{ width: { xs: '100%', md: '180px' }, flexShrink: 0 }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -579,7 +682,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
               </Box>
 
               {/* 2. Annual ARR ($) (Number Input) */}
-              <Box sx={{ width: { xs: '100%', md: '210px' }, flexShrink: 0 }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -606,7 +709,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
               </Box>
 
               {/* 3. Company Name (Text Input) */}
-              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' } }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -632,7 +735,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
               </Box>
 
               {/* 4. Join Date (Datepicker) */}
-              <Box sx={{ width: { xs: '100%', md: '220px' }, flexShrink: 0 }}>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' }, minWidth: 0 }}>
                 <Typography
                   variant="caption"
                   sx={{
@@ -685,7 +788,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
               justifyContent: 'space-between',
               cursor: 'pointer',
               userSelect: 'none',
-              mb: detailsOpen ? 1 : 0,
+              mb: detailsOpen ? 0.25 : 0,
             }}
           >
             <Typography
@@ -708,6 +811,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
                 setDetailsOpen(!detailsOpen);
               }}
               sx={{
+                p: 0.25,
                 color: isDark ? '#94a3b8' : '#64748b',
                 transform: detailsOpen ? 'rotate(180deg)' : 'none',
                 transition: 'transform 0.2s ease',
@@ -720,14 +824,34 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
           <Collapse in={detailsOpen}>
             <Divider sx={{ mb: 1.25, borderColor: isDark ? blcColors.darkBorder : '#f1f5f9' }} />
 
+            {/* Table Header Controls (Bulk Updater, Delete, Save View, Saved Views, View Management) */}
+            <DataTableToolbar
+              hotRef={detailsHotRef}
+              deleteRef={detailsDeleteRef}
+              dataset={detailsData}
+              onDelete={handleDetailsDeleteRows}
+              itemLabel="detail row"
+              columns={detailsColumns}
+              onApplyBulkUpdate={handleDetailsApplyBulkUpdate}
+              visibleColumns={visibleDetailsColumns}
+              hiddenColumns={hiddenDetailsColumns}
+              onColumnsChange={handleDetailsColumnsChange}
+              onResetColumns={handleDetailsResetColumns}
+              pageKey="contract_edit_details"
+              isDark={isDark}
+            />
+
             {/* Details Handsontable with mockup columns, spare row & upward compaction */}
             <DataTable
               ref={detailsHotRef}
               dataset={detailsData}
               totalRows={detailsData.length}
-              columns={DETAILS_COLUMNS}
-              colHeaders={DETAILS_COL_HEADERS}
-              rowHeaders={false}
+              columns={detailsColumns}
+              colHeaders={detailsColHeaders}
+              visibleColumnsList={visibleDetailsColumns}
+              rowHeaders={true}
+              selectionMode="multiple"
+              outsideClickDeselects={false}
               height={320}
               width="100%"
               stretchH="all"
@@ -738,6 +862,7 @@ export const ContractLedgerEditPage = ({ mode, toggleMode }) => {
               autoWrapRow={true}
               autoWrapCol={true}
               afterChange={handleDetailsAfterChange}
+              afterSelectionEnd={handleDetailsAfterSelectionEnd}
               isDark={isDark}
               isAdmin={isAdmin}
               licenseKey="non-commercial-and-evaluation"

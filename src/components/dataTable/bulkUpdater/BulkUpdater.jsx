@@ -63,6 +63,7 @@ export const normalizeColumns = (rawCols = []) => {
   return rawCols.map((col, idx) => {
     const key =
       col.key ??
+      col.id ??
       (typeof col.data === 'number' ? `col_${col.data}` : col.data) ??
       `col_${idx}`;
     const label = col.label ?? col.title ?? col.header ?? `Column ${idx + 1}`;
@@ -72,6 +73,8 @@ export const normalizeColumns = (rawCols = []) => {
     const index =
       typeof col.index === 'number'
         ? col.index
+        : typeof col.dataIndex === 'number'
+        ? col.dataIndex
         : typeof col.data === 'number'
         ? col.data
         : idx;
@@ -225,17 +228,33 @@ export const BulkUpdater = ({
       };
     });
 
-    // 1. Auto-sync with Handsontable instance if hotRef is provided
+    // 1. Auto-sync with Handsontable instance if hotRef is provided (skipping empty spare rows)
     const hot = hotRef?.current?.hotInstance;
     if (hot) {
       const rowCount = hot.countRows();
       const changes = [];
+
+      // Helper to identify empty spare rows so they are never touched
+      const isRowEmpty = (rowIdx) => {
+        if (typeof hot.isEmptyRow === 'function' && hot.isEmptyRow(rowIdx)) {
+          return true;
+        }
+        const rowData = hot.getDataAtRow(rowIdx);
+        if (!rowData || !Array.isArray(rowData)) return true;
+        return rowData.every(
+          (c) => c === null || c === undefined || String(c).trim() === ''
+        );
+      };
+
       for (let r = 0; r < rowCount; r++) {
+        if (isRowEmpty(r)) continue; // Never update blank spare rows!
         updates.forEach(({ colIndex, val }) => {
           changes.push([r, colIndex, val]);
         });
       }
-      hot.setDataAtCell(changes, 'bulk_update');
+      if (changes.length > 0) {
+        hot.setDataAtCell(changes, 'bulk_update');
+      }
     }
 
     // 2. Notify parent callback
@@ -508,7 +527,7 @@ export const BulkUpdater = ({
                       size="small"
                       type="date"
                       label={colDef.label}
-                      InputLabelProps={{ shrink: true }}
+                      slotProps={{ inputLabel: { shrink: true } }}
                       value={bulkValues[colDef.key] ?? ''}
                       onChange={(e) => handleUpdateValue(colDef.key, e.target.value)}
                     />

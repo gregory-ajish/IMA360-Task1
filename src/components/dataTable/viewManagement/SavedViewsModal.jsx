@@ -13,11 +13,17 @@ import {
   Chip,
   List,
   ListItem,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   SavedViewsIcon,
   TableIcon,
+  DeleteIcon,
 } from '../../../icons';
+import { useSelector, useDispatch } from 'react-redux';
+import { toast } from 'react-toastify';
+import { deleteView } from '../../../store/viewsReducer';
 
 import { blcColors, typographyTokens } from '../../../theme';
 import { AppButton } from '../../common/AppButton';
@@ -26,11 +32,34 @@ import { AppDialog } from '../../common/AppDialog';
 export const SavedViewsModal = ({
   open,
   onClose,
-  savedViews = [],
-  activeViewId = null,
+  savedViews: propSavedViews,
+  activeViewId: propActiveViewId,
+  pageKey,
   onApplyView,
+  onDeleteView,
   isDark = false,
 }) => {
+  const dispatch = useDispatch();
+  const reduxViews = useSelector((state) => state.views?.views || []);
+  const reduxActiveId = useSelector((state) => state.views?.activeViewId || null);
+
+  const rawViews = propSavedViews ?? reduxViews;
+  const activeViewId = propActiveViewId ?? reduxActiveId;
+
+  // Filter views by pageKey if provided
+  const savedViews = pageKey
+    ? rawViews.filter((v) => !v.pageKey || v.pageKey === pageKey)
+    : rawViews;
+
+  const handleDeleteViewItem = (e, view) => {
+    e.stopPropagation();
+    if (onDeleteView) {
+      onDeleteView(view.id);
+    } else {
+      dispatch(deleteView(view.id));
+    }
+    toast.info(`Deleted view "${view.name}"`);
+  };
   return (
     <AppDialog
       open={open}
@@ -183,18 +212,36 @@ export const SavedViewsModal = ({
                     </Box>
                   </Box>
 
-                  <Chip
-                    label={`${view.visibleColumns?.length ?? 0} cols`}
-                    size="small"
-                    sx={{
-                      height: 22,
-                      fontSize: '0.72rem',
-                      fontFamily: typographyTokens.fontMono,
-                      fontWeight: 600,
-                      bgcolor: isActive ? `${blcColors.navyAccent}25` : `${blcColors.navyAccent}15`,
-                      color: blcColors.navyAccent,
-                    }}
-                  />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip
+                      label={`${view.visibleColumns?.length ?? 0} cols`}
+                      size="small"
+                      sx={{
+                        height: 22,
+                        fontSize: '0.72rem',
+                        fontFamily: typographyTokens.fontMono,
+                        fontWeight: 600,
+                        bgcolor: isActive ? `${blcColors.navyAccent}25` : `${blcColors.navyAccent}15`,
+                        color: blcColors.navyAccent,
+                      }}
+                    />
+                    <Tooltip title="Delete View" placement="top" arrow>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleDeleteViewItem(e, view)}
+                        sx={{
+                          p: 0.5,
+                          color: isDark ? '#94a3b8' : '#64748b',
+                          '&:hover': {
+                            color: '#ef4444',
+                            bgcolor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.08)',
+                          },
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" sx={{ fontSize: '1rem' }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                 </Paper>
               );
             })}

@@ -7,7 +7,7 @@
 //   and a dedicated, pixel-perfect summary footer bar pinned at the bottom.
 // ============================================================================
 
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Material-UI components
@@ -25,10 +25,6 @@ import {
   FunctionsIcon,
 } from '../icons';
 
-// Handsontable registry (for plugins/styles)
-import { registerAllModules } from 'handsontable/registry';
-import 'handsontable/styles/handsontable.min.css';
-import 'handsontable/styles/ht-theme-main.min.css';
 
 // Theme tokens & Context
 import { blcColors, typographyTokens } from '../theme';
@@ -36,7 +32,7 @@ import { useAuth } from '../context/AuthContext';
 
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
-import { DataTable } from '../components/dataTable';
+import { DataTable, DataTableToolbar } from '../components/dataTable';
 import { AppButton } from '../components/common/AppButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { Navbar } from '../components/dashboard/Navbar';
@@ -44,8 +40,6 @@ import { Navbar } from '../components/dashboard/Navbar';
 // Toast notifications
 import { toast } from 'react-toastify';
 
-// Register all Handsontable modules globally
-registerAllModules();
 
 // ── Sample Sales Dataset (50 rows) ──────────────────────────────────────────
 const SALES_REGIONS = ['North', 'South', 'East', 'West', 'Central'];
@@ -77,17 +71,17 @@ const generateSalesDataset = () => {
 };
 
 // ── Column Definitions ──────────────────────────────────────────────────────
-// No fixed column widths so stretchH="all" evenly and smoothly sizes columns without horizontal overflow
-const COLUMN_DEFS = [
-  { data: 0, type: 'text' }, // Region
-  { data: 1, type: 'numeric', numericFormat: { pattern: '0,0' } }, // Units Sold
-  { data: 2, type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Unit Price ($)
-  { data: 3, type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Revenue ($)
-  { data: 4, type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Cost ($)
-  { data: 5, type: 'numeric', numericFormat: { pattern: '$0,0' } }, // Profit ($)
+export const DEFAULT_SALES_COLUMNS = [
+  { id: 'region', label: 'Region', dataIndex: 0, type: 'text' },
+  { id: 'unitsSold', label: 'Units Sold', dataIndex: 1, type: 'numeric', numericFormat: { pattern: '0,0' } },
+  { id: 'unitPrice', label: 'Unit Price ($)', dataIndex: 2, type: 'numeric', numericFormat: { pattern: '$0,0' } },
+  { id: 'revenue', label: 'Revenue ($)', dataIndex: 3, type: 'numeric', numericFormat: { pattern: '$0,0' } },
+  { id: 'cost', label: 'Cost ($)', dataIndex: 4, type: 'numeric', numericFormat: { pattern: '$0,0' } },
+  { id: 'profit', label: 'Profit ($)', dataIndex: 5, type: 'numeric', numericFormat: { pattern: '$0,0' } },
 ];
 
-const COL_HEADERS = [
+export const COLUMN_DEFS = DEFAULT_SALES_COLUMNS;
+export const COL_HEADERS = [
   'Region',
   'Units Sold',
   'Unit Price ($)',
@@ -221,7 +215,114 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
   const [columnWidths, setColumnWidths] = useState(null);
 
   // Pre-generate raw dataset: 50 sales rows
-  const [dataset] = useState(() => generateSalesDataset());
+  const [dataset, setDataset] = useState(() => generateSalesDataset());
+
+  // Reusable Delete ref
+  const deleteRef = useRef(null);
+
+  // Visible & hidden columns state synced with localStorage
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sales_summary_visible_columns');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Error reading saved visible columns:', e);
+    }
+    return DEFAULT_SALES_COLUMNS;
+  });
+
+  const [hiddenColumns, setHiddenColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sales_summary_hidden_columns');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error('Error reading saved hidden columns:', e);
+    }
+    return [];
+  });
+
+  const columns = useMemo(() => {
+    return visibleColumns.map((col) => {
+      const colDef = {
+        data: col.dataIndex,
+        type: col.type || 'text',
+      };
+      if (col.numericFormat) colDef.numericFormat = col.numericFormat;
+      return colDef;
+    });
+  }, [visibleColumns]);
+
+  const colHeaders = useMemo(() => {
+    return visibleColumns.map((col) => col.label);
+  }, [visibleColumns]);
+
+  const handleColumnsChange = (newVisible, newHidden) => {
+    setVisibleColumns(newVisible);
+    setHiddenColumns(newHidden);
+    try {
+      localStorage.setItem('sales_summary_visible_columns', JSON.stringify(newVisible));
+      localStorage.setItem('sales_summary_hidden_columns', JSON.stringify(newHidden));
+    } catch (e) {
+      console.error('Error saving columns to localStorage:', e);
+    }
+  };
+
+  const handleResetColumns = () => {
+    setVisibleColumns(DEFAULT_SALES_COLUMNS);
+    setHiddenColumns([]);
+    try {
+      localStorage.removeItem('sales_summary_visible_columns');
+      localStorage.removeItem('sales_summary_hidden_columns');
+    } catch (e) {
+      console.error('Error resetting columns:', e);
+    }
+    toast.info('Columns reset to default view.');
+  };
+
+  const handleAfterSelectionEnd = useCallback(() => {
+    deleteRef.current?.handleAfterSelectionEnd?.();
+  }, []);
+
+  const handleDeleteRows = (indicesToDelete) => {
+    const indicesSet = new Set(indicesToDelete);
+    setDataset((prev) => prev.filter((_, i) => !indicesSet.has(i)));
+    const hot = hotRef.current?.hotInstance;
+    if (hot) {
+      setTimeout(() => {
+        setAggregates(computeAggregates(hot, aggregateTypeRef.current));
+      }, 50);
+    }
+  };
+
+  const handleApplyBulkUpdate = (updates) => {
+    if (!updates || updates.length === 0) return;
+    setDataset((prev) =>
+      prev.map((row) => {
+        const isBlank = row.every((c) => c === null || c === undefined || c === '');
+        if (isBlank) return row;
+        const newRow = [...row];
+        updates.forEach(({ colIndex, val }) => {
+          newRow[colIndex] = val;
+        });
+        return newRow;
+      })
+    );
+    const hot = hotRef.current?.hotInstance;
+    if (hot) {
+      setTimeout(() => {
+        setAggregates(computeAggregates(hot, aggregateTypeRef.current));
+      }, 50);
+    }
+    toast.success(
+      `Bulk updated ${updates.map((u) => u.label).join(' & ')} across records!`
+    );
+  };
 
   // Aggregates state displayed in the dedicated footer
   const [aggregates, setAggregates] = useState(() =>
@@ -539,6 +640,23 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
             </Box>
           </Box>
 
+          {/* Table Header Controls (Bulk Updater, Delete, Save View, Saved Views, View Management) */}
+          <DataTableToolbar
+            hotRef={hotRef}
+            deleteRef={deleteRef}
+            dataset={dataset}
+            onDelete={handleDeleteRows}
+            itemLabel="sales record"
+            columns={columns}
+            onApplyBulkUpdate={handleApplyBulkUpdate}
+            visibleColumns={visibleColumns}
+            hiddenColumns={hiddenColumns}
+            onColumnsChange={handleColumnsChange}
+            onResetColumns={handleResetColumns}
+            pageKey="sales_summary"
+            isDark={isDark}
+          />
+
           {/* Handsontable + Dedicated Fixed Footer Box */}
           <Box
             sx={{
@@ -570,8 +688,9 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
               renderAllRows={true}
               dataset={dataset}
               totalRows={dataset.length}
-              columns={COLUMN_DEFS}
-              colHeaders={COL_HEADERS}
+              columns={columns}
+              colHeaders={colHeaders}
+              visibleColumnsList={visibleColumns}
               rowHeaders={true}
               height={500}
               width="100%"
@@ -584,6 +703,7 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
               manualColumnResize={true}
               autoWrapRow={true}
               autoWrapCol={true}
+              afterSelectionEnd={handleAfterSelectionEnd}
               licenseKey="non-commercial-and-evaluation"
               isDark={isDark}
               beforeColumnSort={handleBeforeColumnSort}
@@ -627,52 +747,60 @@ export const SalesSummaryPage = ({ mode, toggleMode }) => {
                 {activeAggLabel?.icon || 'Σ'}
               </Box>
 
-              {/* Col 0: Region (Displays Aggregate Label) */}
-              <Box
-                sx={{
-                  width: columnWidths ? `${columnWidths.cols[0]}px` : 'auto',
-                  minWidth: columnWidths ? `${columnWidths.cols[0]}px` : 'auto',
-                  maxWidth: columnWidths ? `${columnWidths.cols[0]}px` : 'auto',
-                  px: 1,
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  boxSizing: 'border-box',
-                  overflow: 'hidden',
-                }}
-              >
-                <Chip
-                  label={aggregateType === 'sum' ? 'Total' : activeAggLabel?.label}
-                  size="small"
-                  sx={{
-                    height: '22px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    fontFamily: typographyTokens.fontMono,
-                    bgcolor: isDark ? 'rgba(59, 130, 246, 0.2)' : `${blcColors.navyAccent}15`,
-                    color: isDark ? '#93c5fd' : blcColors.navyAccent,
-                  }}
-                />
-              </Box>
-
-              {/* Numeric Column Summary Values (Cols 1..5) mapped cleanly */}
-              {NUMERIC_COL_INDICES.map((col) => (
-                <Box
-                  key={col}
-                  sx={{
-                    width: columnWidths ? `${columnWidths.cols[col]}px` : 'auto',
-                    minWidth: columnWidths ? `${columnWidths.cols[col]}px` : 'auto',
-                    maxWidth: columnWidths ? `${columnWidths.cols[col]}px` : 'auto',
-                    px: 1,
-                    textAlign: 'right',
-                    boxSizing: 'border-box',
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {formatAggregateValue(aggregates[col], col, aggregateType)}
-                </Box>
-              ))}
+              {/* Dynamic Footer Columns mapped according to visibleColumns */}
+              {visibleColumns.map((col, idx) => {
+                const isFirstCol = idx === 0;
+                const widthPx = columnWidths ? `${columnWidths.cols[idx]}px` : 'auto';
+                if (isFirstCol) {
+                  return (
+                    <Box
+                      key={col.id || idx}
+                      sx={{
+                        width: widthPx,
+                        minWidth: widthPx,
+                        maxWidth: widthPx,
+                        px: 1,
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        boxSizing: 'border-box',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Chip
+                        label={aggregateType === 'sum' ? 'Total' : activeAggLabel?.label}
+                        size="small"
+                        sx={{
+                          height: '22px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          fontFamily: typographyTokens.fontMono,
+                          bgcolor: isDark ? 'rgba(59, 130, 246, 0.2)' : `${blcColors.navyAccent}15`,
+                          color: isDark ? '#93c5fd' : blcColors.navyAccent,
+                        }}
+                      />
+                    </Box>
+                  );
+                }
+                const aggVal = aggregates[col.dataIndex];
+                return (
+                  <Box
+                    key={col.id || idx}
+                    sx={{
+                      width: widthPx,
+                      minWidth: widthPx,
+                      maxWidth: widthPx,
+                      px: 1,
+                      textAlign: 'right',
+                      boxSizing: 'border-box',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {formatAggregateValue(aggVal, col.dataIndex, aggregateType)}
+                  </Box>
+                );
+              })}
             </Box>
           </Box>
 

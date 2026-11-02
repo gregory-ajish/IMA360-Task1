@@ -3,7 +3,7 @@
 // Any component in the app can call useAuth() to get the logged-in user,
 // check if authenticated, or call login/logout — without passing props manually.
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 // Import local user data (no backend — credentials are stored in a JSON file)
 import usersData from '../data/users.json';
@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
   });
 
   // loading is false immediately because session is restored synchronously
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   // ─── Login Handler ────────────────────────────────────────────────────────
   // Called from the Login page with the user's input.
@@ -91,6 +91,10 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('auth_user');
     localStorage.removeItem('remember_me');
     sessionStorage.removeItem('auth_user');
+
+    // Clear ledger dataset cache on logout so fresh login always restores initial seed data
+    localStorage.removeItem('contract_ledger_dataset');
+    localStorage.removeItem('ai_copilot_dataset');
   };
 
   // ─── Context Value ────────────────────────────────────────────────────────
