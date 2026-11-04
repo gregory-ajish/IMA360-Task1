@@ -127,7 +127,7 @@ export const LoginPage = ({ mode, toggleMode }) => {
     handleCloseForgot();
   };
 
-  const { login, loginWithGoogle } = useAuth(); // Auth functions from global context
+  const { login, loginWithGoogle, allowedEmailDomains } = useAuth(); // Auth functions from global context
   const navigate = useNavigate();    // For redirecting after successful login
   const location = useLocation();    // To read state passed by ProtectedRoute
 
@@ -265,6 +265,17 @@ export const LoginPage = ({ mode, toggleMode }) => {
                 text="continue_with"
                 width="100%"
               />
+              <Typography
+                variant="caption"
+                sx={{
+                  mt: 0.75,
+                  fontSize: '0.72rem',
+                  color: isDark ? '#94a3b8' : '#64748b',
+                  textAlign: 'center',
+                }}
+              >
+                Restricted to company accounts ({allowedEmailDomains?.map((d) => `@${d}`).join(', ')})
+              </Typography>
             </Box>
 
             {/* ── Divider between Google OAuth and Corporate Login ── */}
