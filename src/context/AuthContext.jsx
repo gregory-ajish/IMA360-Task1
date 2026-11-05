@@ -3,7 +3,7 @@
 // Any component in the app can call useAuth() to get the logged-in user,
 // check if authenticated, or call login/logout — without passing props manually.
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { googleLogout } from '@react-oauth/google';
 
@@ -17,6 +17,9 @@ const rawAllowedDomains = import.meta.env.VITE_ALLOWED_EMAIL_DOMAINS;
 const ALLOWED_DOMAINS = rawAllowedDomains
   ? rawAllowedDomains.split(',').map((d) => d.trim().toLowerCase()).filter(Boolean)
   : ['ima360.com'];
+
+// Channel name for direct inter-tab communication (Walkie-Talkie API)
+const AUTH_BROADCAST_CHANNEL = 'app_auth_channel';
 
 // Create the context object. Starts as null until AuthProvider wraps the app.
 const AuthContext = createContext(null);
@@ -49,10 +52,22 @@ export const AuthProvider = ({ children }) => {
   // loading is false immediately because session is restored synchronously
   const [loading] = useState(false);
 
+  // Walkie-Talkie Channel Ref: Direct inter-tab communication via BroadcastChannel API
+  const authChannelRef = useRef(null);
+
   // ─── Logout Handler ───────────────────────────────────────────────────────
   // Clears all auth state, revokes Google session, and flushes storages.
   const logout = useCallback(() => {
-    // Revoke / clear Google OAuth session so account selection is prompted next time
+    // 1. Broadcast LOGOUT to all other open tabs (Walkie-Talkie)
+    try {
+      if (authChannelRef.current) {
+        authChannelRef.current.postMessage({ type: 'LOGOUT' });
+      }
+    } catch (broadcastErr) {
+      console.error('Error broadcasting logout to other tabs:', broadcastErr);
+    }
+
+    // 2. Revoke / clear Google OAuth session so account selection is prompted next time
     try {
       googleLogout();
     } catch (err) {
@@ -61,10 +76,11 @@ export const AuthProvider = ({ children }) => {
 
     setCurrentUser(null); // Clear React state → triggers re-render to logged-out UI
 
-    // Remove user data from both storages to fully end the session
+    // 3. Remove user data from both storages to fully end the session
     localStorage.removeItem('auth_user');
     localStorage.removeItem('remember_me');
     sessionStorage.removeItem('auth_user');
+    localStorage.removeItem('app_last_active_time');
 
     // Clear ledger dataset cache on logout so fresh login always restores initial seed data
     localStorage.removeItem('contract_ledger_dataset');
@@ -87,32 +103,33 @@ export const AuthProvider = ({ children }) => {
     return () => clearTimeout(timer);
   }, [currentUser, logout]);
 
-  // ─── Multi-Tab Sync: Listen for storage changes across browser tabs ─────────
+  // ─── Walkie-Talkie Multi-Tab Sync (BroadcastChannel API) ────────────────────
+  // Listens directly for LOGOUT and LOGIN messages broadcast from any other tab.
   useEffect(() => {
-    const handleStorageChange = (event) => {
-      // If auth_user was removed or changed in another tab, sync state immediately
-      if (event.key === 'auth_user') {
-        if (!event.newValue) {
-          // Logged out in another tab → log out here as well
+    if (typeof BroadcastChannel === 'undefined') return;
+
+    const channel = new BroadcastChannel(AUTH_BROADCAST_CHANNEL);
+    authChannelRef.current = channel;
+
+    channel.onmessage = (event) => {
+      if (event.data?.type === 'LOGOUT') {
+        // Another tab called logout() → immediately log out this tab too!
+        setCurrentUser(null);
+      } else if (event.data?.type === 'LOGIN' && event.data?.payload) {
+        // Another tab logged in → sync session here
+        const syncedUser = event.data.payload;
+        if (syncedUser.expiresAt && Date.now() >= syncedUser.expiresAt) {
           setCurrentUser(null);
         } else {
-          try {
-            const syncedUser = JSON.parse(event.newValue);
-            // Verify expiration before syncing
-            if (syncedUser.expiresAt && Date.now() >= syncedUser.expiresAt) {
-              setCurrentUser(null);
-            } else {
-              setCurrentUser(syncedUser);
-            }
-          } catch (err) {
-            console.error('Error syncing auth state across tabs:', err);
-          }
+          setCurrentUser(syncedUser);
         }
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {
+      channel.close();
+      authChannelRef.current = null;
+    };
   }, []);
 
   // ─── Login Handler (Standard Credentials) ──────────────────────────────────
@@ -155,6 +172,18 @@ export const AuthProvider = ({ children }) => {
         sessionStorage.setItem('auth_user', JSON.stringify(authUser));
         localStorage.removeItem('auth_user');    // Clean up the other storage
         localStorage.removeItem('remember_me');
+      }
+
+      // Initialize active idle timestamp on login
+      localStorage.setItem('app_last_active_time', String(Date.now()));
+
+      // Broadcast LOGIN to all other open tabs (Walkie-Talkie)
+      try {
+        if (authChannelRef.current) {
+          authChannelRef.current.postMessage({ type: 'LOGIN', payload: authUser });
+        }
+      } catch (broadcastErr) {
+        console.error('Error broadcasting login:', broadcastErr);
       }
 
       return { success: true, user: authUser };
@@ -238,6 +267,18 @@ export const AuthProvider = ({ children }) => {
         sessionStorage.setItem('auth_user', JSON.stringify(authUser));
         localStorage.removeItem('auth_user');
         localStorage.removeItem('remember_me');
+      }
+
+      // Initialize active idle timestamp on login
+      localStorage.setItem('app_last_active_time', String(Date.now()));
+
+      // Broadcast LOGIN to all other open tabs (Walkie-Talkie)
+      try {
+        if (authChannelRef.current) {
+          authChannelRef.current.postMessage({ type: 'LOGIN', payload: authUser });
+        }
+      } catch (broadcastErr) {
+        console.error('Error broadcasting Google login:', broadcastErr);
       }
 
       return { success: true, user: authUser };

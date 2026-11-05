@@ -14,6 +14,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';           // Global auth state
 import { ProtectedRoute } from './components/routes/ProtectedRoute'; // Guards private pages
 import { PublicRoute } from './components/routes/PublicRoute';       // Guards public pages (e.g. login)
+import { IdleTimeoutModal } from './components/common';             // Cross-tab idle timeout detector & modal
 
 // Route-level code-splitting: Heavy pages (Handsontable, Dnd-Kit, etc.) are loaded on-demand
 const LoginPage = React.lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
@@ -104,6 +105,7 @@ export default function App() {
             matching routes without full page reloads */}
           <BrowserRouter>
             <ScrollToTop />
+            <IdleTimeoutModal />
             <Suspense fallback={<PageFallback />}>
               <Routes>
 
