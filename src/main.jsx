@@ -33,6 +33,10 @@ import store from './store/store.js';
 
 // The root App component — the top of the entire component tree
 import App from './App.jsx'
+import { registerVitePreloadErrorHandler } from './utils/chunkErrorHandler'
+
+// Register global Vite chunk preload error handler (auto-reloads once per session)
+registerVitePreloadErrorHandler()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -14,18 +14,19 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';           // Global auth state
 import { ProtectedRoute } from './components/routes/ProtectedRoute'; // Guards private pages
 import { PublicRoute } from './components/routes/PublicRoute';       // Guards public pages (e.g. login)
-import { IdleTimeoutModal } from './components/common';             // Cross-tab idle timeout detector & modal
+import { IdleTimeoutModal, ChunkErrorBoundary } from './components/common'; // Cross-tab idle timeout & chunk error boundary
+import { lazyWithRetry } from './utils/chunkErrorHandler';
 
 // Route-level code-splitting: Heavy pages (Handsontable, Dnd-Kit, etc.) are loaded on-demand
-const LoginPage = React.lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
-const DashboardPage = React.lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
-const RevenueTrackerPage = React.lazy(() => import('./pages/RevenueTrackerPage').then((m) => ({ default: m.RevenueTrackerPage })));
-const WeatherPage = React.lazy(() => import('./pages/WeatherPage').then((m) => ({ default: m.WeatherPage })));
-const SalesSummaryPage = React.lazy(() => import('./pages/SalesSummaryPage').then((m) => ({ default: m.SalesSummaryPage })));
-const CustomerInsightPage = React.lazy(() => import('./pages/CustomerInsightPage').then((m) => ({ default: m.CustomerInsightPage })));
-const ContractLedgerPage = React.lazy(() => import('./pages/ContractLedgerPage').then((m) => ({ default: m.ContractLedgerPage })));
-const ContractLedgerEditPage = React.lazy(() => import('./pages/ContractLedgerEditPage').then((m) => ({ default: m.ContractLedgerEditPage })));
-const ContractLedgerViewPage = React.lazy(() => import('./pages/ContractLedgerViewPage').then((m) => ({ default: m.ContractLedgerViewPage })));
+const LoginPage = lazyWithRetry(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const RevenueTrackerPage = lazyWithRetry(() => import('./pages/RevenueTrackerPage').then((m) => ({ default: m.RevenueTrackerPage })));
+const WeatherPage = lazyWithRetry(() => import('./pages/WeatherPage').then((m) => ({ default: m.WeatherPage })));
+const SalesSummaryPage = lazyWithRetry(() => import('./pages/SalesSummaryPage').then((m) => ({ default: m.SalesSummaryPage })));
+const CustomerInsightPage = lazyWithRetry(() => import('./pages/CustomerInsightPage').then((m) => ({ default: m.CustomerInsightPage })));
+const ContractLedgerPage = lazyWithRetry(() => import('./pages/ContractLedgerPage').then((m) => ({ default: m.ContractLedgerPage })));
+const ContractLedgerEditPage = lazyWithRetry(() => import('./pages/ContractLedgerEditPage').then((m) => ({ default: m.ContractLedgerEditPage })));
+const ContractLedgerViewPage = lazyWithRetry(() => import('./pages/ContractLedgerViewPage').then((m) => ({ default: m.ContractLedgerViewPage })));
 
 /**
  * Lightweight loading indicator while an on-demand route chunk loads.
@@ -106,7 +107,8 @@ export default function App() {
           <BrowserRouter>
             <ScrollToTop />
             <IdleTimeoutModal />
-            <Suspense fallback={<PageFallback />}>
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
               <Routes>
 
                 {/* /login — Public route: accessible only when NOT logged in.
@@ -219,8 +221,9 @@ export default function App() {
                 <Route path="/" element={<Navigate to="/home" replace />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
 
-              </Routes>
-            </Suspense>
+                </Routes>
+              </Suspense>
+            </ChunkErrorBoundary>
           </BrowserRouter>
         </AuthProvider>
       </GoogleOAuthProvider>
