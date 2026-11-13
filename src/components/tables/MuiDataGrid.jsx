@@ -15,6 +15,7 @@ import PropTypes from 'prop-types';
 import { Box, Typography } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { blcColors, typographyTokens } from '../../theme';
+import { WidgetErrorBoundary } from '../common/ChunkErrorBoundary';
 
 /**
  * MuiDataGrid / AppDataGrid Component
@@ -169,37 +170,39 @@ export const MuiDataGrid = forwardRef(function MuiDataGrid(
         ...sx,
       }}
     >
-      <DataGrid
-        ref={ref}
-        rows={rows}
-        columns={columns}
-        getRowId={getRowId}
-        onRowClick={handleInternalRowClick}
-        getRowClassName={resolveRowClassName}
-        isCellEditable={isCellEditable}
-        rowHeight={rowHeight}
-        hideFooter={hideFooter}
-        loading={loading}
-        slots={{
-          noRowsOverlay: () => (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: isDark ? '#94a3b8' : '#64748b',
-                fontFamily: typographyTokens.fontSans,
-                fontSize: '0.9rem',
-              }}
-            >
-              <Typography variant="body2">{emptyMessage}</Typography>
-            </Box>
-          ),
-          ...slots,
-        }}
-        {...restProps}
-      />
+      <WidgetErrorBoundary name="Data Table">
+        <DataGrid
+          ref={ref}
+          rows={rows}
+          columns={columns}
+          getRowId={getRowId}
+          onRowClick={handleInternalRowClick}
+          getRowClassName={resolveRowClassName}
+          isCellEditable={isCellEditable}
+          rowHeight={rowHeight}
+          hideFooter={hideFooter}
+          loading={loading}
+          slots={{
+            noRowsOverlay: () => (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  color: isDark ? '#94a3b8' : '#64748b',
+                  fontFamily: typographyTokens.fontSans,
+                  fontSize: '0.9rem',
+                }}
+              >
+                <Typography variant="body2">{emptyMessage}</Typography>
+              </Box>
+            ),
+            ...slots,
+          }}
+          {...restProps}
+        />
+      </WidgetErrorBoundary>
     </Box>
   );
 });

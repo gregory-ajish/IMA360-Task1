@@ -18,4 +18,8 @@ export default defineConfig({
   plugins: [
     react(), // Register the React plugin — required for any React + Vite project
   ],
+  build: {
+    // Generate source maps so monitoring tools (e.g., Sentry) can map production errors to source files
+    sourcemap: true,
+  },
 });

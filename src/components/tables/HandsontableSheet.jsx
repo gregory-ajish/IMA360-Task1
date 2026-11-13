@@ -22,6 +22,7 @@ import { TrimRows } from 'handsontable/plugins/trimRows';
 import 'handsontable/styles/handsontable.min.css';
 import 'handsontable/styles/ht-theme-main.min.css';
 import { blcColors, typographyTokens } from '../../theme';
+import { WidgetErrorBoundary } from '../common/ChunkErrorBoundary';
 
 // Register all Handsontable modules globally
 registerAllModules();
@@ -573,67 +574,69 @@ export const HandsontableSheet = forwardRef(function HandsontableSheet(
         ...sx,
       }}
     >
-      {isLoading ? (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            gap: 1.5,
-            color: isDark ? '#94a3b8' : '#64748b',
-          }}
-        >
-          <CircularProgress size={32} sx={{ color: blcColors.navyAccent }} />
-          <Typography
-            variant="body2"
+      <WidgetErrorBoundary name="Spreadsheet">
+        {isLoading ? (
+          <Box
             sx={{
-              fontFamily: typographyTokens.fontMono,
-              fontSize: '0.85rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              gap: 1.5,
+              color: isDark ? '#94a3b8' : '#64748b',
             }}
           >
-            {loadingText}
-          </Typography>
-        </Box>
-      ) : (
-        <HotTable
-          ref={innerHotRef}
-          data={data}
-          columns={columns}
-          colHeaders={processedColHeaders}
-          rowHeaders={rowHeaders}
-          height={height}
-          width={width}
-          stretchH={stretchH}
-          renderAllRows={renderAllRows}
-          viewportRowRenderingOffset={viewportRowRenderingOffset}
-          renderAllColumns={renderAllColumns}
-          viewportColumnRenderingOffset={viewportColumnRenderingOffset}
-          rowHeights={rowHeights}
-          autoRowSize={autoRowSize}
-          autoColumnSize={autoColumnSize}
-          className={isDark ? 'ht-theme-main-dark' : 'ht-theme-main'}
-          themeName={isDark ? 'ht-theme-main-dark' : 'ht-theme-main'}
-          columnSorting={columnSorting}
-          filters={filters}
-          dropdownMenu={dropdownMenu}
-          contextMenu={contextMenu}
-          manualColumnResize={manualColumnResize}
-          manualRowResize={manualRowResize}
-          autoWrapRow={autoWrapRow}
-          autoWrapCol={autoWrapCol}
-          licenseKey={licenseKey}
-          outsideClickDeselects={outsideClickDeselects}
-          selectionMode={selectionMode}
-          beforeColumnSort={handleBeforeColumnSort}
-          beforeFilter={handleBeforeFilter}
-          afterChange={handleAfterChange}
-          afterScrollVertically={handleAfterScrollVertically}
-          afterOnCellMouseDown={handleCellMouseDown}
-          {...restProps}
-        />
-      )}
+            <CircularProgress size={32} sx={{ color: blcColors.navyAccent }} />
+            <Typography
+              variant="body2"
+              sx={{
+                fontFamily: typographyTokens.fontMono,
+                fontSize: '0.85rem',
+              }}
+            >
+              {loadingText}
+            </Typography>
+          </Box>
+        ) : (
+          <HotTable
+            ref={innerHotRef}
+            data={data}
+            columns={columns}
+            colHeaders={processedColHeaders}
+            rowHeaders={rowHeaders}
+            height={height}
+            width={width}
+            stretchH={stretchH}
+            renderAllRows={renderAllRows}
+            viewportRowRenderingOffset={viewportRowRenderingOffset}
+            renderAllColumns={renderAllColumns}
+            viewportColumnRenderingOffset={viewportColumnRenderingOffset}
+            rowHeights={rowHeights}
+            autoRowSize={autoRowSize}
+            autoColumnSize={autoColumnSize}
+            className={isDark ? 'ht-theme-main-dark' : 'ht-theme-main'}
+            themeName={isDark ? 'ht-theme-main-dark' : 'ht-theme-main'}
+            columnSorting={columnSorting}
+            filters={filters}
+            dropdownMenu={dropdownMenu}
+            contextMenu={contextMenu}
+            manualColumnResize={manualColumnResize}
+            manualRowResize={manualRowResize}
+            autoWrapRow={autoWrapRow}
+            autoWrapCol={autoWrapCol}
+            licenseKey={licenseKey}
+            outsideClickDeselects={outsideClickDeselects}
+            selectionMode={selectionMode}
+            beforeColumnSort={handleBeforeColumnSort}
+            beforeFilter={handleBeforeFilter}
+            afterChange={handleAfterChange}
+            afterScrollVertically={handleAfterScrollVertically}
+            afterOnCellMouseDown={handleCellMouseDown}
+            {...restProps}
+          />
+        )}
+      </WidgetErrorBoundary>
     </Box>
   );
 });

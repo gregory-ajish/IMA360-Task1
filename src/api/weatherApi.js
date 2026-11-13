@@ -53,12 +53,42 @@ weatherApi.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ── Response Interceptor: Global Network Error Handling with Toastify ────────
+const SAFE_IDEMPOTENT_METHODS = ['get', 'head', 'options'];
+const MAX_AUTO_RETRIES = 2;
+
+// ── Response Interceptor: Category 3 & 4 Selective Auto-Retry & Global Toast Error Handling ──
 weatherApi.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
+    const status = error.response?.status;
+    const method = (config?.method || 'get').toLowerCase();
+
+    // ── Category 4.b: Selective Auto-Retry for safe methods (GET, HEAD, OPTIONS) ──
+    const isServerError = status >= 500 && status <= 599;
+    const isNetworkOrTimeout = !error.response && (error.code === 'ECONNABORTED' || error.message?.includes('timeout'));
+    const isSafeMethod = SAFE_IDEMPOTENT_METHODS.includes(method);
+
+    if (config && isSafeMethod && (isServerError || isNetworkOrTimeout)) {
+      config.__retryCount = config.__retryCount || 0;
+
+      if (config.__retryCount < MAX_AUTO_RETRIES) {
+        config.__retryCount += 1;
+        const delayMs = config.__retryCount * 1000;
+
+        console.warn(
+          `[weatherApi] Auto-retrying ${method.toUpperCase()} request (attempt ${config.__retryCount}/${MAX_AUTO_RETRIES}) after ${delayMs}ms:`,
+          config.url
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        return weatherApi(config);
+      }
+    }
+
+    // ── Category 3: Centralized Error Status Handlers ───────────────────────
     // 1. Request Timeout (ECONNABORTED)
-    if (error.code === 'ECONNABORTED') {
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
       toast.error('Request timed out. Please check your connection and try again.', {
         toastId: 'timeout-error',
       });
@@ -75,9 +105,9 @@ weatherApi.interceptors.response.use(
         toastId: 'network-error',
       });
     }
-    // 4. Server Error (HTTP 5xx)
+    // 4. Server Error (HTTP 5xx) after retries exhausted
     else if (error.response?.status >= 500) {
-      toast.error('Server error. Weather service is temporarily unavailable.', {
+      toast.error(`Server error (${error.response.status}). Weather service is temporarily unavailable.`, {
         toastId: 'server-error',
       });
     }

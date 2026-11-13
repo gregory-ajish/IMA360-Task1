@@ -33,6 +33,20 @@ import store from './store/store.js';
 
 // The root App component — the top of the entire component tree
 import App from './App.jsx'
+import { registerVitePreloadErrorHandler } from './utils/chunkErrorHandler'
+import { registerGlobalErrorListeners } from './utils/globalErrorHandler'
+import apiClient from './api/apiClient'
+
+// Expose apiClient in development for rapid console testing
+if (import.meta.env.DEV) {
+  window.apiClient = apiClient;
+}
+
+// Register global Vite chunk preload error handler (auto-reloads once per session)
+registerVitePreloadErrorHandler()
+
+// Register global safety listeners for unhandled runtime & promise errors (e.g. button clicks, async tasks)
+registerGlobalErrorListeners()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

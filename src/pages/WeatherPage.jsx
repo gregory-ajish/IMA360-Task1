@@ -44,6 +44,7 @@ import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/dashboard/Navbar';
 import { AppButton } from '../components/common/AppButton';
 import { PageHeader } from '../components/common/PageHeader';
+import { ApiErrorState } from '../components/common';
 
 // Redux Actions & Thunks
 import { fetchWeatherThunk } from '../store/weatherActions';
@@ -139,6 +140,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
     city,
     unit,
     loading,
+    error,
   } = useSelector((state) => state.weather);
 
   // Local state for search input
@@ -334,14 +336,22 @@ export const WeatherPage = ({ mode, toggleMode }) => {
         {/* Loading Skeleton */}
         {loading && !currentWeather && (
           <Grid container spacing={2}>
-            <Grid item xs={12} md={7}>
+            <Grid xs={12} md={7}>
               <Skeleton variant="rectangular" height={160} sx={{ borderRadius: '16px', mb: 2 }} />
               <Skeleton variant="rectangular" height={100} sx={{ borderRadius: '16px' }} />
             </Grid>
-            <Grid item xs={12} md={5}>
+            <Grid xs={12} md={5}>
               <Skeleton variant="rectangular" height={360} sx={{ borderRadius: '16px' }} />
             </Grid>
           </Grid>
+        )}
+
+        {/* Category 4.b: Stop the spinner/skeleton and let the user click Retry */}
+        {!loading && error && !currentWeather && (
+          <ApiErrorState
+            error={error}
+            onRetry={() => dispatch(fetchWeatherThunk({ city: city || 'Berlin', unit }))}
+          />
         )}
 
         {/* Main Content Layout Grid */}
@@ -349,7 +359,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
           <Grid container spacing={2}>
             
             {/* Left Column: Hero Weather Card + 4 Metrics */}
-            <Grid item xs={12} md={7}>
+            <Grid xs={12} md={7}>
               
               {/* 1. Hero Weather Card */}
               <Paper
@@ -443,7 +453,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
                     icon: <RainIcon sx={{ fontSize: 18, color: '#f472b6' }} />,
                   },
                 ].map(({ label, value, icon }) => (
-                  <Grid item xs={6} sm={3} key={label}>
+                  <Grid xs={6} sm={3} key={label}>
                     <Paper
                       elevation={0}
                       sx={{
@@ -471,7 +481,7 @@ export const WeatherPage = ({ mode, toggleMode }) => {
             </Grid>
 
             {/* Right Column: Weekly Forecast Panel (Horizontal Layout) */}
-            <Grid item xs={12} md={5}>
+            <Grid xs={12} md={5}>
               <Paper
                 elevation={0}
                 sx={{

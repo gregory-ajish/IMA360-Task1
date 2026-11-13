@@ -9,9 +9,10 @@
 //   2. Background tabs receive the message directly and reset their idle state.
 //   3. If a user is actively working in Tab 2 for 15 minutes, Tab 1 (which hasn't
 //      been visited) sees the recent activity from Tab 2 and DOES NOT log out.
-//   4. Only when NO tab has received any user activity for 5 minutes (300,000 ms)
-//      does the warning popup appear, with a countdown to auto-logout.
-//   5. Clicking "Stay Logged In" broadcasts a reset message across all tabs.
+//   4. Only when NO tab has received any user activity for 4 minutes (240,000 ms)
+//      does the warning popup appear, with a 60-second countdown to auto-logout.
+//   5. At exactly 5 minutes (300,000 ms) of total inactivity, the user is logged out.
+//   6. Clicking "Stay Logged In" broadcasts a reset message across all tabs.
 // ============================================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -21,12 +22,14 @@ import { AppDialog } from './AppDialog';
 import { AppButton } from './AppButton';
 import { WarningAmberIcon } from '../../icons';
 
-// Default timeouts: 5 minutes idle threshold + 60 seconds warning countdown
+// Default timeouts: 5 minutes total idle limit, popup appears at 4th min (60-second warning countdown)
 // Can be customized via environment variables for rapid testing (e.g. VITE_IDLE_TIMEOUT_MS=15000)
-const IDLE_TIMEOUT_MS =
-  Number(import.meta.env.VITE_IDLE_TIMEOUT_MS) || 5 * 60 * 1000; // 5 minutes default
+const TOTAL_IDLE_TIMEOUT_MS =
+  Number(import.meta.env.VITE_IDLE_TIMEOUT_MS) || 5 * 60 * 1000; // 5 minutes total
 const WARNING_DURATION_MS =
-  Number(import.meta.env.VITE_IDLE_WARNING_MS) || 60 * 1000;    // 60 seconds warning
+  Number(import.meta.env.VITE_IDLE_WARNING_MS) || 60 * 1000;    // 60 seconds warning countdown
+const WARNING_THRESHOLD_MS =
+  Math.max(0, TOTAL_IDLE_TIMEOUT_MS - WARNING_DURATION_MS);     // Shows at 4th minute (240,000 ms)
 
 const STORAGE_ACTIVE_KEY = 'app_last_active_time';
 const ACTIVITY_CHANNEL_NAME = 'app_activity_channel';
@@ -35,7 +38,9 @@ export const IdleTimeoutModal = () => {
   const { isAuthenticated, logout } = useAuth();
 
   const [showWarning, setShowWarning] = useState(false);
-  const [secondsRemaining, setSecondsRemaining] = useState(60);
+  const [secondsRemaining, setSecondsRemaining] = useState(
+    Math.ceil(WARNING_DURATION_MS / 1000)
+  );
 
   // Ref tracking whether the warning popup is open so event listeners
   // know NOT to auto-reset the idle timer when user moves the mouse to click a button
@@ -128,15 +133,13 @@ export const IdleTimeoutModal = () => {
       const storedTime = Number(localStorage.getItem(STORAGE_ACTIVE_KEY)) || Date.now();
       const idleTime = Date.now() - storedTime;
 
-      const totalTimeBeforeLogout = IDLE_TIMEOUT_MS + WARNING_DURATION_MS;
-
-      if (idleTime >= totalTimeBeforeLogout) {
-        // Idle duration exceeded warning grace period → log out user
+      if (idleTime >= TOTAL_IDLE_TIMEOUT_MS) {
+        // Exceeded total 5 minutes → log out user immediately
         setShowWarning(false);
         logout();
-      } else if (idleTime >= IDLE_TIMEOUT_MS) {
-        // Within warning window → display modal with remaining seconds
-        const msLeft = totalTimeBeforeLogout - idleTime;
+      } else if (idleTime >= WARNING_THRESHOLD_MS) {
+        // Reached 4th minute → display modal with countdown to the 5th minute
+        const msLeft = TOTAL_IDLE_TIMEOUT_MS - idleTime;
         const secsLeft = Math.max(1, Math.ceil(msLeft / 1000));
         setSecondsRemaining(secsLeft);
         setShowWarning(true);

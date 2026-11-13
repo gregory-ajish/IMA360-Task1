@@ -63,6 +63,8 @@ import {
   Warning,
   ErrorOutlineOutlined as ErrorOutline,
   Check,
+  WifiOff,
+  NewReleases,
 
   // Theme & Appearance
   DarkMode,
@@ -209,6 +211,9 @@ export const WarningAmberIcon = WarningAmber;
 export const WarningFilledIcon = Warning;
 export const ErrorOutlineIcon = ErrorOutline;
 export const CheckIcon = Check;
+export const WifiOffIcon = WifiOff;
+export const NewReleasesIcon = NewReleases;
+export const BugReportIcon = BugReport;
 
 // Theme & Branding
 export const DarkModeIcon = DarkMode;
