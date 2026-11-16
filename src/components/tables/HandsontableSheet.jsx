@@ -22,7 +22,7 @@ import { TrimRows } from 'handsontable/plugins/trimRows';
 import 'handsontable/styles/handsontable.min.css';
 import 'handsontable/styles/ht-theme-main.min.css';
 import { blcColors, typographyTokens } from '../../theme';
-import { WidgetErrorBoundary } from '../common/ChunkErrorBoundary';
+import { WidgetErrorBoundary } from '../common';
 
 // Register all Handsontable modules globally
 registerAllModules();

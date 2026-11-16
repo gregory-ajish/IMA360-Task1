@@ -57,7 +57,7 @@ export const ApiErrorState = ({
       ? `The server returned an error (${status || 500}). Our team has been alerted.`
       : error?.message || 'An unexpected error occurred while fetching data. Click Retry to try again.');
 
-  const iconColor = isServer ? '#ef4444' : '#f59e0b';
+  const iconColor = isServer ? blcColors.redError : blcColors.amberWarning;
   const iconBg = isServer
     ? isDark
       ? 'rgba(239, 68, 68, 0.18)'

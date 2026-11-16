@@ -15,7 +15,7 @@ import PropTypes from 'prop-types';
 import { Box, Typography } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { blcColors, typographyTokens } from '../../theme';
-import { WidgetErrorBoundary } from '../common/ChunkErrorBoundary';
+import { WidgetErrorBoundary } from '../common';
 
 /**
  * MuiDataGrid / AppDataGrid Component

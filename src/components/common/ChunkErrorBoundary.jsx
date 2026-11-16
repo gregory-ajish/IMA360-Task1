@@ -13,9 +13,7 @@ import { useTheme } from '@mui/material/styles';
 import { blcColors, typographyTokens } from '../../theme';
 import { AppButton } from './AppButton';
 import {
-  ErrorOutlineIcon,
   RefreshIcon,
-  WarningAmberIcon,
   WifiOffIcon,
   NewReleasesIcon,
   SecurityIcon,
@@ -34,28 +32,28 @@ const getCategoryStyles = (category, isDark) => {
       return {
         bg: isDark ? 'rgba(2, 132, 199, 0.18)' : 'rgba(2, 132, 199, 0.1)',
         border: isDark ? 'rgba(2, 132, 199, 0.4)' : 'rgba(2, 132, 199, 0.25)',
-        color: isDark ? '#38bdf8' : '#0284c7',
+        color: isDark ? blcColors.blueInfoLight : blcColors.blueInfo,
       };
     case ERROR_CATEGORIES.NETWORK_DROP:
     case ERROR_CATEGORIES.OFFLINE:
       return {
         bg: isDark ? 'rgba(245, 158, 11, 0.18)' : 'rgba(245, 158, 11, 0.1)',
         border: isDark ? 'rgba(245, 158, 11, 0.4)' : 'rgba(245, 158, 11, 0.25)',
-        color: '#f59e0b',
+        color: blcColors.amberWarning,
       };
     case ERROR_CATEGORIES.BLOCKED_SCRIPT:
     case ERROR_CATEGORIES.BLOCKED:
       return {
         bg: isDark ? 'rgba(217, 119, 6, 0.18)' : 'rgba(217, 119, 6, 0.1)',
         border: isDark ? 'rgba(217, 119, 6, 0.4)' : 'rgba(217, 119, 6, 0.25)',
-        color: isDark ? '#fbbf24' : '#d97706',
+        color: isDark ? '#fbbf24' : blcColors.amberWarningDark,
       };
     case ERROR_CATEGORIES.PAGE_BROKEN:
     default:
       return {
         bg: isDark ? 'rgba(239, 68, 68, 0.18)' : 'rgba(239, 68, 68, 0.1)',
         border: isDark ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.25)',
-        color: '#ef4444',
+        color: blcColors.redError,
       };
   }
 };
@@ -86,7 +84,7 @@ const renderCategoryIcon = (category) => {
  */
 export const ErrorRecoveryCard = ({ error, onRetry, compact = false, moduleName }) => {
   const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const isDark = theme?.palette?.mode === 'dark';
   const details = classifyError(error);
   const styles = getCategoryStyles(details.category, isDark);
 

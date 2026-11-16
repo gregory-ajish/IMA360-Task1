@@ -183,6 +183,12 @@ export const registerVitePreloadErrorHandler = () => {
   if (typeof window === 'undefined') return;
 
   window.addEventListener('vite:preloadError', (event) => {
+    // If the browser is currently offline, an immediate page reload won't help.
+    // Allow error to propagate to ChunkErrorBoundary to render the offline recovery UI.
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return;
+    }
+
     const reloaded = attemptChunkReloadOnce();
     if (reloaded) {
       // Prevent Vite from throwing immediately while the browser reloads
@@ -204,7 +210,8 @@ export const lazyWithRetry = (importFn) =>
     try {
       return await importFn();
     } catch (error) {
-      if (isChunkLoadError(error) && attemptChunkReloadOnce()) {
+      const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+      if (isChunkLoadError(error) && !isOffline && attemptChunkReloadOnce()) {
         // Keep Suspense pending while browser reloads instead of flashing fallback error UI
         return new Promise(() => { });
       }

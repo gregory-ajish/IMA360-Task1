@@ -21,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { AppDialog } from './AppDialog';
 import { AppButton } from './AppButton';
 import { WarningAmberIcon } from '../../icons';
+import { blcColors, typographyTokens } from '../../theme';
 
 // Default timeouts: 5 minutes total idle limit, popup appears at 4th min (60-second warning countdown)
 // Can be customized via environment variables for rapid testing (e.g. VITE_IDLE_TIMEOUT_MS=15000)
@@ -185,7 +186,7 @@ export const IdleTimeoutModal = () => {
       onClose={handleStayLoggedIn} // Clicking outside or escape extends session
       title="Inactivity Warning"
       subtitle="You have been idle across all tabs"
-      icon={<WarningAmberIcon sx={{ color: '#f59e0b', fontSize: 28 }} />}
+      icon={<WarningAmberIcon sx={{ color: blcColors.amberWarning, fontSize: 28 }} />}
       maxWidth="xs"
       zIndex={1600} // Render on top of any page elements or existing modals
       contentSx={{
@@ -230,10 +231,10 @@ export const IdleTimeoutModal = () => {
       >
         <Typography
           sx={{
-            fontFamily: '"JetBrains Mono", monospace',
+            fontFamily: typographyTokens.fontMono,
             fontSize: '1.75rem',
-            fontWeight: 700,
-            color: '#d97706',
+            fontWeight: typographyTokens.weightBold,
+            color: blcColors.amberWarningDark,
             lineHeight: 1,
           }}
         >
