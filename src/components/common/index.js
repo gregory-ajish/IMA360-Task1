@@ -13,4 +13,11 @@ export { PageHeader } from './PageHeader';
 export { ThemeToggle } from './ThemeToggle';
 export { AppBreadcrumbs } from './AppBreadcrumbs';
 export { IdleTimeoutModal } from './IdleTimeoutModal';
+export { ApiErrorState } from './ApiErrorState';
+export {
+  AppErrorBoundary,
+  WidgetErrorBoundary,
+  ChunkErrorBoundary,
+  ErrorRecoveryCard,
+} from './ChunkErrorBoundary';
 export { AppDataGrid, CommonDataGrid, MuiDataGrid } from '../tables/MuiDataGrid';

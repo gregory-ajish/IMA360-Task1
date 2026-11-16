@@ -33,23 +33,41 @@ import store from './store/store.js';
 
 // The root App component — the top of the entire component tree
 import App from './App.jsx'
+import { registerVitePreloadErrorHandler } from './utils/chunkErrorHandler'
+import { registerGlobalErrorListeners, safeGet } from './utils/globalErrorHandler'
+import { AppErrorBoundary } from './components/common/ChunkErrorBoundary'
+import apiClient from './api/apiClient'
+
+// Expose testing helpers in development for rapid console diagnostics
+if (import.meta.env.DEV) {
+  window.apiClient = apiClient;
+  window.safeGet = safeGet;
+}
+
+// Register global Vite chunk preload error handler (auto-reloads once per session)
+registerVitePreloadErrorHandler()
+
+// Register global safety listeners for unhandled runtime & promise errors (e.g. button clicks, async tasks)
+registerGlobalErrorListeners()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <Provider store={store}>
-      <App />
-      <ToastContainer
-        position="bottom-left"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
-    </Provider>
+    <AppErrorBoundary name="Root Application">
+      <Provider store={store}>
+        <App />
+        <ToastContainer
+          position="bottom-left"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
+        />
+      </Provider>
+    </AppErrorBoundary>
   </StrictMode>,
 )
 

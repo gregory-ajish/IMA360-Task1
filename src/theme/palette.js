@@ -14,6 +14,25 @@ export const getPalette = (mode) => ({
   secondary: {
     main: blcColors.yellowAccent,     // Used for secondary accents (e.g., badges)
   },
+  error: {
+    main: blcColors.redError,
+    dark: blcColors.redErrorDark,
+    contrastText: blcColors.white,
+  },
+  warning: {
+    main: blcColors.amberWarning,
+    dark: blcColors.amberWarningDark,
+    contrastText: blcColors.white,
+  },
+  info: {
+    main: blcColors.blueInfo,
+    light: blcColors.blueInfoLight,
+    contrastText: blcColors.white,
+  },
+  success: {
+    main: blcColors.greenSuccess,
+    contrastText: blcColors.white,
+  },
   background: {
     // Page background (body)
     default: mode === 'light' ? blcColors.cream : blcColors.darkBg,
