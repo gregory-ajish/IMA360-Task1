@@ -171,6 +171,11 @@ export const MuiDataGrid = forwardRef(function MuiDataGrid(
       }}
     >
       <WidgetErrorBoundary name="Data Table">
+        {Boolean(import.meta.env.DEV && typeof window !== 'undefined' && window.__TEST_WIDGET_CRASH__) && (
+          (() => {
+            throw new Error('Simulated DataGrid crash for testing');
+          })()
+        )}
         <DataGrid
           ref={ref}
           rows={rows}

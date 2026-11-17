@@ -17,7 +17,7 @@ const MAX_AUTO_RETRIES = 2;
  * Creates the centralized Axios instance
  */
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '',
+  baseURL: import.meta.env?.VITE_API_BASE_URL || '',
   timeout: 10000, // 10-second request timeout
   headers: {
     'Content-Type': 'application/json',
@@ -38,6 +38,31 @@ apiClient.interceptors.request.use(
         config,
       };
       return Promise.reject(mockError);
+    }
+
+    // Mock API endpoint for customer scale tiers (/scales?customerId=...)
+    if (config.url?.includes('/scales')) {
+      const urlParts = (config.url || '').split('?');
+      const params = new URLSearchParams(urlParts[1] || '');
+      const customerId = params.get('customerId') || '1';
+      const custNum = parseInt(customerId, 10) || 1;
+
+      // Clean scale tiers returned for the selected customer
+      const scalesData = [
+        { id: `SCL-${custNum}-1`, name: 'Scale Tier A', value: 10, discount: '5%', status: 'Active' },
+        { id: `SCL-${custNum}-2`, name: 'Scale Tier B', value: 25, discount: '10%', status: 'Active' },
+        { id: `SCL-${custNum}-3`, name: 'Scale Tier C', value: 50, discount: '15%', status: 'Eligible' },
+        { id: `SCL-${custNum}-4`, name: 'Scale Tier D', value: 100, discount: '20%', status: 'Available' },
+      ];
+
+      config.adapter = async () => ({
+        data: scalesData,
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' },
+        config,
+      });
+      return config;
     }
 
     // 3.a Fast-fail if browser device is completely offline

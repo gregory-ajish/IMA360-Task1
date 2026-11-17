@@ -17,15 +17,27 @@ import React, {
 import { Box, Typography, CircularProgress } from '@mui/material';
 import { HotTable } from '@handsontable/react';
 import { registerAllModules } from 'handsontable/registry';
+import { registerCellType } from 'handsontable/cellTypes';
 import { Filters } from 'handsontable/plugins/filters';
 import { TrimRows } from 'handsontable/plugins/trimRows';
 import 'handsontable/styles/handsontable.min.css';
 import 'handsontable/styles/ht-theme-main.min.css';
 import { blcColors, typographyTokens } from '../../theme';
 import { WidgetErrorBoundary } from '../common';
+import { actionsColumnRenderer } from './actionsColumn';
 
 // Register all Handsontable modules globally
 registerAllModules();
+
+try {
+  registerCellType('actions', {
+    renderer: actionsColumnRenderer,
+    readOnly: true,
+    editor: false,
+  });
+} catch {
+  // Guard if already registered
+}
 
 // ── Handsontable TrimRows & ConditionCollection Null Safeguards ─────────────
 const SAFE_FILTERING_STATES_STUB = Object.freeze({
@@ -80,8 +92,9 @@ if (Filters && Filters.prototype && !Filters.prototype.__patchedForNullEntries) 
   };
 }
 
-// Re-export custom renderers for convenience
+// Re-export custom renderers and actions column helpers for convenience
 export { deleteButtonRenderer } from './renderers';
+export { createActionsColumn, actionsColumnRenderer } from './actionsColumn';
 
 export const HandsontableSheet = forwardRef(function HandsontableSheet(
   {
@@ -119,6 +132,10 @@ export const HandsontableSheet = forwardRef(function HandsontableSheet(
     autoWrapRow = true,
     autoWrapCol = true,
     licenseKey = 'non-commercial-and-evaluation',
+    actions = [],
+    onAction,
+    onViewRow,
+    onEditRow,
     onDeleteRow,
     onCellClick,
     onRowClick,
@@ -334,11 +351,15 @@ export const HandsontableSheet = forwardRef(function HandsontableSheet(
         if (customResult === false) return false;
       }
 
-      const actionColIdx = columns ? columns.length - 1 : -1;
       if (
-        isAdmin &&
         destinationSortConfigs &&
-        destinationSortConfigs.some((cfg) => cfg.column === actionColIdx)
+        destinationSortConfigs.some((cfg) => {
+          const colDef = visibleColumnsList?.[cfg.column] ?? columns?.[cfg.column];
+          return (
+            (colDef && (colDef.type === 'actions' || colDef.id === 'actions' || colDef.actions)) ||
+            (cfg.column === (columns ? columns.length - 1 : -1) && (isAdmin || onDeleteRow))
+          );
+        })
       ) {
         return false;
       }
@@ -368,9 +389,7 @@ export const HandsontableSheet = forwardRef(function HandsontableSheet(
         }
 
         const dest = destinationSortConfigs[0];
-        const colDef = (visibleColumnsList && visibleColumnsList.length > 0)
-          ? visibleColumnsList[dest.column]
-          : (columns && columns[dest.column]);
+        const colDef = visibleColumnsList?.[dest.column] ?? columns?.[dest.column];
 
         if (colDef && workerRef.current) {
           const colId = colDef.id !== undefined ? colDef.id : colDef.data;
@@ -505,17 +524,66 @@ export const HandsontableSheet = forwardRef(function HandsontableSheet(
       }
     }
 
-    const isActionCol =
-      actionColumnIndex !== undefined
-        ? colIndex === actionColumnIndex
-        : onDeleteRow && columns && colIndex === columns.length - 1;
+    // 1. Detect if an action button was clicked
+    const targetElement = event?.target;
+    const actionBtn = targetElement && targetElement.closest ? targetElement.closest('[data-action], .action-btn, .rt-delete-btn') : null;
 
-    if (isActionCol && onDeleteRow) {
+    const colDef = visibleColumnsList?.[colIndex] ?? columns?.[colIndex];
+
+    const isActionCol =
+      Boolean(actionBtn) ||
+      (colDef && (colDef.type === 'actions' || colDef.id === 'actions' || colDef.actions)) ||
+      (actionColumnIndex !== undefined && colIndex === actionColumnIndex) ||
+      (onDeleteRow && columns && colIndex === columns.length - 1);
+
+    if (actionBtn || (isActionCol && targetElement?.closest?.('button'))) {
       if (event) {
         event.stopImmediatePropagation?.();
         event.preventDefault?.();
       }
-      onDeleteRow(rowIndex, rowData);
+
+      // Determine action name from data attribute or legacy class
+      let actionName = actionBtn?.getAttribute('data-action');
+      if (!actionName) {
+        if (targetElement.closest('.action-scale-btn')) {
+          actionName = 'scale';
+        } else if (targetElement.closest('.action-view-btn') || targetElement.closest('.rt-view-btn')) {
+          actionName = 'view';
+        } else if (targetElement.closest('.action-edit-btn') || targetElement.closest('.rt-edit-btn')) {
+          actionName = 'edit';
+        } else if (targetElement.closest('.action-delete-btn') || targetElement.closest('.rt-delete-btn')) {
+          actionName = 'delete';
+        } else {
+          actionName = 'click';
+        }
+      }
+
+      // 1. Find action definition from column or table props
+      const colActions = colDef?.actions || actions || [];
+      const matchedAction = Array.isArray(colActions)
+        ? colActions.find((a) => a.name === actionName)
+        : null;
+
+      // 2. Call action-specific onClick if defined on the action object
+      if (matchedAction && typeof matchedAction.onClick === 'function') {
+        matchedAction.onClick(rowData, rowIndex, event);
+      }
+
+      // 3. Call table-level onAction callback
+      if (onAction) {
+        onAction(actionName, rowData, rowIndex, event);
+      }
+
+      // 4. Backward-compatible individual handlers
+      if (actionName === 'delete' && onDeleteRow) {
+        onDeleteRow(rowIndex, rowData);
+      } else if (actionName === 'view' && onViewRow) {
+        onViewRow(rowData, rowIndex);
+      } else if (actionName === 'edit' && onEditRow) {
+        onEditRow(rowData, rowIndex);
+      }
+
+      return;
     }
 
     if (onCellClick) {
@@ -531,9 +599,7 @@ export const HandsontableSheet = forwardRef(function HandsontableSheet(
   const processedColHeaders = React.useMemo(() => {
     if (!colHeaders || !Array.isArray(colHeaders)) return colHeaders;
     return colHeaders.map((headerText, index) => {
-      const colDef = (visibleColumnsList && visibleColumnsList.length > 0)
-        ? visibleColumnsList[index]
-        : (columns && columns[index]);
+      const colDef = visibleColumnsList?.[index] ?? columns?.[index];
       const colId = colDef ? (colDef.id !== undefined ? colDef.id : colDef.data) : index;
       if (colDef && colId === activeSort.columnId) {
         if (activeSort.direction === 'asc') return `${headerText} ▲`;
@@ -599,7 +665,13 @@ export const HandsontableSheet = forwardRef(function HandsontableSheet(
             </Typography>
           </Box>
         ) : (
-          <HotTable
+          <>
+            {Boolean(import.meta.env.DEV && typeof window !== 'undefined' && window.__TEST_WIDGET_CRASH__) && (
+              (() => {
+                throw new Error('Simulated Spreadsheet crash for testing');
+              })()
+            )}
+            <HotTable
             ref={innerHotRef}
             data={data}
             columns={columns}
@@ -635,7 +707,8 @@ export const HandsontableSheet = forwardRef(function HandsontableSheet(
             afterOnCellMouseDown={handleCellMouseDown}
             {...restProps}
           />
-        )}
+        </>
+      )}
       </WidgetErrorBoundary>
     </Box>
   );
