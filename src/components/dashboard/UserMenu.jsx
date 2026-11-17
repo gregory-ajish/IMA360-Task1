@@ -124,6 +124,8 @@ export const UserMenu = ({ currentUser, onLogout, isDark, onProfileClick, onSett
           aria-label="open user account menu"
         >
           <Avatar
+            src={currentUser?.avatar || undefined}
+            alt={currentUser?.name || 'User'}
             sx={{
               width: 34,
               height: 34,
@@ -214,8 +216,8 @@ export const UserMenu = ({ currentUser, onLogout, isDark, onProfileClick, onSett
             },
           }}
         >
-          <LogoutIcon sx={{ fontSize: 17, color: '#ef4444' }} />
-          <Typography sx={{ ...menuTextSx, color: '#ef4444' }}>
+          <LogoutIcon sx={{ fontSize: 17, color: blcColors.redError }} />
+          <Typography sx={{ ...menuTextSx, color: blcColors.redError }}>
             Sign Out
           </Typography>
         </MenuItem>

@@ -10,20 +10,23 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, Box, CircularProgress } from '@mui/material';
 import { getTheme } from './theme';                             // Custom MUI theme builder
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';           // Global auth state
 import { ProtectedRoute } from './components/routes/ProtectedRoute'; // Guards private pages
 import { PublicRoute } from './components/routes/PublicRoute';       // Guards public pages (e.g. login)
+import { IdleTimeoutModal, ChunkErrorBoundary } from './components/common'; // Cross-tab idle timeout & chunk error boundary
+import { lazyWithRetry } from './utils/chunkErrorHandler';
 
 // Route-level code-splitting: Heavy pages (Handsontable, Dnd-Kit, etc.) are loaded on-demand
-const LoginPage = React.lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
-const DashboardPage = React.lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
-const RevenueTrackerPage = React.lazy(() => import('./pages/RevenueTrackerPage').then((m) => ({ default: m.RevenueTrackerPage })));
-const WeatherPage = React.lazy(() => import('./pages/WeatherPage').then((m) => ({ default: m.WeatherPage })));
-const SalesSummaryPage = React.lazy(() => import('./pages/SalesSummaryPage').then((m) => ({ default: m.SalesSummaryPage })));
-const CustomerInsightPage = React.lazy(() => import('./pages/CustomerInsightPage').then((m) => ({ default: m.CustomerInsightPage })));
-const ContractLedgerPage = React.lazy(() => import('./pages/ContractLedgerPage').then((m) => ({ default: m.ContractLedgerPage })));
-const ContractLedgerEditPage = React.lazy(() => import('./pages/ContractLedgerEditPage').then((m) => ({ default: m.ContractLedgerEditPage })));
-const ContractLedgerViewPage = React.lazy(() => import('./pages/ContractLedgerViewPage').then((m) => ({ default: m.ContractLedgerViewPage })));
+const LoginPage = lazyWithRetry(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const RevenueTrackerPage = lazyWithRetry(() => import('./pages/RevenueTrackerPage').then((m) => ({ default: m.RevenueTrackerPage })));
+const WeatherPage = lazyWithRetry(() => import('./pages/WeatherPage').then((m) => ({ default: m.WeatherPage })));
+const SalesSummaryPage = lazyWithRetry(() => import('./pages/SalesSummaryPage').then((m) => ({ default: m.SalesSummaryPage })));
+const CustomerInsightPage = lazyWithRetry(() => import('./pages/CustomerInsightPage').then((m) => ({ default: m.CustomerInsightPage })));
+const ContractLedgerPage = lazyWithRetry(() => import('./pages/ContractLedgerPage').then((m) => ({ default: m.ContractLedgerPage })));
+const ContractLedgerEditPage = lazyWithRetry(() => import('./pages/ContractLedgerEditPage').then((m) => ({ default: m.ContractLedgerEditPage })));
+const ContractLedgerViewPage = lazyWithRetry(() => import('./pages/ContractLedgerViewPage').then((m) => ({ default: m.ContractLedgerViewPage })));
 
 /**
  * Lightweight loading indicator while an on-demand route chunk loads.
@@ -55,6 +58,9 @@ function ScrollToTop() {
 
   return null;
 }
+
+const GOOGLE_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-google-client-id';
 
 export default function App() {
   // ─── Theme Mode (Light / Dark) ──────────────────────────────────────────
@@ -93,129 +99,134 @@ export default function App() {
 
       {/* AuthProvider gives all child components access to auth state (login, logout, currentUser)
           via the useAuth() hook — must be above BrowserRouter so route guards can use auth */}
-      <AuthProvider>
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <AuthProvider>
 
-        {/* BrowserRouter enables React Router — listens to URL changes and renders
+          {/* BrowserRouter enables React Router — listens to URL changes and renders
             matching routes without full page reloads */}
-        <BrowserRouter>
-          <ScrollToTop />
-          <Suspense fallback={<PageFallback />}>
-            <Routes>
+          <BrowserRouter>
+            <ScrollToTop />
+            <IdleTimeoutModal />
+            <ChunkErrorBoundary>
+              <Suspense fallback={<PageFallback />}>
+                <Routes>
 
-              {/* /login — Public route: accessible only when NOT logged in.
+                  {/* /login — Public route: accessible only when NOT logged in.
                   PublicRoute redirects logged-in users away from the login page. */}
-              <Route
-                path="/login"
-                element={
-                  <PublicRoute>
-                    {/* Pass mode/toggleMode so the login page can show the theme toggle */}
-                    <LoginPage mode={mode} toggleMode={toggleMode} />
-                  </PublicRoute>
-                }
-              />
+                  <Route
+                    path="/login"
+                    element={
+                      <PublicRoute>
+                        {/* Pass mode/toggleMode so the login page can show the theme toggle */}
+                        <LoginPage mode={mode} toggleMode={toggleMode} />
+                      </PublicRoute>
+                    }
+                  />
 
-              {/* /home — Protected route: accessible only when logged in.
+                  {/* /home — Protected route: accessible only when logged in.
                   ProtectedRoute redirects unauthenticated users to /login. */}
-              <Route
-                path="/home"
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage mode={mode} toggleMode={toggleMode} />
-                  </ProtectedRoute>
-                }
-              />
+                  <Route
+                    path="/home"
+                    element={
+                      <ProtectedRoute>
+                        <DashboardPage mode={mode} toggleMode={toggleMode} />
+                      </ProtectedRoute>
+                    }
+                  />
 
-              {/* /revenue-tracker — Standalone Protected Revenue Tracker Page (Read-only for Users, Editable for Admin) */}
-              <Route
-                path="/revenue-tracker"
-                element={
-                  <ProtectedRoute>
-                    <RevenueTrackerPage mode={mode} toggleMode={toggleMode} />
-                  </ProtectedRoute>
-                }
-              />
+                  {/* /revenue-tracker — Standalone Protected Revenue Tracker Page (Read-only for Users, Editable for Admin) */}
+                  <Route
+                    path="/revenue-tracker"
+                    element={
+                      <ProtectedRoute>
+                        <RevenueTrackerPage mode={mode} toggleMode={toggleMode} />
+                      </ProtectedRoute>
+                    }
+                  />
 
-              {/* /weather — Standalone Protected Weather Forecast Page powered by OpenWeatherMap API */}
-              <Route
-                path="/weather"
-                element={
-                  <ProtectedRoute>
-                    <WeatherPage mode={mode} toggleMode={toggleMode} />
-                  </ProtectedRoute>
-                }
-              />
+                  {/* /weather — Standalone Protected Weather Forecast Page powered by OpenWeatherMap API */}
+                  <Route
+                    path="/weather"
+                    element={
+                      <ProtectedRoute>
+                        <WeatherPage mode={mode} toggleMode={toggleMode} />
+                      </ProtectedRoute>
+                    }
+                  />
 
-              {/* /sales-summary — Sales Summary with Handsontable ColumnSummary aggregate demo */}
-              <Route
-                path="/sales-summary"
-                element={
-                  <ProtectedRoute>
-                    <SalesSummaryPage mode={mode} toggleMode={toggleMode} />
-                  </ProtectedRoute>
-                }
-              />
+                  {/* /sales-summary — Sales Summary with Handsontable ColumnSummary aggregate demo */}
+                  <Route
+                    path="/sales-summary"
+                    element={
+                      <ProtectedRoute>
+                        <SalesSummaryPage mode={mode} toggleMode={toggleMode} />
+                      </ProtectedRoute>
+                    }
+                  />
 
-              {/* /customer-insights — Handsontable customer insights ledger with WebWorker sorting & filtering */}
-              <Route
-                path="/customer-insights"
-                element={
-                  <ProtectedRoute>
-                    <CustomerInsightPage mode={mode} toggleMode={toggleMode} />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/customer-insight"
-                element={
-                  <ProtectedRoute>
-                    <CustomerInsightPage mode={mode} toggleMode={toggleMode} />
-                  </ProtectedRoute>
-                }
-              />
+                  {/* /customer-insights — Handsontable customer insights ledger with WebWorker sorting & filtering */}
+                  <Route
+                    path="/customer-insights"
+                    element={
+                      <ProtectedRoute>
+                        <CustomerInsightPage mode={mode} toggleMode={toggleMode} />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/customer-insight"
+                    element={
+                      <ProtectedRoute>
+                        <CustomerInsightPage mode={mode} toggleMode={toggleMode} />
+                      </ProtectedRoute>
+                    }
+                  />
 
-              {/* /contract-ledger — Handsontable Contract Ledger interactive table */}
-              <Route
-                path="/contract-ledger"
-                element={
-                  <ProtectedRoute>
-                    <ContractLedgerPage mode={mode} toggleMode={toggleMode} />
-                  </ProtectedRoute>
-                }
-              />
+                  {/* /contract-ledger — Handsontable Contract Ledger interactive table */}
+                  <Route
+                    path="/contract-ledger"
+                    element={
+                      <ProtectedRoute>
+                        <ContractLedgerPage mode={mode} toggleMode={toggleMode} />
+                      </ProtectedRoute>
+                    }
+                  />
 
-              {/* /contract-ledger/edit/:rowId — Dedicated contract editing page with Header & Details cards */}
-              <Route
-                path="/contract-ledger/edit/:rowId"
-                element={
-                  <ProtectedRoute>
-                    <ContractLedgerEditPage mode={mode} toggleMode={toggleMode} />
-                  </ProtectedRoute>
-                }
-              />
+                  {/* /contract-ledger/edit/:rowId — Dedicated contract editing page with Header & Details cards */}
+                  <Route
+                    path="/contract-ledger/edit/:rowId"
+                    element={
+                      <ProtectedRoute>
+                        <ContractLedgerEditPage mode={mode} toggleMode={toggleMode} />
+                      </ProtectedRoute>
+                    }
+                  />
 
-              {/* /contract-ledger/view/:rowId — Dedicated read-only contract viewing page */}
-              <Route
-                path="/contract-ledger/view/:rowId"
-                element={
-                  <ProtectedRoute>
-                    <ContractLedgerViewPage mode={mode} toggleMode={toggleMode} />
-                  </ProtectedRoute>
-                }
-              />
+                  {/* /contract-ledger/view/:rowId — Dedicated read-only contract viewing page */}
+                  <Route
+                    path="/contract-ledger/view/:rowId"
+                    element={
+                      <ProtectedRoute>
+                        <ContractLedgerViewPage mode={mode} toggleMode={toggleMode} />
+                      </ProtectedRoute>
+                    }
+                  />
 
-              {/* Legacy /ai-copilot route redirects for backward compatibility */}
-              <Route path="/ai-copilot" element={<Navigate to="/contract-ledger" replace />} />
-              <Route path="/ai-copilot/edit/:rowId" element={<Navigate to="/contract-ledger" replace />} />
+                  {/* Legacy /ai-copilot route redirects for backward compatibility */}
+                  <Route path="/ai-copilot" element={<Navigate to="/contract-ledger" replace />} />
+                  <Route path="/ai-copilot/edit/:rowId" element={<Navigate to="/contract-ledger" replace />} />
 
-              {/* Catch-all: redirect root "/" and any unknown URL to /home.
+                  {/* Catch-all: redirect root "/" and any unknown URL to /home.
                   ProtectedRoute on /home will then redirect to /login if not authenticated. */}
-              <Route path="/" element={<Navigate to="/home" replace />} />
-              <Route path="*" element={<Navigate to="/home" replace />} />
+                  <Route path="/" element={<Navigate to="/home" replace />} />
+                  <Route path="*" element={<Navigate to="/home" replace />} />
 
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
+                </Routes>
+              </Suspense>
+            </ChunkErrorBoundary>
+          </BrowserRouter>
+        </AuthProvider>
+      </GoogleOAuthProvider>
     </ThemeProvider>
   );
 }

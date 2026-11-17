@@ -22,6 +22,16 @@ import {
   Box,
   Container,
   Paper,
+  Typography,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Stack,
 } from '@mui/material';
 
 // Centralized App Icons
@@ -30,7 +40,6 @@ import { InsightsIcon } from '../icons';
 // Toast notifications
 import { toast } from 'react-toastify';
 
-
 // Theme tokens & Context
 import { blcColors } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -38,7 +47,16 @@ import { useAuth } from '../context/AuthContext';
 // Common Components
 import { PageHeader } from '../components/common/PageHeader';
 import { Navbar } from '../components/dashboard/Navbar';
-import { HandsontableSheet, DataTableToolbar } from '../components/tables';
+import { AppDialog } from '../components/common/AppDialog';
+import { AppButton } from '../components/common/AppButton';
+import {
+  HandsontableSheet,
+  createActionsColumn,
+  DataTableToolbar,
+} from '../components/tables';
+
+// Customer API
+import { fetchCustomerScales } from '../api/customerApi';
 
 // Feature Components — All-In-One Bulk Updater
 import {
@@ -207,7 +225,7 @@ export const CustomerInsightPage = ({ mode, toggleMode }) => {
   });
 
   const columns = useMemo(() => {
-    return visibleColumns.map((col) => {
+    const baseCols = visibleColumns.map((col) => {
       const colDef = {
         data: col.dataIndex,
         title: col.label,
@@ -217,12 +235,36 @@ export const CustomerInsightPage = ({ mode, toggleMode }) => {
       if (col.numericFormat) colDef.numericFormat = col.numericFormat;
       if (col.dateFormat) colDef.dateFormat = col.dateFormat;
       if (col.correctFormat !== undefined) colDef.correctFormat = col.correctFormat;
+      if (col.renderer) colDef.renderer = col.renderer;
+      if (col.actions) colDef.actions = col.actions;
+      if (col.readOnly !== undefined) colDef.readOnly = col.readOnly;
+      if (col.className) colDef.className = col.className;
+      if (col.width) colDef.width = col.width;
       return colDef;
     });
+
+    // Parent defines and appends the flexible Actions column with the Scale action
+    baseCols.push(
+      createActionsColumn(
+        [
+          {
+            name: 'scale',
+            title: 'View Scales Tier & Pricing',
+            icon: 'scale',
+            color: '#0284c7',
+          },
+        ],
+        { id: 'actions', label: 'Actions', width: 68 }
+      )
+    );
+
+    return baseCols;
   }, [visibleColumns]);
 
   const colHeaders = useMemo(() => {
-    return visibleColumns.map((col) => col.label);
+    const headers = visibleColumns.map((col) => col.label);
+    headers.push('Actions');
+    return headers;
   }, [visibleColumns]);
 
   const handleColumnsChange = (newVisible, newHidden) => {
@@ -278,6 +320,55 @@ export const CustomerInsightPage = ({ mode, toggleMode }) => {
       `Bulk updated ${updates.map((u) => u.label).join(' & ')} across all records!`
     );
   };
+
+  // ── Scale Tiers Popup Dialog State (Controlled by Parent) ─────────────────
+  const [scaleModalOpen, setScaleModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [scaleRows, setScaleRows] = useState([]);
+  const [isScaleLoading, setIsScaleLoading] = useState(false);
+
+  /**
+   * Action dispatcher triggered by the table when user clicks any action icon.
+   *
+   * Example (Scale):
+   * Customer table, row 12, user clicks the Scale icon.
+   * -> table tells the parent: action "scale", row 12
+   * -> parent fetches the scales for row 12 (an array of objects)
+   * -> parent opens a popup with that data
+   * The table does not know what "scale" means.
+   */
+  const handleAction = useCallback(async (actionName, rowData, rowIndex) => {
+    if (actionName === 'scale') {
+      const customerId = rowIndex + 1;
+      const planTier = Array.isArray(rowData) ? rowData[0] : (rowData?.planTier || 'Enterprise');
+      const companyName = Array.isArray(rowData) ? rowData[1] : (rowData?.companyName || `Customer #${customerId}`);
+      const arr = Array.isArray(rowData) ? rowData[2] : (rowData?.annualArr || 0);
+      const seats = Array.isArray(rowData) ? rowData[3] : (rowData?.seats || 0);
+
+      setSelectedCustomer({
+        id: customerId,
+        rowIndex,
+        planTier,
+        companyName,
+        arr,
+        seats,
+      });
+
+      setScaleModalOpen(true);
+      setIsScaleLoading(true);
+
+      try {
+        // Parent calls the API with customer row id: /scales?customerId=...
+        const scales = await fetchCustomerScales(customerId);
+        setScaleRows(scales);
+      } catch (err) {
+        console.error('Failed to fetch scale data:', err);
+        toast.error('Failed to fetch scale tiers for this customer.');
+      } finally {
+        setIsScaleLoading(false);
+      }
+    }
+  }, []);
 
   // Logout handler
   const handleLogout = () => {
@@ -368,10 +459,106 @@ export const CustomerInsightPage = ({ mode, toggleMode }) => {
             afterSelectionEnd={handleAfterSelectionEnd}
             isDark={isDark}
             isAdmin={isAdmin}
+            onAction={handleAction}
             licenseKey="non-commercial-and-evaluation"
           />
         </Paper>
       </Container>
+
+      {/* ── Parent-Controlled Modal Popup: Second Table for Scale Tiers ── */}
+      <AppDialog
+        open={scaleModalOpen}
+        onClose={() => setScaleModalOpen(false)}
+        title="Customer Scales"
+        subtitle={
+          selectedCustomer
+            ? `${selectedCustomer.companyName} (${selectedCustomer.planTier})`
+            : ''
+        }
+        maxWidth="sm"
+        isDark={isDark}
+        actions={
+          <AppButton variant="primary" onClick={() => setScaleModalOpen(false)}>
+            Close
+          </AppButton>
+        }
+      >
+        {isScaleLoading ? (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              py: 5,
+              gap: 1.5,
+            }}
+          >
+            <CircularProgress size={32} sx={{ color: blcColors.navyAccent }} />
+            <Typography variant="body2" sx={{ color: isDark ? '#94a3b8' : '#64748b' }}>
+              Loading scale data...
+            </Typography>
+          </Box>
+        ) : (
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              borderRadius: '8px',
+              border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+              bgcolor: isDark ? '#0f172a' : '#ffffff',
+            }}
+          >
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: isDark ? '#1e293b' : '#f8fafc' }}>
+                  <TableCell sx={{ color: isDark ? '#94a3b8' : '#475569', fontWeight: 600 }}>Name</TableCell>
+                  <TableCell sx={{ color: isDark ? '#94a3b8' : '#475569', fontWeight: 600 }}>Value</TableCell>
+                  <TableCell sx={{ color: isDark ? '#94a3b8' : '#475569', fontWeight: 600 }}>Discount</TableCell>
+                  <TableCell sx={{ color: isDark ? '#94a3b8' : '#475569', fontWeight: 600 }}>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {scaleRows.map((row) => (
+                  <TableRow
+                    key={row.id || row.name}
+                    sx={{
+                      '&:hover': {
+                        bgcolor: isDark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(241, 245, 249, 0.7)',
+                      },
+                    }}
+                  >
+                    <TableCell sx={{ color: isDark ? '#f1f5f9' : '#0f172a', fontWeight: 500 }}>
+                      {row.name}
+                    </TableCell>
+                    <TableCell sx={{ color: isDark ? '#38bdf8' : '#0284c7', fontWeight: 600 }}>
+                      {row.value}
+                    </TableCell>
+                    <TableCell sx={{ color: isDark ? '#4ade80' : '#16a34a', fontWeight: 600 }}>
+                      {row.discount}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={row.status}
+                        color={
+                          row.status === 'Active'
+                            ? 'success'
+                            : row.status === 'Eligible'
+                            ? 'info'
+                            : 'default'
+                        }
+                        variant="outlined"
+                        sx={{ height: 20, fontSize: '0.72rem' }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </AppDialog>
     </Box>
   );
 };

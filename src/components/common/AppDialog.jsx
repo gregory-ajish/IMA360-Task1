@@ -37,6 +37,7 @@ export const AppDialog = ({
   TransitionProps,
   isDark: forcedIsDark,
   zIndex,
+  contentSx,
 }) => {
   const theme = useTheme();
   const isDark = forcedIsDark !== undefined ? forcedIsDark : theme.palette.mode === 'dark';
@@ -146,7 +147,7 @@ export const AppDialog = ({
       )}
 
       {/* ── Content ── */}
-      <DialogContent sx={{ px: 2.5, py: 2 }}>
+      <DialogContent sx={{ px: 2.5, py: 2, ...contentSx }}>
         {children}
       </DialogContent>
 

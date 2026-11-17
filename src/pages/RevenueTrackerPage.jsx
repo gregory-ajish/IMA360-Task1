@@ -22,8 +22,8 @@ import {
   TableChartIcon,
 } from '../icons';
 
-// Global Shared DataTable Component & Action Renderer
-import { HandsontableSheet, deleteButtonRenderer, DataTableToolbar } from '../components/tables';
+// Global Shared DataTable Component & Action Column Creator
+import { HandsontableSheet, createActionsColumn, DataTableToolbar } from '../components/tables';
 
 // Toast notifications
 import { toast } from 'react-toastify';
@@ -286,12 +286,19 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
     });
 
     if (isAdmin) {
-      baseCols.push({
-        renderer: deleteButtonRenderer,
-        readOnly: true,
-        className: 'htCenter htMiddle',
-        width: 60,
-      });
+      baseCols.push(
+        createActionsColumn(
+          [
+            {
+              name: 'delete',
+              icon: 'delete',
+              title: 'Delete row',
+              color: '#ef4444',
+            },
+          ],
+          { id: 'actions', label: 'Action', width: 60 }
+        )
+      );
     }
 
     return baseCols;
@@ -401,6 +408,11 @@ export const RevenueTrackerPage = ({ mode, toggleMode }) => {
             loadingText="Initializing 1,000,000 records in generic Web Worker..."
             isDark={isDark}
             isAdmin={isAdmin}
+            onAction={(actionName, rowData, rowIndex) => {
+              if (actionName === 'delete') {
+                handleRequestDelete(rowIndex, rowData);
+              }
+            }}
             onDeleteRow={handleRequestDelete}
             afterSelectionEnd={handleAfterSelectionEnd}
             dropdownMenu={DROPDOWN_MENU_OPTIONS}

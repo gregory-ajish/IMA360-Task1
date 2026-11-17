@@ -28,6 +28,14 @@ export const blcColors = {
   greenSuccess: '#2fd97c',   // Success states
   cyanCode: '#6ee7f7',       // Cyan for code-style highlighted values in dark mode
 
+  // ── Feedback & Alert Status Colors ──
+  redError: '#ef4444',        // Critical errors, 5xx server failures, broken components
+  redErrorDark: '#dc2626',    // Darker red for hover/active states
+  amberWarning: '#f59e0b',    // Warnings, timeouts, network drops
+  amberWarningDark: '#d97706',// Deeper amber for high-contrast countdowns & badges
+  blueInfo: '#0284c7',        // Informational, stale deployment notice
+  blueInfoLight: '#38bdf8',   // Lighter blue for dark-mode text & badges
+
   // ── Dark mode surfaces — layered charcoal for visual depth ──
   darkBg: '#111114',         // Page background — darkest layer
   darkSurface: '#18181c',    // AppBar, side panels — 1 level lighter

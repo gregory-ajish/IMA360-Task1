@@ -1,6 +1,13 @@
 // src/components/tables/renderers.js
 // PURPOSE: Dedicated Handsontable custom cell renderers.
 
+export {
+  createActionsColumn,
+  actionsColumnRenderer,
+  DEFAULT_ACTION_ICONS,
+  resolveActionIconSvg,
+} from './actionsColumn';
+
 /**
  * Custom HTML cell renderer for reusable Action / Delete column buttons.
  */

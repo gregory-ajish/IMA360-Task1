@@ -111,7 +111,7 @@ export const ConfirmDialog = ({
             height: 40,
             borderRadius: '50%', // Circle shape
             bgcolor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2', // Soft red background tint
-            color: '#ef4444', // Warning red icon color
+            color: blcColors.redError, // Warning red icon color
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

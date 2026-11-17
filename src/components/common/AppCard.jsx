@@ -84,7 +84,7 @@ export const AppCard = ({
         boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.35)' : 'none',
         opacity: isRestricted ? 0.82 : 1,
         '&:hover': {
-          borderColor: isRestricted ? '#ef4444' : blcColors.navyAccent,
+          borderColor: isRestricted ? blcColors.redError : blcColors.navyAccent,
           bgcolor: isDark
             ? (isRestricted ? 'rgba(239, 68, 68, 0.06)' : blcColors.darkCardHover)
             : (isRestricted ? '#fef2f2' : '#f8f9ff'),
